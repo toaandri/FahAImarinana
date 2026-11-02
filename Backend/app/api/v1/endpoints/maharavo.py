@@ -19,7 +19,8 @@ from ....schemas import (
 router = APIRouter(prefix="/maharavo", tags=["Maharavo IA"])
 
 
-@router.post("/research", response_model=MaharavoResearchRead, status_code=status.HTTP_201_CREATED)
+@router.post("/research", response_model=MaharavoResearchRead, status_code=status.HTTP_201_CREATED,
+             responses={503: {"description": "Interface HTTP Maharavo non documentée ou non configurée."}})
 def research(
     payload: MaharavoResearchRequest,
     db: Session = Depends(get_db),

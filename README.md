@@ -60,10 +60,14 @@ structurés et le Copilot web avec Google Search. Sans clé, il conserve le mote
 et indique que les sorties restent des pré-analyses. L’IA ne peut jamais publier
 directement un article certifié.
 
+Le [rapport d’inspection et le socle du connecteur Maharavo](Backend/MAHARAVO_INTEGRATION.md)
+distinguent le contrat backend proposé de l’interface externe, qui n’est pas documentée
+dans ce dépôt. Aucune connexion réelle à un moteur HTTP Maharavo n’est annoncée.
+
 Le périmètre Maharavo est exposé sous `/api/maharavo` :
 
-- `POST /research` conserve le sujet, les questions, la période, les langues,
-  le territoire, les citations et l’état `terminee`, `partielle` ou `echouee`.
+- `POST /research` renvoie explicitement `503` tant que l’interface réelle et
+  l’adaptateur documenté manquent ; aucun appel Gemini n’est présenté comme Maharavo.
 - `POST /media-analysis` enregistre l’empreinte, l’outil, les observations et
   les limites d’une analyse guidée ; il ne conclut jamais seul à une manipulation.
 - `POST /confidence` conserve séparément l’identité de la source, la solidité

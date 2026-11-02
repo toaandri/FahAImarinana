@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "DocumentInput": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "format": "uuid",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "consultation_id": {
+          "format": "uuid",
+          "title": "Consultation Id",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "consulted_at": {
+          "format": "date-time",
+          "title": "Consulted At",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "consultation_id",
+        "url",
+        "sha256",
+        "consulted_at",
+        "text"
+      ],
+      "title": "DocumentInput",
+      "type": "object"
+    },
+    "TaskType": {
+      "enum": [
+        "research",
+        "document_analysis",
+        "claim_extraction",
+        "source_matching",
+        "contradiction_analysis",
+        "synthesis",
+        "draft_preparation"
+      ],
+      "title": "TaskType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "fa-ai-marinana.proposal.v1",
+      "default": "fa-ai-marinana.proposal.v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_type": {
+      "$ref": "#/$defs/TaskType"
+    },
+    "model_version": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "submitted_at": {
+      "format": "date-time",
+      "title": "Submitted At",
+      "type": "string"
+    },
+    "instructions": {
+      "maxLength": 20000,
+      "minLength": 3,
+      "title": "Instructions",
+      "type": "string"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/DocumentInput"
+      },
+      "maxItems": 50,
+      "title": "Documents",
+      "type": "array"
+    }
+  },
+  "required": [
+    "task_id",
+    "task_type",
+    "model_version",
+    "submitted_at",
+    "instructions",
+    "documents"
+  ],
+  "title": "TaskRequest",
+  "type": "object",
+  "$comment": "PROPOSITION BACKEND : aucune compatibilité avec une API Maharavo distante n’est affirmée. Les vérifications de provenance nécessitent aussi le validateur Python."
+}

@@ -1,16 +1,14 @@
-"""Research provider contract; the current implementation delegates to Gemini."""
+"""Backend injection boundary, unavailable until the real external adapter is documented."""
 from typing import Protocol
-from ..ai.gemini import research_web
+from .contracts import TaskRequest, TaskResponse
+from .provenance import ConsultationManifest
+from .errors import MaharavoNotConfigured
 
 
 class ResearchProvider(Protocol):
-    def research(self, question: str) -> tuple[str, list[dict]]: ...
-
-
-class GeminiResearchProvider:
-    def research(self, question: str) -> tuple[str, list[dict]]:
-        return research_web(question)
+    async def execute(self, request: TaskRequest, manifest: ConsultationManifest) -> TaskResponse: ...
 
 
 def get_research_provider() -> ResearchProvider:
-    return GeminiResearchProvider()
+    # A concrete vendor adapter cannot be inferred from the backend's own API routes.
+    raise MaharavoNotConfigured()
