@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Logo } from '@/components/ui';
 import { palette, spacing, radius } from '@/theme/theme';
+import { login } from '@/services/mockData';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,10 +34,14 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await login(email, password);
       router.replace('/home' as any);
-    }, 600);
+    } catch (error) {
+      Alert.alert('Connexion impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

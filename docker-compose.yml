@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: fanilo
       POSTGRES_USER: fanilo
       POSTGRES_PASSWORD: fanilo
-    ports:
-      - "127.0.0.1:5432:5432"
     volumes:
       - fanilo-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -75,7 +73,7 @@ services:
       MAHARAVO_MAX_QUOTE_CHARS: ${MAHARAVO_MAX_QUOTE_CHARS:-5000}
     command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
-      - "8000:8000"
+      - "18000:8000"
 
 volumes:
   fanilo-postgres-data:

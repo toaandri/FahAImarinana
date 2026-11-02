@@ -65,7 +65,7 @@ Avec Docker et Docker Compose installés, depuis la racine du projet :
 docker compose up --build
 ```
 
-La configuration expose le backend sur le port 8000 et PostgreSQL sur le port 5432. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
+La configuration expose le backend sur le port 18000 de la machine hôte (8000 dans le conteneur). PostgreSQL reste accessible au backend sur `postgres:5432` dans le réseau Docker, sans exposition directe sur la machine hôte. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
 la génération de brouillons IA, la validation humaine, le flux public/SMS et le
 Copilot local sur les articles certifiés, ou web lorsque Gemini est activé. Les écritures et consultations privées appliquent des permissions par rôle et rédaction ;
 l’inscription exige une invitation attribuant un rôle explicite. Seuls les éditeurs

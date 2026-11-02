@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderBar, BottomTabs, GlassCard, TagChip } from '@/components/ui';
 import { palette } from '@/theme/theme';
+import { publishArticle } from '@/services/mockData';
 
 export default function PublierScreen() {
   const [title, setTitle] = useState('');
@@ -32,7 +33,23 @@ export default function PublierScreen() {
         <Text style={styles.bodyLabel}>Votre article</Text>
         <TextInput value={body} onChangeText={setBody} multiline placeholder="Écrivez ou collez votre article..." placeholderTextColor="rgba(255,255,255,0.5)" style={styles.bodyInput} />
 
-        <Pressable style={styles.publishButton}><Text style={styles.publishText}>PUBLIER</Text></Pressable>
+        <Pressable
+          style={styles.publishButton}
+          onPress={async () => {
+            if (!title.trim() || !body.trim()) {
+              Alert.alert('Article incomplet', 'Ajoutez un titre et un contenu.');
+              return;
+            }
+            try {
+              await publishArticle({ title: title.trim(), body: body.trim(), category });
+              Alert.alert('Article envoyé', 'Votre contribution a été transmise pour traitement éditorial.');
+              setTitle('');
+              setBody('');
+            } catch (error) {
+              Alert.alert('Envoi impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+            }
+          }}
+        ><Text style={styles.publishText}>PUBLIER</Text></Pressable>
       </ScrollView>
       <BottomTabs active="publier" />
     </SafeAreaView>

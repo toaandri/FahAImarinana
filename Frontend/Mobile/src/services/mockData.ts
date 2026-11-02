@@ -1,3 +1,5 @@
+import { apiRequest, clearTokens, setTokens } from './api';
+
 export type NewsItem = {
   id: string;
   source: string;
@@ -66,57 +68,98 @@ export const newsList: NewsItem[] = [
 ];
 
 export async function getLatestNews(): Promise<NewsItem[]> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return latestNews;
+  const items = await getNewsList('Tous');
+  return items.slice(0, 3);
 }
 
 export async function getNewsList(filter = 'Tous'): Promise<NewsItem[]> {
-  await new Promise((resolve) => setTimeout(resolve, 350));
-  if (filter === 'Tous') return newsList;
-  return newsList.filter((item) => item.tags.includes(filter));
+  const articles = await apiRequest<Array<{
+    id: number;
+    titre_final: string;
+    corps_article: string;
+    categorie: string;
+    statut_verification: string;
+    horodatage_validation: string;
+  }>>('/public/articles');
+
+  const items = articles.map((article) => ({
+    id: String(article.id),
+    source: 'FANILO',
+    time: new Date(article.horodatage_validation).toLocaleDateString('fr-FR'),
+    title: article.titre_final,
+    credibility: article.statut_verification === 'Vrai' ? 100 : article.statut_verification === 'Trompeur' ? 50 : 0,
+    summary: article.corps_article,
+    tags: [article.categorie],
+  }));
+  if (filter === 'Tous' || filter === 'Vérifiés') return items;
+  return items.filter((item) => item.tags.includes(filter));
 }
 
 export async function login(email: string, password: string) {
-  await new Promise((resolve) => setTimeout(resolve, 700));
-  if (!email.includes('@') || password.length < 6) {
-    throw new Error('Identifiants invalides');
-  }
+  const tokens = await apiRequest<{ access_token: string; refresh_token: string }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, mot_de_passe: password }),
+  });
+  setTokens(tokens);
   return { ok: true };
 }
 
 export async function sendMessageToAI(message: string) {
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  const answer = await apiRequest<{
+    reponse: string;
+    citations: Array<{ titre?: string; url?: string }>;
+  }>('/copilot/research', {
+    method: 'POST',
+    body: JSON.stringify({ question: message }),
+  });
   return {
     message: message || 'Message reçu',
-    confidence: 72,
-    summary: 'La vérification de cette information est partiellement confirmée : plusieurs éléments sont corroborés par des sources fiables, mais certains détails restent à confirmer.',
-    sources: ['Source 1', 'Source 2'],
+    confidence: answer.citations.length ? 72 : 0,
+    summary: answer.reponse,
+    sources: answer.citations.map((citation) => citation.titre || citation.url || 'Source'),
   };
 }
 
 export async function verifyContent(content: string) {
-  await new Promise((resolve) => setTimeout(resolve, 650));
+  const answer = await sendMessageToAI(content);
   return {
-    credibility: 72,
-    summary: 'Crédibilité moyenne : la déclaration est cohérente avec les éléments disponibles, mais elle demande un contrôle complémentaire.',
-    explanation: 'Ce qui est confirmé : la déclaration correspond à des faits publics. Ce qui reste à vérifier : les sources secondaires et la date exacte.',
+    credibility: answer.confidence,
+    summary: answer.summary,
+    explanation: answer.sources.join(', ') || 'Aucune source n’a été retournée.',
   };
 }
 
 export async function publishArticle(payload: { title: string; body: string; category: string }) {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  return { ok: true, id: 'article-1', ...payload };
+  const contribution = await apiRequest<{ id: number; status: string }>('/contributions/signals', {
+    method: 'POST',
+    body: JSON.stringify({
+      content: `[${payload.category}] ${payload.title}\n\n${payload.body}`,
+    }),
+  });
+  return { ok: true, id: String(contribution.id), status: contribution.status, ...payload };
 }
 
 export async function getProfile() {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  const account = await apiRequest<{
+    id: number;
+    email: string;
+    role: string;
+  }>('/auth/me');
   return {
-    name: 'Nom de l’utilisateur',
-    email: 'adresse@email.mg',
+    name: account.role,
+    email: account.email,
     publications: 0,
     verifications: 0,
     credibility: 0,
   };
+}
+
+export async function logout() {
+  try {
+    await apiRequest<void>('/auth/logout', { method: 'POST' });
+  } finally {
+    clearTokens();
+  }
 }
 
 export const demoMessage = 'Bonjour ! Envoyez-moi un texte, une photo ou une vidéo : je vérifie l’information.';

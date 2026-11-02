@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar, CredibilityRing } from '@/components/ui';
 import { palette } from '@/theme/theme';
+import { sendMessageToAI } from '@/services/mockData';
 
 export default function DiscussionScreen() {
   const [text, setText] = useState('');
+  const [answer, setAnswer] = useState('');
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -29,7 +31,7 @@ export default function DiscussionScreen() {
             <CredibilityRing value={72} size={62} />
             <View style={styles.resultTextWrap}>
               <Text style={styles.resultTitle}>Crédibilité moyenne</Text>
-              <Text style={styles.resultSummary}>Le résumé de la vérification confirme certains éléments, mais il reste des points à vérifier.</Text>
+              <Text style={styles.resultSummary}>{answer || 'Envoyez un message pour lancer la vérification.'}</Text>
             </View>
           </View>
           <View style={styles.tagRow}><Text style={styles.tag}>Source 1</Text><Text style={styles.tag}>Source 2</Text></View>
@@ -39,7 +41,19 @@ export default function DiscussionScreen() {
       <View style={styles.inputBar}>
         <View style={styles.inputActions}><Ionicons name="image-outline" size={18} color="#fff" /><Ionicons name="videocam-outline" size={18} color="#fff" /></View>
         <TextInput value={text} onChangeText={setText} placeholder="Écrire un message..." placeholderTextColor="rgba(255,255,255,0.55)" style={styles.input} />
-        <Pressable style={styles.sendButton}><Ionicons name="send" size={16} color="#0B2B2B" /></Pressable>
+        <Pressable
+          style={styles.sendButton}
+          onPress={async () => {
+            if (!text.trim()) return;
+            try {
+              const result = await sendMessageToAI(text.trim());
+              setAnswer(result.summary);
+              setText('');
+            } catch (error) {
+              Alert.alert('Vérification impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+            }
+          }}
+        ><Ionicons name="send" size={16} color="#0B2B2B" /></Pressable>
       </View>
     </SafeAreaView>
   );
