@@ -44,31 +44,6 @@ base de publication publique.
   * Stockage du résultat exclusivement dans la table `Drafts_IA` avec le statut 
     "En attente de relecture".
 
-Eric ///  2.3 Module 3 : Copilot IA d'Investigation (Back-Office Chat Engine)
-- Architecture RAG (Retrieval-Augmented Generation) :
-  * Conversion des articles validés, des rapports de veille et des bases d'archives 
-    en vecteurs (Embeddings) stockés dans une base de données vectorielle.
-- Gestionnaire de Requêtes Complexe (Deep Research) :
-  * Quand le journaliste pose une question ("Donne-moi l'historique de X"), 
-    le backend effectue une recherche sémantique dans la base vectorielle.
-  * Il combine les résultats pertinents avec le prompt du journaliste et produit 
-    une réponse contextuelle avec citations et chronologie.
-- Gestion des Sessions de Chat : Sauvegarde de l'historique des échanges par 
-  journaliste pour permettre de reprendre une investigation à tout moment.
-
-Eric ///  2.4 Module 4 : Moteur de Secours et Passerelle SMS (Off-Grid Engine)
-- Gestionnaire des Alertes SMS aux Journalistes :
-  * Envoi automatique d'un SMS via passerelle (API SMS ou Modem GSM) aux 
-    numéros des journalistes configurés en cas d'urgence absolue détectée.
-  * Le SMS contient le résumé de l'alerte et un identifiant court.
-- Traitement des Requêtes SMS Grand Public :
-  * Réception du message entrant envoyé par un citoyen.
-  * Recherche stricte UNIQUEMENT dans la table `Articles_Certifies` (Contenus 
-    préalablement relus et publiés par les journalistes).
-  * Si correspondance trouvée : Envoi du résumé vérifié par SMS.
-  * Si aucune correspondance validée : Envoi de la réponse de sécurité 
-    ("Sujet en cours de vérification par nos journalistes").
-
 
 3. MODELISATION DE LA BASE DE DONNÉES (SCHÉMA FONCTIONNEL)
 --------------------------------------------------------------------------------
@@ -93,6 +68,34 @@ Eric ///  2.4 Module 4 : Moteur de Secours et Passerelle SMS (Off-Grid Engine)
 3.5 Table : `Historique_SMS`
 - ID, Numero_Expediteur, Message_Recu, Message_Envoye, Horodatage, Statut_Reponse.
 
+
+
+
+
+Eric ///  2.3 Module 3 : Copilot IA d'Investigation (Back-Office Chat Engine)
+- Architecture RAG (Retrieval-Augmented Generation) :
+  * Conversion des articles validés, des rapports de veille et des bases d'archives 
+    en vecteurs (Embeddings) stockés dans une base de données vectorielle.
+- Gestionnaire de Requêtes Complexe (Deep Research) :
+  * Quand le journaliste pose une question ("Donne-moi l'historique de X"), 
+    le backend effectue une recherche sémantique dans la base vectorielle.
+  * Il combine les résultats pertinents avec le prompt du journaliste et produit 
+    une réponse contextuelle avec citations et chronologie.
+- Gestion des Sessions de Chat : Sauvegarde de l'historique des échanges par 
+  journaliste pour permettre de reprendre une investigation à tout moment.
+
+Eric ///  2.4 Module 4 : Moteur de Secours et Passerelle SMS (Off-Grid Engine)
+- Gestionnaire des Alertes SMS aux Journalistes :
+  * Envoi automatique d'un SMS via passerelle (API SMS ou Modem GSM) aux 
+    numéros des journalistes configurés en cas d'urgence absolue détectée.
+  * Le SMS contient le résumé de l'alerte et un identifiant court.
+- Traitement des Requêtes SMS Grand Public :
+  * Réception du message entrant envoyé par un citoyen.
+  * Recherche stricte UNIQUEMENT dans la table `Articles_Certifies` (Contenus 
+    préalablement relus et publiés par les journalistes).
+  * Si correspondance trouvée : Envoi du résumé vérifié par SMS.
+  * Si aucune correspondance validée : Envoi de la réponse de sécurité 
+    ("Sujet en cours de vérification par nos journalistes").
 
 Eric /// 4. WORKFLOW TECHNIQUE D'UNE ALERTE (ÉTAPES APIS)
 --------------------------------------------------------------------------------

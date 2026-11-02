@@ -12,6 +12,7 @@ from .controllers.signal_controller import router as signal_router
 from .controllers.source_controller import router as source_router
 from .controllers.alert_controller import router as alert_router
 from .controllers.auth_controller import router as auth_router
+from .controllers.copilot_controller import router as copilot_router
 from .controllers.sms_controller import router as sms_router
 from .controllers.workflow_controller import router as workflow_router
 
@@ -54,5 +55,6 @@ for router in (
     workflow_router,
     sms_router,
     alert_router,
+    copilot_router,
 ):
     app.include_router(router, prefix="/api")

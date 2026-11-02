@@ -13,8 +13,11 @@ from sqlalchemy.orm import Session
 from .models import (
     ArticleCertifie,
     ContactJournaliste,
+    DocumentRecherche,
     DraftIA,
     HistoriqueSms,
+    MessageChat,
+    SessionChat,
     SignalBrut,
     SourceSurveillee,
     Utilisateur,
@@ -181,6 +184,7 @@ def publish_draft(
     db.add(article)
     db.commit()
     db.refresh(article)
+    index_certified_article(db, article)
     return article
 
 
@@ -207,6 +211,11 @@ def answer_citizen_sms(db: Session, payload) -> tuple[str, str]:
     return response, status
 
 
+def send_sms_via_gateway(phone: str, message: str) -> None:
+    # Placeholder gateway; replace with real SMS provider integration.
+    print(f"[SMS GATEWAY] to={phone} message={message}")
+
+
 def alert_journalists(db: Session, signal: SignalBrut, send_sms) -> list[str]:
     if not signal.est_urgent:
         return []
@@ -220,3 +229,153 @@ def alert_journalists(db: Session, signal: SignalBrut, send_sms) -> list[str]:
         send_sms(contact.numero_telephone, message)
         sent.append(contact.numero_telephone)
     return sent
+
+
+def _tokenize(value: str) -> list[str]:
+    return [token for token in re.findall(r"\w{4,}", value.casefold())]
+
+
+def index_certified_article(db: Session, article: ArticleCertifie) -> DocumentRecherche:
+    existing = db.scalar(
+        select(DocumentRecherche).where(DocumentRecherche.url == f"article:{article.id}")
+    )
+    if existing is not None:
+        existing.titre = article.titre_final
+        existing.contenu = article.corps_article
+        existing.est_certifie = True
+        db.commit()
+        db.refresh(existing)
+        return existing
+    document = DocumentRecherche(
+        titre=article.titre_final,
+        contenu=article.corps_article,
+        url=f"article:{article.id}",
+        est_certifie=True,
+        cree_le=article.horodatage_validation,
+    )
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+    return document
+
+
+def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[dict]:
+    terms = _tokenize(question)
+    if not terms:
+        return []
+    documents = db.scalars(
+        select(DocumentRecherche).where(DocumentRecherche.est_certifie.is_(True))
+    ).all()
+    scored = []
+    lowered_question = question.casefold()
+    for document in documents:
+        haystack = f"{document.titre} {document.contenu}".casefold()
+        score = sum(haystack.count(term) for term in terms)
+        if score > 0:
+            scored.append((score, document))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    results = []
+    for score, document in scored[:limit]:
+        results.append(
+            {
+                "id": document.id,
+                "titre": document.titre,
+                "extrait": document.contenu[:600],
+                "url": document.url,
+                "date": document.cree_le.isoformat() if document.cree_le else None,
+                "score": score,
+            }
+        )
+    return results
+
+
+def build_research_answer(db: Session, question: str) -> tuple[str, list[dict], list[dict]]:
+    results = search_knowledge_base(db, question)
+    citations = [
+        {"titre": item["titre"], "url": item["url"], "date": item["date"], "extrait": item["extrait"]}
+        for item in results
+    ]
+    chronology = sorted(
+        [{"date": item["date"], "titre": item["titre"], "extrait": item["extrait"]} for item in results],
+        key=lambda item: item["date"] or "",
+    )
+    if not results:
+        answer = (
+            "Aucun document certifié ne correspond à cette question. "
+            "Sujet en cours de vérification par nos journalistes."
+        )
+    else:
+        context = "\n".join(f"- {item['titre']}: {item['extrait']}" for item in results)
+        answer = (
+            f"Réponse contextuelle basée sur {len(results)} source(s) certifiée(s).\n"
+            f"Question: {question}\n"
+            f"Contexte:\n{context}\n"
+            "Cette synthèse est une pré-analyse IA et doit être relue par un journaliste."
+        )
+    return answer, citations, chronology
+
+
+def create_chat_session(db: Session, user: Utilisateur, titre: str) -> SessionChat:
+    now = datetime.now(timezone.utc)
+    session = SessionChat(
+        utilisateur_id=user.id,
+        titre=titre,
+        cree_le=now,
+        mise_a_jour_le=now,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+def list_chat_sessions(db: Session, user: Utilisateur) -> list[SessionChat]:
+    return list(
+        db.scalars(
+            select(SessionChat)
+            .where(SessionChat.utilisateur_id == user.id)
+            .order_by(SessionChat.mise_a_jour_le.desc())
+        )
+    )
+
+
+def get_chat_messages(db: Session, session_id: int, user: Utilisateur) -> list[MessageChat]:
+    session = db.get(SessionChat, session_id)
+    if session is None or session.utilisateur_id != user.id:
+        raise ValueError("Session introuvable.")
+    return list(
+        db.scalars(
+            select(MessageChat)
+            .where(MessageChat.session_id == session_id)
+            .order_by(MessageChat.horodatage.asc())
+        )
+    )
+
+
+def ask_copilot(db: Session, user: Utilisateur, session_id: int, question: str) -> tuple[MessageChat, MessageChat, list[dict], list[dict]]:
+    session = db.get(SessionChat, session_id)
+    if session is None or session.utilisateur_id != user.id:
+        raise ValueError("Session introuvable.")
+    now = datetime.now(timezone.utc)
+    user_message = MessageChat(
+        session_id=session.id,
+        role="journaliste",
+        contenu=question,
+        citations=[],
+        horodatage=now,
+    )
+    db.add(user_message)
+    answer, citations, chronology = build_research_answer(db, question)
+    assistant_message = MessageChat(
+        session_id=session.id,
+        role="assistant",
+        contenu=answer,
+        citations=citations,
+        horodatage=datetime.now(timezone.utc),
+    )
+    db.add(assistant_message)
+    session.mise_a_jour_le = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(user_message)
+    db.refresh(assistant_message)
+    return user_message, assistant_message, citations, chronology
