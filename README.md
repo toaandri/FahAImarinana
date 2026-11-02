@@ -29,6 +29,11 @@ avant le premier démarrage de cette version ; voir la procédure dans ce docume
 L'inscription publique sert uniquement au développement et doit être désactivée
 en production. Les SMS restent simulés.
 
+La [documentation de persistance](Backend/PERSISTENCE.md) décrit les treize entités,
+les relations SQLAlchemy, les migrations, les fixtures et la séparation privé/public.
+La migration conserve les données historiques en quarantaine, sans remise en ligne
+automatique. La production exige un compte PostgreSQL public distinct en lecture seule.
+
 ## Démarrage local du backend
 
 Avec Docker et Docker Compose installés, depuis la racine du projet :
@@ -39,7 +44,7 @@ docker compose up --build
 
 La configuration expose le backend sur le port 8000 et PostgreSQL sur le port 5432. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
 la génération de brouillons IA, la validation humaine, le flux public/SMS et le
-Copilot limité aux articles certifiés. Les écritures de veille et la consultation
+Copilot local sur les articles certifiés, ou web lorsque Gemini est activé. Les écritures de veille et la consultation
 des brouillons exigent un jeton de journaliste ou d’éditeur ; l’inscription crée
 toujours un compte journaliste. Le worker supervisé peut être déclenché avec
 `POST /api/workflow/process-pending` après authentification.

@@ -3,24 +3,23 @@ from fastapi import WebSocket
 
 class AlertManager:
     def __init__(self):
-        self.connections: set[WebSocket] = set()
+        self.connections: dict[WebSocket, tuple[int, str]] = {}
 
-    async def connect(self, websocket: WebSocket, subprotocol: str | None = None):
+    async def connect(self, websocket: WebSocket, *, scope: tuple[int, str], subprotocol: str | None = None):
         await websocket.accept(subprotocol=subprotocol)
-        self.connections.add(websocket)
+        self.connections[websocket] = scope
 
     def disconnect(self, websocket: WebSocket):
-        self.connections.discard(websocket)
+        self.connections.pop(websocket, None)
 
-    async def broadcast(self, payload: dict):
-        disconnected = []
-        for connection in tuple(self.connections):
+    async def broadcast(self, payload: dict, *, scope: tuple[int, str]):
+        for connection, recipient_scope in tuple(self.connections.items()):
+            if recipient_scope != scope:
+                continue
             try:
                 await connection.send_json(payload)
             except Exception:
-                disconnected.append(connection)
-        for connection in disconnected:
-            self.disconnect(connection)
+                self.disconnect(connection)
 
 
 alert_manager = AlertManager()

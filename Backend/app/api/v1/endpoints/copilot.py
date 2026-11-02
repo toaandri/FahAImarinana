@@ -73,5 +73,5 @@ async def trigger_alert(signal_id: int, db: Session = Depends(get_db),
                         gateway: SmsGateway = Depends(get_sms_gateway)):
     sent = await run_in_threadpool(_send_alert, db, signal_id, gateway)
     # Phone numbers remain in the legacy authorized response, never in broadcasts.
-    await alert_manager.broadcast({"type": "alert", "signal_id": signal_id, "sent_count": len(sent)})
+    await alert_manager.broadcast({"type": "alert", "signal_id": signal_id, "sent_count": len(sent)}, scope=(user.newsroom_id, user.dataset))
     return {"signal_id": signal_id, "sent": sent}

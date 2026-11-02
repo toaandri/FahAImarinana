@@ -1,5 +1,7 @@
 # Backend FA AI MARINANA — architecture modulaire
 
+Le schéma actuel, les treize entités principales et la migration de confidentialité sont détaillés dans [PERSISTENCE.md](PERSISTENCE.md).
+
 La restructuration conserve les fonctionnalités existantes et leur stockage. Elle sépare les adaptateurs HTTP, les règles métier, les requêtes SQL et les fournisseurs externes. Les ajouts Maharavo présents dans la fusion concurrente sont intégrés : recherche, enregistrement d'analyse média guidée et évaluation de confiance.
 
 ## Organisation et dépendances
@@ -122,8 +124,138 @@ Les tests utilisent SQLite en mémoire, sans appel IA externe. Le manifeste de c
 
 Pour tester PostgreSQL, utiliser uniquement une base jetable, puis définir `FANILO_TEST_DATABASE_URL` et relancer la même commande. Les tests HTTP suppriment et recréent les tables dans cette base. Les tests de migrations PostgreSQL utilisent des schémas isolés, et le test de publication concurrente utilise de véritables verrous PostgreSQL.
 
+## Résultats de vérification de cette livraison
+
+- 17 tests réussis sur un PostgreSQL 17 temporaire, incluant les tests HTTP, WebSocket, concurrence et migrations ; aucun appel fournisseur externe.
+- Sur SQLite : 14 tests réussis, 3 tests PostgreSQL ignorés comme prévu.
+- Vérification syntaxique Python, `pip check`, `git diff --check` et `docker compose config --quiet` réussis.
+- PostgreSQL temporaire arrêté après vérification ; aucune base applicative existante utilisée.
+- Construction complète de l'image Docker, Gemini réel, livraison SMS et frontend mobile connecté non vérifiés.
+
 ## Limites et prochaines étapes
 
 Cette livraison constitue une base modulaire et testée, sans annoncer la fin de tous les travaux de l'audit. Restent à traiter : limites de débit, révocation des jetons, autorisations par rédaction/dossier, audit des décisions, versions et retraits d'articles, contraintes et index SQL harmonisés, recherche à grande échelle, contexte conversationnel, collecte planifiée, file durable, diffusion WebSocket partagée, SMS réel et intégration mobile réseau. Les WebSockets authentifient à la connexion ; expiration et révocation pendant une connexion prolongée restent à gérer.
 
 Le frontend Java ME reste une démonstration avec données locales. Les routes historiques sont conservées pour son intégration ultérieure ; cela ne constitue pas une preuve de connexion mobile de bout en bout.
+
+## Responsabilité de chaque fichier Python
+
+Les sources complètes se trouvent aux chemins ci-dessous. Les façades ne dupliquent aucune règle métier.
+
+| Fichier | Responsabilité |
+|---|---|
+| [app/__init__.py](app/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/api/__init__.py](app/api/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/api/v1/__init__.py](app/api/v1/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/api/v1/endpoints/__init__.py](app/api/v1/endpoints/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/api/v1/endpoints/alert.py](app/api/v1/endpoints/alert.py) | Adaptateur HTTP/WebSocket : authentification et connexion des alertes WebSocket. |
+| [app/api/v1/endpoints/auth.py](app/api/v1/endpoints/auth.py) | Adaptateur HTTP/WebSocket : inscription et connexion. |
+| [app/api/v1/endpoints/copilot.py](app/api/v1/endpoints/copilot.py) | Adaptateur HTTP/WebSocket : recherche, sessions, indexation et déclenchement des alertes. |
+| [app/api/v1/endpoints/draft.py](app/api/v1/endpoints/draft.py) | Adaptateur HTTP/WebSocket : lecture des brouillons. |
+| [app/api/v1/endpoints/health.py](app/api/v1/endpoints/health.py) | Adaptateur HTTP/WebSocket : sonde de vie HTTP. |
+| [app/api/v1/endpoints/maharavo.py](app/api/v1/endpoints/maharavo.py) | Adaptateur HTTP/WebSocket : recherche, analyse guidée et confiance Maharavo. |
+| [app/api/v1/endpoints/public.py](app/api/v1/endpoints/public.py) | Adaptateur HTTP/WebSocket : flux public des articles certifiés. |
+| [app/api/v1/endpoints/signal.py](app/api/v1/endpoints/signal.py) | Adaptateur HTTP/WebSocket : ingestion et analyse des signaux. |
+| [app/api/v1/endpoints/sms.py](app/api/v1/endpoints/sms.py) | Adaptateur HTTP/WebSocket : requête citoyenne du simulateur SMS. |
+| [app/api/v1/endpoints/source.py](app/api/v1/endpoints/source.py) | Adaptateur HTTP/WebSocket : création de source. |
+| [app/api/v1/endpoints/workflow.py](app/api/v1/endpoints/workflow.py) | Adaptateur HTTP/WebSocket : traitement supervisé, recoupement et publication. |
+| [app/api/v1/router.py](app/api/v1/router.py) | Assemblage unique de tous les routeurs. |
+| [app/controllers/__init__.py](app/controllers/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/controllers/alert_controller.py](app/controllers/alert_controller.py) | Façade de compatibilité vers api/v1/endpoints/alert.py. |
+| [app/controllers/auth_controller.py](app/controllers/auth_controller.py) | Façade de compatibilité vers api/v1/endpoints/auth.py. |
+| [app/controllers/copilot_controller.py](app/controllers/copilot_controller.py) | Façade de compatibilité vers api/v1/endpoints/copilot.py. |
+| [app/controllers/draft_controller.py](app/controllers/draft_controller.py) | Façade de compatibilité vers api/v1/endpoints/draft.py. |
+| [app/controllers/health_controller.py](app/controllers/health_controller.py) | Façade de compatibilité vers api/v1/endpoints/health.py. |
+| [app/controllers/maharavo_controller.py](app/controllers/maharavo_controller.py) | Façade de compatibilité vers api/v1/endpoints/maharavo.py. |
+| [app/controllers/public_controller.py](app/controllers/public_controller.py) | Façade de compatibilité vers api/v1/endpoints/public.py. |
+| [app/controllers/signal_controller.py](app/controllers/signal_controller.py) | Façade de compatibilité vers api/v1/endpoints/signal.py. |
+| [app/controllers/sms_controller.py](app/controllers/sms_controller.py) | Façade de compatibilité vers api/v1/endpoints/sms.py. |
+| [app/controllers/source_controller.py](app/controllers/source_controller.py) | Façade de compatibilité vers api/v1/endpoints/source.py. |
+| [app/controllers/workflow_controller.py](app/controllers/workflow_controller.py) | Façade de compatibilité vers api/v1/endpoints/workflow.py. |
+| [app/core/__init__.py](app/core/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/core/config.py](app/core/config.py) | Configuration Pydantic depuis les variables et le fichier .env, garde-fous de production. |
+| [app/core/constants.py](app/core/constants.py) | Mots-clés de veille et réponse neutre SMS partagés. |
+| [app/core/errors.py](app/core/errors.py) | Exceptions métier et correspondances de statut. |
+| [app/core/manage_users.py](app/core/manage_users.py) | CLI de création de comptes éditoriaux approuvés. |
+| [app/core/permissions.py](app/core/permissions.py) | Dépendances FastAPI pour identité et droits de rédaction. |
+| [app/core/security.py](app/core/security.py) | Hachage bcrypt, émission et vérification JWT, compte actif. |
+| [app/database/__init__.py](app/database/__init__.py) | Réexport de Base, engine, SessionLocal et get_db. |
+| [app/database/base.py](app/database/base.py) | Registre DeclarativeBase partagé. |
+| [app/database/connection.py](app/database/connection.py) | Moteur SQLAlchemy, pool, sessions et rollback à la sortie en erreur. |
+| [app/dependencies.py](app/dependencies.py) | Façade des anciens imports de dépendances. |
+| [app/gemini_service.py](app/gemini_service.py) | Façade de l’ancien import Gemini. |
+| [app/integrations/__init__.py](app/integrations/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/integrations/ai/__init__.py](app/integrations/ai/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/integrations/ai/gemini.py](app/integrations/ai/gemini.py) | Transport HTTP Gemini, délais, extraction et validation des réponses. |
+| [app/integrations/maharavo/__init__.py](app/integrations/maharavo/__init__.py) | Documentation de la frontière Maharavo, sans API externe inventée. |
+| [app/integrations/maharavo/research.py](app/integrations/maharavo/research.py) | Protocole injectable de fournisseur de recherche et adaptateur Gemini. |
+| [app/integrations/notifications/__init__.py](app/integrations/notifications/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/integrations/notifications/websocket.py](app/integrations/notifications/websocket.py) | Transport de diffusion WebSocket local au processus. |
+| [app/integrations/sms/__init__.py](app/integrations/sms/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/integrations/sms/gateway.py](app/integrations/sms/gateway.py) | Protocole de passerelle, injection et simulateur sans données personnelles dans les logs. |
+| [app/maharavo_service.py](app/maharavo_service.py) | Façade de l’ancien import du service Maharavo. |
+| [app/main.py](app/main.py) | Fabrique FastAPI, cycle de vie, CORS et montage des routes historiques/v1. |
+| [app/middleware/__init__.py](app/middleware/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/middleware/errors.py](app/middleware/errors.py) | Gestionnaires centralisés des erreurs métier, SQL et inattendues. |
+| [app/models/__init__.py](app/models/__init__.py) | Registre des treize modèles et réexport des noms historiques. |
+| [app/models/editorial.py](app/models/editorial.py) | Tables brouillons IA et articles certifiés. |
+| [app/models/identity.py](app/models/identity.py) | Tables utilisateurs et contacts de journalistes. |
+| [app/models/maharavo.py](app/models/maharavo.py) | Tables recherches, analyses média guidées et évaluations de confiance. |
+| [app/models/monitoring.py](app/models/monitoring.py) | Tables sources et signaux bruts. |
+| [app/models/research.py](app/models/research.py) | Tables documents, sessions et messages de chat. |
+| [app/models/sms.py](app/models/sms.py) | Table historique des requêtes/réponses SMS. |
+| [app/notifications.py](app/notifications.py) | Façade de l’ancien gestionnaire WebSocket. |
+| [app/repositories/__init__.py](app/repositories/__init__.py) | Réexport des repositories de domaine. |
+| [app/repositories/base.py](app/repositories/base.py) | Opérations de persistance élémentaires sans commit. |
+| [app/repositories/editorial.py](app/repositories/editorial.py) | Requêtes brouillons/articles et verrou de publication. |
+| [app/repositories/identity.py](app/repositories/identity.py) | Requêtes utilisateurs et contacts actifs. |
+| [app/repositories/monitoring.py](app/repositories/monitoring.py) | Requêtes sources, volumes temporels et signaux urgents en attente. |
+| [app/repositories/research.py](app/repositories/research.py) | Requêtes index documentaire et historique de chat. |
+| [app/routes.py](app/routes.py) | Façade de l’ancien import du routeur. |
+| [app/schemas/__init__.py](app/schemas/__init__.py) | Réexport des contrats publics historiques. |
+| [app/schemas/ai.py](app/schemas/ai.py) | Validation stricte des réponses structurées de brouillon Gemini. |
+| [app/schemas/articles.py](app/schemas/articles.py) | Contrats publication et lecture publique. |
+| [app/schemas/auth.py](app/schemas/auth.py) | Contrats credentials/jetons et validation email/mot de passe. |
+| [app/schemas/drafts.py](app/schemas/drafts.py) | Contrat de lecture des brouillons. |
+| [app/schemas/maharavo.py](app/schemas/maharavo.py) | Contrats des trois capacités Maharavo. |
+| [app/schemas/research.py](app/schemas/research.py) | Contrats recherche, sessions, messages et réponses du Copilot. |
+| [app/schemas/signals.py](app/schemas/signals.py) | Contrats ingestion, analyse et recoupement. |
+| [app/schemas/sms.py](app/schemas/sms.py) | Contrats de requête/réponse du simulateur SMS. |
+| [app/schemas/sources.py](app/schemas/sources.py) | Contrats de création et lecture des sources. |
+| [app/services/__init__.py](app/services/__init__.py) | Façade des fonctions métier historiques. |
+| [app/services/auth.py](app/services/auth.py) | Inscription contrôlée et connexion. |
+| [app/services/chat.py](app/services/chat.py) | Sessions privées, contrôle de propriété et enregistrement des messages. |
+| [app/services/drafts.py](app/services/drafts.py) | Génération IA ou locale et création des brouillons. |
+| [app/services/editorial.py](app/services/editorial.py) | Publication autorisée et indexation atomique. |
+| [app/services/maharavo.py](app/services/maharavo.py) | Suivi de recherche, observations média et règles de confiance. |
+| [app/services/notifications.py](app/services/notifications.py) | Choix des destinataires et composition des alertes. |
+| [app/services/research.py](app/services/research.py) | Indexation, recherche lexicale, réponse web ou locale. |
+| [app/services/signals.py](app/services/signals.py) | Ingestion, normalisation, urgence et pistes de recoupement. |
+| [app/services/sms.py](app/services/sms.py) | Recherche de résumé approuvé et enregistrement de la réponse citoyenne. |
+| [app/services/sources.py](app/services/sources.py) | Création des sources et transaction associée. |
+| [app/tests/__init__.py](app/tests/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/tests/test_backend.py](app/tests/test_backend.py) | Tests HTTP/WebSocket, sécurité, transactions, compatibilité et concurrence PostgreSQL. |
+| [app/tests/test_migrations.py](app/tests/test_migrations.py) | Tests de création/adoption/refus/downgrade et SQL hors connexion. |
+| [app/tests/test_postgresql_migrations.py](app/tests/test_postgresql_migrations.py) | Tests du schéma neuf et du véritable SQL historique sur PostgreSQL. |
+| [app/utils/__init__.py](app/utils/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
+| [app/utils/text.py](app/utils/text.py) | Normalisation et tokenisation sans accès réseau ni base. |
+| [app/workers/__init__.py](app/workers/__init__.py) | Façade différée du traitement historique sans lancer de tâche. |
+| [app/workers/ingestion.py](app/workers/ingestion.py) | Lot supervisé de signaux urgents avec session autonome. |
+| [app/workers/media.py](app/workers/media.py) | Point d’entrée d’enregistrement d’une analyse guidée, avec contrôle du compte. |
+| [app/workers/notifications.py](app/workers/notifications.py) | Point d’entrée d’alerte avec passerelle remplaçable. |
+| [app/workers/research.py](app/workers/research.py) | Point d’entrée de recherche avec session autonome. |
+
+| Autre fichier | Responsabilité |
+|---|---|
+| [alembic.ini](alembic.ini) | Localisation des migrations et chemin Python. |
+| [alembic/env.py](alembic/env.py) | Exécution Alembic en ligne/hors connexion avec la configuration de l’application. |
+| [alembic/script.py.mako](alembic/script.py.mako) | Modèle des prochaines révisions. |
+| [alembic/versions/0001_modular_baseline.py](alembic/versions/0001_modular_baseline.py) | Schéma initial figé et adoption explicite validée des bases historiques. |
+| [app/tests/legacy_contract.json](app/tests/legacy_contract.json) | Manifeste figé des opérations, réponses HTTP et exigences d’authentification historiques. |
+| [app/tests/legacy_response_fields.json](app/tests/legacy_response_fields.json) | Manifeste figé des champs de réponse historiques. |
+| [requirements.txt](requirements.txt) | Dépendances d’exécution existantes et pilote PostgreSQL. |
+| [requirements-dev.txt](requirements-dev.txt) | Dépendances d’exécution et client HTTP des tests. |
+| [.env.example](.env.example) | Variables de configuration documentées. |
+| [Dockerfile](Dockerfile) | Image Python 3.12, dépendances et utilisateur applicatif. |
+| [.dockerignore](.dockerignore) | Exclusion des secrets et artefacts locaux du contexte Docker. |
+| [database/fanilo_postgresql.sql](database/fanilo_postgresql.sql) | Schéma historique conservé ; Alembic pilote désormais les évolutions. |

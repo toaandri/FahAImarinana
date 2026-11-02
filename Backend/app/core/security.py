@@ -28,8 +28,8 @@ def authenticate_token(db: Session, token: str) -> Utilisateur:
         user_id = int(payload["sub"])
     except (JWTError, KeyError, TypeError, ValueError) as exc:
         raise AuthenticationError("Jeton d'authentification invalide.") from exc
-    user = UserRepository(db).get(user_id)
-    if user is None or not user.actif:
+    user = UserRepository(db).get_for_auth(user_id)
+    if user is None or not user.actif or user.status != "active":
         raise AuthenticationError("Utilisateur inactif ou introuvable.")
     return user
 

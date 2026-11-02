@@ -1,5 +1,6 @@
 import logging
 from sqlalchemy.orm import Session
+from ..database.scope import set_scope
 from ..models import ArticleCertifie, DocumentRecherche
 from ..core.config import get_settings
 from ..repositories import ResearchRepository
@@ -8,6 +9,7 @@ logger = logging.getLogger(__name__)
 from ..integrations.ai.gemini import GeminiUnavailableError, research_web
 
 def index_certified_article(db: Session, article: ArticleCertifie, *, commit: bool = True) -> DocumentRecherche:
+    set_scope(db, article.newsroom_id, article.dataset)
     document = ResearchRepository(db).by_article(article.id)
     if document is None:
         document = DocumentRecherche(url=f"article:{article.id}", cree_le=article.horodatage_validation)

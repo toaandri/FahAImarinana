@@ -16,7 +16,8 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import select, func
 from app.main import create_app
-from app.database import Base, SessionLocal, engine
+from app.database import Base, engine
+from app.tests.fixtures import reset_schema, system_session as SessionLocal
 from app.core.config import Settings, get_settings
 from app.models import ArticleCertifie, DocumentRecherche, DraftIA, Utilisateur
 from app.core.security import create_access_token
@@ -27,8 +28,7 @@ from app.integrations.sms.gateway import get_sms_gateway
 
 class BackendTests(unittest.TestCase):
     def setUp(self):
-        Base.metadata.drop_all(engine)
-        Base.metadata.create_all(engine)
+        reset_schema()
         self.app = create_app()
         self.client = TestClient(self.app)
         self.client.__enter__()
@@ -215,7 +215,7 @@ class BackendTests(unittest.TestCase):
             Settings(environment='production', allow_public_registration=False)
         with self.assertRaises(ValidationError):
             Settings(environment='production', jwt_secret='a' * 48, allow_public_registration=True)
-        settings = Settings(environment='production', jwt_secret='a' * 48, allow_public_registration=False)
+        settings = Settings(environment='production', jwt_secret='a' * 48, allow_public_registration=False, public_database_url='postgresql+psycopg://public_reader@localhost/fanilo')
         self.assertFalse(settings.auto_create_tables)
 
 

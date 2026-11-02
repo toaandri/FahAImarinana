@@ -1,4 +1,5 @@
 from ..core.config import get_settings
+from ..database.scope import scope_for_user
 from ..core.errors import ValidationDomainError
 from datetime import datetime, timezone
 
@@ -24,6 +25,7 @@ def run_research(
     territoire: str | None,
     provider: ResearchProvider | None = None,
 ) -> RechercheMaharavo:
+    scope_for_user(db, user)
     started = datetime.now(timezone.utc)
     prompt = "Sujet: " + sujet
     if questions:
@@ -68,6 +70,7 @@ def run_research(
 
 
 def record_media_analysis(db: Session, user: Utilisateur, payload) -> AnalyseMediaMaharavo:
+    scope_for_user(db, user)
     analysis = AnalyseMediaMaharavo(
         utilisateur_id=user.id,
         type_media=payload.type_media,
@@ -90,6 +93,7 @@ def record_media_analysis(db: Session, user: Utilisateur, payload) -> AnalyseMed
 def record_confidence(
     db: Session, user: Utilisateur, payload
 ) -> EvaluationConfianceMaharavo:
+    scope_for_user(db, user)
     if (
         payload.identite_source == "eleve"
         or payload.solidite_preuves == "eleve"

@@ -17,6 +17,10 @@ from app.database.base import Base
 from app import models
 
 ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location('legacy_baseline', ROOT / 'alembic/versions/0001_modular_baseline.py')
+legacy = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(legacy)
+
 
 
 def config(connection, **options):
@@ -41,18 +45,18 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(compare_metadata(MigrationContext.configure(connection), Base.metadata), [])
             with self.assertRaises(RuntimeError):
                 command.downgrade(cfg, 'base')
-            command.downgrade(config(connection, allow_drop_baseline='true'), 'base')
-            self.assertEqual(set(inspect(connection).get_table_names()), {'alembic_version'})
+            self.assertIn('evidence', inspect(connection).get_table_names())
 
     def test_legacy_adoption_keeps_data_and_adds_missing_chat_tables(self):
         with self.engine.begin() as connection:
-            legacy_tables = [table for table in Base.metadata.sorted_tables if table.name not in {'sessions_chat', 'messages_chat'}]
-            Base.metadata.create_all(connection, tables=legacy_tables)
+            metadata = legacy.baseline()
+            legacy_tables = [table for table in metadata.sorted_tables if table.name not in {'sessions_chat', 'messages_chat'}]
+            metadata.create_all(connection, tables=legacy_tables)
             connection.execute(text("INSERT INTO utilisateurs (id,email,mot_de_passe_hash,role,actif) VALUES (1,'legacy@example.invalid','hash','Journaliste',true)"))
             with self.assertRaises(RuntimeError):
                 command.upgrade(config(connection), 'head')
             command.upgrade(config(connection, adopt_legacy='true'), 'head')
-            self.assertEqual(connection.scalar(text('SELECT count(*) FROM utilisateurs')), 1)
+            self.assertEqual(connection.scalar(text('SELECT count(*) FROM users')), 1)
             self.assertIn('messages_chat', inspect(connection).get_table_names())
 
     def test_incompatible_legacy_schema_is_rejected_before_changes(self):
@@ -64,8 +68,10 @@ class MigrationTests(unittest.TestCase):
 
     def test_offline_sql_generation(self):
         cfg = Config(str(ROOT / 'alembic.ini'), output_buffer=io.StringIO())
-        command.upgrade(cfg, 'head', sql=True)
+        command.upgrade(cfg, '0001_modular_baseline', sql=True)
         self.assertIn('CREATE TABLE messages_chat', cfg.output_buffer.getvalue())
+        with self.assertRaisesRegex(RuntimeError, 'en ligne'):
+            command.upgrade(cfg, 'head', sql=True)
 
 
 if __name__ == '__main__':

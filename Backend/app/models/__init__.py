@@ -1,7 +1,19 @@
-"""Model registry; legacy imports remain supported."""
-from .identity import Utilisateur, ContactJournaliste
-from .monitoring import SourceSurveillee, SignalBrut
-from .editorial import DraftIA, ArticleCertifie
-from .sms import HistoriqueSms
+"""Canonical models and aliases preserving the existing HTTP/service contracts."""
+from .newsroom import Newsroom
+from .identity import User, ContactJournaliste
+from .monitoring import Source, Signal
+from .investigation import Case, Claim, Evidence, ClaimEvidence
+from .editorial import Draft, Publication
+from .maharavo import ResearchJob, MediaAnalysis, EvaluationConfianceMaharavo
+from .sms import SmsExchange
+from .audit import CorrectionAudit
 from .research import DocumentRecherche, SessionChat, MessageChat
-from .maharavo import RechercheMaharavo, AnalyseMediaMaharavo, EvaluationConfianceMaharavo
+
+Utilisateur = User
+SourceSurveillee = Source
+SignalBrut = Signal
+DraftIA = Draft
+ArticleCertifie = Publication
+RechercheMaharavo = ResearchJob
+AnalyseMediaMaharavo = MediaAnalysis
+HistoriqueSms = SmsExchange

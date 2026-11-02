@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+from ..database.scope import scope_for_user, set_scope
 from ..models import MessageChat, SessionChat, Utilisateur
 from ..core.errors import NotFoundError
 from ..repositories import ChatRepository
@@ -8,6 +9,7 @@ logger = logging.getLogger(__name__)
 from .research import build_research_answer
 
 def create_chat_session(db: Session, user: Utilisateur, titre: str) -> SessionChat:
+    scope_for_user(db, user)
     now = datetime.now(timezone.utc)
     session = SessionChat(
         utilisateur_id=user.id,
@@ -38,6 +40,7 @@ def ask_copilot(db: Session, user: Utilisateur, session_id: int, question: str) 
     session = ChatRepository(db).get(session_id)
     if session is None or session.utilisateur_id != user.id:
         raise NotFoundError("Session introuvable.")
+    scope_for_user(db, user)
     now = datetime.now(timezone.utc)
     user_message = MessageChat(
         session_id=session.id,

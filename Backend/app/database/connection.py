@@ -18,6 +18,12 @@ if DATABASE_URL.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def sqlite_foreign_keys(connection, _):
         connection.execute("PRAGMA foreign_keys=ON")
+public_engine = engine
+if settings.public_database_url:
+    public_engine = create_engine(settings.public_database_url, pool_pre_ping=True,
+                                  connect_args={"options": "-c default_transaction_read_only=on"})
+PublicSessionLocal = sessionmaker(bind=public_engine, autoflush=False, expire_on_commit=False)
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
@@ -28,3 +34,11 @@ def get_db() -> Generator[Session, None, None]:
         except Exception:
             db.rollback()
             raise
+
+
+def get_public_db() -> Generator[Session, None, None]:
+    with PublicSessionLocal() as db:
+        try:
+            yield db
+        finally:
+            db.rollback()

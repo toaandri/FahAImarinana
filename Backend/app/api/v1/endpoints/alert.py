@@ -30,8 +30,9 @@ async def alerts_websocket(websocket: WebSocket, db: Session = Depends(get_db)):
     if user.role not in {"Journaliste", "Editeur"}:
         await websocket.close(code=1008)
         return
+    scope = (user.newsroom_id, user.dataset)
     db.close()  # Return the connection to the pool before the long-lived socket.
-    await alert_manager.connect(websocket, subprotocol=protocol)
+    await alert_manager.connect(websocket, scope=scope, subprotocol=protocol)
     try:
         while True:
             await websocket.receive_text()

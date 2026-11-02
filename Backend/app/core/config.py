@@ -14,6 +14,11 @@ from sqlalchemy.engine import URL
 class Settings(BaseModel):
     environment: Literal["development", "test", "production"] = "development"
     database_url: str = ""
+    public_database_url: str = ""
+    default_newsroom_id: int = Field(default=1, gt=0)
+    default_dataset: Literal["real", "demo", "quarantine"] = "real"
+    public_newsroom_id: int = Field(default=1, gt=0)
+    public_dataset: Literal["real", "demo"] = "real"
     database_host: str = "localhost"
     database_port: int = Field(default=5432, ge=1, le=65535)
     database_name: str = "fanilo"
@@ -39,6 +44,15 @@ class Settings(BaseModel):
                 raise ValueError("JWT_SECRET doit contenir au moins 32 octets en production.")
             if self.auto_create_tables:
                 raise ValueError("Utiliser Alembic en production, pas AUTO_CREATE_TABLES.")
+            if not self.public_database_url:
+                raise ValueError("PUBLIC_DATABASE_URL est obligatoire en production.")
+            from sqlalchemy.engine import make_url
+            public_url = make_url(self.public_database_url)
+            private_url = make_url(self.sqlalchemy_url)
+            if public_url.get_backend_name() != "postgresql" or public_url.username == private_url.username:
+                raise ValueError("Utiliser un compte PostgreSQL public distinct du compte applicatif.")
+            if self.public_dataset != "real":
+                raise ValueError("Le flux public de production doit servir les données réelles.")
             if self.allow_public_registration:
                 raise ValueError("Désactiver ALLOW_PUBLIC_REGISTRATION en production.")
         elif not secret or secret == "change-me-in-production":
