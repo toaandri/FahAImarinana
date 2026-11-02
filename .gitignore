@@ -1,1 +1,23 @@
 Hackathon_Besoins.mp4
+
+# Outils et fichiers de travail locaux
+/.analyse_deps/
+/.local-analysis/
+/.docs-push/
+
+# Fichiers générés
+__pycache__/
+*.py[cod]
+*.class
+/Touche/front/bin/
+
+# Secrets et environnements locaux
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Fichiers temporaires des éditeurs
+~$*
+*.tmp
