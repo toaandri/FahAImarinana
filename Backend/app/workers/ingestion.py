@@ -1,22 +1,27 @@
-from sqlalchemy import select
+"""Supervised synchronous batch; external scheduler may call run()."""
 from sqlalchemy.orm import Session
-
-from ..models import DraftIA, SignalBrut
-from ..services import create_draft, cross_check_signal
+from ..database import SessionLocal
+from ..repositories import SignalRepository
+from ..services.signals import cross_check_signal
+from ..services.drafts import create_draft
 
 
 def process_pending_signals(db: Session) -> int:
-    """Process urgent signals; call this from cron, Celery, or a scheduler."""
-    signals = db.scalars(
-        select(SignalBrut).where(SignalBrut.est_urgent.is_(True))
-    ).all()
     processed = 0
-    for signal in signals:
-        already_processed = db.scalar(
-            select(DraftIA.id).where(DraftIA.signal_id == signal.id).limit(1)
-        )
-        if already_processed is None:
-            sources = cross_check_signal(db, signal)
-            create_draft(db, signal, sources)
-            processed += 1
+    for signal in SignalRepository(db).pending_urgent():
+        create_draft(db, signal, cross_check_signal(db, signal))
+        processed += 1
     return processed
+
+
+def run() -> int:
+    with SessionLocal() as db:
+        try:
+            return process_pending_signals(db)
+        except Exception:
+            db.rollback()
+            raise
+
+
+if __name__ == "__main__":
+    print({"processed": run()})

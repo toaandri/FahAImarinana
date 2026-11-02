@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: fanilo
       POSTGRES_PASSWORD: fanilo
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - fanilo-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -30,10 +30,14 @@ services:
       DATABASE_NAME: fanilo
       DATABASE_USER: fanilo
       DATABASE_PASSWORD: fanilo
-      AUTO_CREATE_TABLES: "true"
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      AUTO_CREATE_TABLES: "false"
+      JWT_SECRET: ${JWT_SECRET:-}
+      ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
       GEMINI_TIMEOUT_SECONDS: ${GEMINI_TIMEOUT_SECONDS:-45}
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
       - "8000:8000"
 

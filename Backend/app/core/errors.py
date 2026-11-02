@@ -21,3 +21,7 @@ class AuthenticationError(DomainError):
 
 class IntegrationUnavailableError(DomainError):
     status_code = 503
+
+
+class ValidationDomainError(DomainError):
+    status_code = 422

@@ -71,4 +71,3 @@ def get_settings() -> Settings:
     if values.get("environment") == "production" and "allow_public_registration" not in values:
         values["allow_public_registration"] = False
     return Settings.model_validate(values)
-

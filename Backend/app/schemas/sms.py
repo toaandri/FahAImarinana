@@ -1,7 +1,5 @@
-from datetime import datetime
-from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class SmsRequest(BaseModel):

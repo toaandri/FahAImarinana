@@ -1,0 +1,166 @@
+{
+  "/api/health": {
+    "get": {
+      "responses": [
+        "200"
+      ],
+      "auth": false
+    }
+  },
+  "/api/sources": {
+    "post": {
+      "responses": [
+        "201",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/signals/ingest": {
+    "post": {
+      "responses": [
+        "201",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/signals/{signal_id}/analyze": {
+    "post": {
+      "responses": [
+        "201",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/drafts/{draft_id}": {
+    "get": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/public/articles": {
+    "get": {
+      "responses": [
+        "200"
+      ],
+      "auth": false
+    }
+  },
+  "/api/auth/register": {
+    "post": {
+      "responses": [
+        "201",
+        "422"
+      ],
+      "auth": false
+    }
+  },
+  "/api/auth/login": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": false
+    }
+  },
+  "/api/workflow/process-pending": {
+    "post": {
+      "responses": [
+        "200"
+      ],
+      "auth": true
+    }
+  },
+  "/api/workflow/signals/{signal_id}/cross-check": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/workflow/drafts/{draft_id}/publish": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/sms/citizen": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": false
+    }
+  },
+  "/api/copilot/sessions": {
+    "get": {
+      "responses": [
+        "200"
+      ],
+      "auth": true
+    },
+    "post": {
+      "responses": [
+        "201",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/copilot/sessions/{session_id}/messages": {
+    "get": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/copilot/sessions/{session_id}/ask": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/copilot/research": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  },
+  "/api/copilot/index/articles": {
+    "post": {
+      "responses": [
+        "200"
+      ],
+      "auth": true
+    }
+  },
+  "/api/copilot/alerts/signal/{signal_id}": {
+    "post": {
+      "responses": [
+        "200",
+        "422"
+      ],
+      "auth": true
+    }
+  }
+}

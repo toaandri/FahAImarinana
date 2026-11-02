@@ -1,31 +1,16 @@
 import logging
 import re
-from datetime import datetime, timedelta, timezone
-from hashlib import sha256
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from ..models import (ArticleCertifie, ContactJournaliste, DocumentRecherche, DraftIA,
-                      HistoriqueSms, MessageChat, SessionChat, SignalBrut, SourceSurveillee, Utilisateur)
-from ..core.config import get_settings
-from ..core.errors import ConflictError, NotFoundError, ForbiddenError
-from ..repositories import ArticleRepository, DraftRepository, SignalRepository, SourceRepository, ResearchRepository, ChatRepository, ContactRepository
-from ..utils.text import normalize_text, tokenize as _tokenize
+from ..models import DraftIA, SignalBrut
+from ..core.errors import ConflictError
+from ..repositories import DraftRepository
 logger = logging.getLogger(__name__)
-from ..integrations.ai.gemini import GeminiUnavailableError, generate_draft, research_web
+from ..integrations.ai.gemini import GeminiUnavailableError, generate_draft
 
-SENSITIVE_KEYWORDS = (
-    "grève",
-    "greve",
-    "manifestation",
-    "délestage",
-    "delestage",
-    "coupure",
-    "électricité",
-    "electricite",
-    "eau",
-    "politique",
-)
-SECURITY_RESPONSE = "Sujet en cours de vérification par nos journalistes"
 def create_draft(db: Session, signal: SignalBrut, sources: list[dict]) -> DraftIA:
+    if DraftRepository(db).by_signal(signal.id) is not None:
+        raise ConflictError("Un brouillon existe déjà pour ce signal.")
     concordant = sum(1 for source in sources if source["concorde"])
     official = sum(1 for source in sources if source["officielle"])
     total = len(sources)
@@ -45,6 +30,7 @@ def create_draft(db: Session, signal: SignalBrut, sources: list[dict]) -> DraftI
         if generated.get("citations"):
             sources = [*sources, *generated["citations"]]
     except (GeminiUnavailableError, KeyError, TypeError, ValueError):
+        logger.info("Draft generation uses local fallback")
         first_sentence = re.split(r"(?<=[.!?])\s+", signal.contenu_normalise)[0]
         title = first_sentence[:247] + "..." if len(first_sentence) > 250 else first_sentence
         summary = (

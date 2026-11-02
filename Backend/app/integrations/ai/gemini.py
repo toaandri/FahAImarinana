@@ -1,4 +1,6 @@
 import json
+from pydantic import ValidationError
+from ...schemas.ai import GeneratedDraft
 from ...core.config import get_settings
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -12,7 +14,7 @@ class GeminiUnavailableError(RuntimeError):
 
 
 def _api_key() -> str:
-    key = get_settings().gemini_api_key
+    key = get_settings().gemini_api_key.get_secret_value().strip()
     if not key:
         raise GeminiUnavailableError(
             "GEMINI_API_KEY n'est pas configurée; utilisation du moteur local."
@@ -107,6 +109,10 @@ def generate_draft(signal_text: str, publication_date: str, sources: list[dict])
         result = json.loads(_output_text(response))
     except json.JSONDecodeError as exc:
         raise GeminiUnavailableError("Réponse JSON invalide de Google AI Studio.") from exc
+    try:
+        result = GeneratedDraft.model_validate(result).model_dump()
+    except ValidationError as exc:
+        raise GeminiUnavailableError("Réponse structurée invalide de Google AI Studio.") from exc
     result["citations"] = _citations(response)
     return result
 

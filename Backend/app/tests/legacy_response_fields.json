@@ -1,0 +1,71 @@
+{
+  "TokenRead": [
+    "access_token",
+    "token_type"
+  ],
+  "SourceRead": [
+    "nom",
+    "type",
+    "url",
+    "frequence_scan_secondes",
+    "id",
+    "statut",
+    "derniere_verification"
+  ],
+  "SignalRead": [
+    "id",
+    "source_id",
+    "contenu_normalise",
+    "niveau_viralite",
+    "mots_cles_detectes",
+    "est_urgent"
+  ],
+  "DraftRead": [
+    "id",
+    "signal_id",
+    "titre_suggere",
+    "synthese_ia",
+    "score_credibilite_indicatif",
+    "sources_croisees",
+    "statut",
+    "horodatage"
+  ],
+  "ArticlePublicRead": [
+    "id",
+    "titre_final",
+    "corps_article",
+    "categorie",
+    "statut_verification",
+    "horodatage_validation",
+    "contenu_optimise_sms"
+  ],
+  "SmsResponse": [
+    "message",
+    "statut"
+  ],
+  "CrossCheckRead": [
+    "signal_id",
+    "sources",
+    "score_concordance"
+  ],
+  "ChatSessionRead": [
+    "id",
+    "utilisateur_id",
+    "titre",
+    "cree_le",
+    "mise_a_jour_le"
+  ],
+  "ChatMessageRead": [
+    "id",
+    "session_id",
+    "role",
+    "contenu",
+    "citations",
+    "horodatage"
+  ],
+  "ResearchAnswer": [
+    "reponse",
+    "citations",
+    "chronologie"
+  ]
+}

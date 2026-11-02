@@ -1,10 +1,9 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict
 
 
-from .signals import CrossCheckSource
 class DraftRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

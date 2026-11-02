@@ -16,6 +16,19 @@ Projet pour le hackathon FANILO 2026 : assistance à la veille, à la recherche 
 
 Le cahier étendu décrit une cible et des priorités, pas une liste de fonctionnalités déjà opérationnelles. Le document Java ME historique décrit une démonstration avec données fictives. Les fonctionnalités réelles doivent être vérifiées avant présentation. La transcription de la vidéo est automatique et peut comporter des erreurs, notamment en malagasy.
 
+## Architecture du backend
+
+Le backend est organisé en modules API v1, configuration/sécurité, modèles et schémas,
+repositories, services, workers et intégrations. Les routes historiques `/api/...`
+restent disponibles ; `/api/v1/...` expose la version documentée. Les fichiers complets,
+leurs responsabilités, les migrations et les commandes de test sont décrits dans
+[Backend/ARCHITECTURE.md](Backend/ARCHITECTURE.md).
+
+Une base existante doit être sauvegardée puis adoptée explicitement avec Alembic
+avant le premier démarrage de cette version ; voir la procédure dans ce document.
+L'inscription publique sert uniquement au développement et doit être désactivée
+en production. Les SMS restent simulés.
+
 ## Démarrage local du backend
 
 Avec Docker et Docker Compose installés, depuis la racine du projet :

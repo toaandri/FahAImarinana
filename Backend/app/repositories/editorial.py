@@ -1,4 +1,4 @@
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, func
 from ..models import ArticleCertifie, DraftIA
 from .base import Repository
 
@@ -27,9 +27,7 @@ class ArticleRepository(Repository[ArticleCertifie]):
     def matching(self, terms: list[str], limit: int):
         if not terms:
             return []
-        filters = [ArticleCertifie.corps_article.contains(term, autoescape=True) for term in terms]
         # Lower both sides for case-insensitive matching, including SQLite tests.
-        from sqlalchemy import func
         filters = [func.lower(ArticleCertifie.corps_article).contains(term.lower(), autoescape=True) for term in terms]
         return list(self.db.scalars(select(ArticleCertifie).where(
             ArticleCertifie.statut_verification.in_(VERIFIED_STATUSES), or_(*filters)
