@@ -29,12 +29,16 @@ services:
       DATABASE_USER: fanilo
       DATABASE_PASSWORD: fanilo
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-demo12345}
+      DEMO_JOURNALIST_EMAIL: ${DEMO_JOURNALIST_EMAIL:-journaliste.demo@example.invalid}
+      DEMO_CONTRIBUTOR_EMAIL: ${DEMO_CONTRIBUTOR_EMAIL:-contributeur.demo@example.invalid}
       AUTO_CREATE_TABLES: "false"
       PUBLIC_DATABASE_URL: ${PUBLIC_DATABASE_URL:-}
-      DEFAULT_NEWSROOM_ID: ${DEFAULT_NEWSROOM_ID:-1}
-      DEFAULT_DATASET: ${DEFAULT_DATASET:-real}
-      PUBLIC_NEWSROOM_ID: ${PUBLIC_NEWSROOM_ID:-1}
-      PUBLIC_DATASET: ${PUBLIC_DATASET:-real}
+      DEFAULT_NEWSROOM_ID: ${DEFAULT_NEWSROOM_ID:-3}
+      DEFAULT_DATASET: ${DEFAULT_DATASET:-demo}
+      PUBLIC_NEWSROOM_ID: ${PUBLIC_NEWSROOM_ID:-3}
+      PUBLIC_DATASET: ${PUBLIC_DATASET:-demo}
       JWT_SECRET: ${JWT_SECRET:-}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-15}
       JWT_ISSUER: ${JWT_ISSUER:-fa-ai-marinana}
@@ -71,7 +75,7 @@ services:
       MAHARAVO_MAX_ANALYSIS_CHARS: ${MAHARAVO_MAX_ANALYSIS_CHARS:-50000}
       MAHARAVO_MAX_DRAFT_CHARS: ${MAHARAVO_MAX_DRAFT_CHARS:-20000}
       MAHARAVO_MAX_QUOTE_CHARS: ${MAHARAVO_MAX_QUOTE_CHARS:-5000}
-    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    command: ["sh", "-c", "alembic upgrade head && if [ \"$$DEMO_MODE\" = \"true\" ]; then python -m app.database.seed_demo; fi && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
       - "18000:8000"
 

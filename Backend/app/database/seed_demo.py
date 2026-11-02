@@ -1,5 +1,6 @@
 """Idempotent fictitious dataset, restricted to its own demonstration newsroom."""
 import argparse
+import os
 from datetime import datetime, timezone
 from sqlalchemy import select
 from ..database import SessionLocal
@@ -15,18 +16,19 @@ def seed_demo(db):
     newsroom = db.scalar(select(Newsroom).where(Newsroom.slug == 'fictional-demo'))
     if newsroom:
         return newsroom
-    newsroom = Newsroom(slug='fictional-demo', name='Rédaction fictive — démonstration', dataset='demo')
+    newsroom = Newsroom(id=3, slug='fictional-demo', name='Rédaction fictive — démonstration', dataset='demo')
     db.add(newsroom)
     db.flush()
     scope = {'newsroom_id': newsroom.id, 'dataset': 'demo', 'confidentiality': 'private'}
     now = datetime.now(timezone.utc)
-    # No usable password or real phone number is embedded in the repository.
-    import secrets
-    user = User(email=f'demo-{newsroom.id}@example.invalid', mot_de_passe_hash=password_hash(secrets.token_urlsafe(32)),
-                role='Journaliste', **scope)
+    password = os.environ.get('DEMO_PASSWORD', 'demo12345')
+    journalist = User(email=os.environ.get('DEMO_JOURNALIST_EMAIL', 'journaliste.demo@example.invalid'),
+                      mot_de_passe_hash=password_hash(password), role='Journaliste', **scope)
+    contributor = User(email=os.environ.get('DEMO_CONTRIBUTOR_EMAIL', 'contributeur.demo@example.invalid'),
+                      mot_de_passe_hash=password_hash(password), role='CONTRIBUTEUR', **scope)
     source = Source(nom='Bulletin fictif', type='Web', url='https://bulletin.example.invalid', **scope)
-    db.add_all([user, source]); db.flush()
-    case = Case(title='EXERCICE FICTIF — interruption imaginaire', created_by_id=user.id, **scope)
+    db.add_all([journalist, contributor, source]); db.flush()
+    case = Case(title='EXERCICE FICTIF — interruption imaginaire', created_by_id=journalist.id, **scope)
     db.add(case); db.flush()
     signal = Signal(source_id=source.id, case_id=case.id, contenu_brut='Signal entièrement fictif.',
                     contenu_normalise='Signal entièrement fictif.', url_origine='https://bulletin.example.invalid/fiction',
@@ -37,10 +39,10 @@ def seed_demo(db):
                         **{**scope, 'confidentiality':'confidential'})
     db.add_all([signal, claim, evidence]); db.flush()
     link = ClaimEvidence(case_id=case.id, claim_id=claim.id, evidence_id=evidence.id, stance='context', **scope)
-    research = ResearchJob(utilisateur_id=user.id, case_id=case.id, claim_id=claim.id, sujet='Recherche fictive',
+    research = ResearchJob(utilisateur_id=journalist.id, case_id=case.id, claim_id=claim.id, sujet='Recherche fictive',
                            modele='simulation', statut='terminee', debut=now, fin=now,
                            synthese='DEMO_PRIVATE_AI_SENTINEL', **scope)
-    media = MediaAnalysis(utilisateur_id=user.id, case_id=case.id, evidence_id=evidence.id, type_media='document',
+    media = MediaAnalysis(utilisateur_id=journalist.id, case_id=case.id, evidence_id=evidence.id, type_media='document',
                           reference_originale='demo://fiction/document', empreinte_sha256='a'*64, outil='Simulation',
                           version_outil='1', indice_indicatif='non_evalue', cree_le=now, **scope)
     draft = Draft(signal_id=signal.id, case_id=case.id, claim_id=claim.id, titre_suggere='Brouillon fictif privé',
@@ -49,12 +51,12 @@ def seed_demo(db):
     db.add_all([link, research, media, draft]); db.flush()
     publication = Publication(draft_id=draft.id, titre_final='DÉMONSTRATION — événement imaginaire',
                               corps_article='Exercice fictif : ce texte ne décrit aucun événement réel.',
-                              categorie='Démonstration', statut_verification='Faux', id_journaliste_validateur=user.id,
+                              categorie='Démonstration', statut_verification='Faux', id_journaliste_validateur=journalist.id,
                               horodatage_validation=now, contenu_optimise_sms='DEMO : information entièrement fictive.',
                               published_at=now, status='published', **{**scope,'confidentiality':'public'})
     db.add(publication); db.flush()
     db.add_all([
-        CorrectionAudit(publication_id=publication.id, actor_id=user.id, action='published', reason='Exercice fictif.', **scope),
+        CorrectionAudit(publication_id=publication.id, actor_id=journalist.id, action='published', reason='Exercice fictif.', **scope),
         SmsExchange(publication_id=publication.id, numero_expediteur='DEMO-NO-PHONE', message_recu='Exercice',
                     message_envoye=publication.contenu_optimise_sms, statut_reponse='Trouve', horodatage=now, **scope),
     ])

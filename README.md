@@ -66,6 +66,20 @@ docker compose up --build
 ```
 
 La configuration expose le backend sur le port 18000 de la machine hôte (8000 dans le conteneur). PostgreSQL reste accessible au backend sur `postgres:5432` dans le réseau Docker, sans exposition directe sur la machine hôte. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
+
+### Démonstration hackathon
+
+Le Compose local démarre par défaut avec `DEMO_MODE=true`, charge un jeu de
+données entièrement fictif dans une rédaction `demo` isolée, et publie les
+articles fictifs via le flux public. Les comptes de test sont :
+
+- `journaliste.demo@example.invalid` / `demo12345`
+- `contributeur.demo@example.invalid` / `demo12345`
+
+Pour désactiver le seed fictif, lancer Compose avec
+`DEMO_MODE=false`, `DEFAULT_DATASET=real`, `PUBLIC_DATASET=real`,
+`DEFAULT_NEWSROOM_ID=1` et `PUBLIC_NEWSROOM_ID=1`. Ne jamais activer le mode
+demo sur une base de production. Le backend expose notamment l’authentification, les sources et signaux de veille,
 la génération de brouillons IA, la validation humaine, le flux public/SMS et le
 Copilot local sur les articles certifiés, ou web lorsque Gemini est activé. Les écritures et consultations privées appliquent des permissions par rôle et rédaction ;
 l’inscription exige une invitation attribuant un rôle explicite. Seuls les éditeurs
