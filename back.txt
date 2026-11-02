@@ -1,0 +1,119 @@
+================================================================================
+SPÉCIFICATIONS TECHNIQUES ET FONCTIONNELLES BACKEND
+Projet Hackathon FANILO - Plateforme IA Veille, Investigation & Fact-Checking
+================================================================================
+
+1. ARCHITECTURE GLOBALE ET PRINCIPES DU BACKEND
+--------------------------------------------------------------------------------
+Le backend constitue le cœur décisionnel et technique de la plateforme. 
+Il gère la collecte de données 24/7, l'orchestration des modèles d'IA, 
+la préparation des synthèses et la sécurisation du flux de validation humaine.
+
+Principe clé d'isolation :
+Le backend maintient une séparation stricte entre les données brutes/générées par 
+l'IA (Drafts non vérifiés) et la base de publication (Articles certifiés par 
+un humain). Le moteur d'IA ne peut en aucun cas écrire directement dans la 
+base de publication publique.
+
+
+2. COMPOSANTS ET MODULES DU BACKEND
+--------------------------------------------------------------------------------
+
+2.1 Module 1 : Moteur de Veille et Ingestion Automatisée (24/7)
+- Service de surveillance continue : Tâches planifiées (Cron jobs / Workers) 
+  qui scannent à intervalle régulier les sources paramétrées (API réseaux 
+  sociaux, scrapers pour groupes publics, flux RSS de médias).
+- Normalisation des données : Nettoyage du texte, extraction des métadonnées 
+  (source, auteur, horodatage, nombre d'interactions, liens associés).
+- Filtre Anti-Bruit et Détection d'Anomalies : 
+  * Analyse de la fréquence d'apparition de mots-clés sensibles (ex: "grève", 
+    "manifestation", "délestage", "coupure", noms de personnalités politiques).
+  * Mesure du pic de viralité (détection d'une augmentation soudaine du volume 
+    de publications sur un même sujet dans une courte fenêtre de temps).
+
+2.2 Module 2 : Engine d'Analyse et de Fact-Checking Préliminaire (IA)
+- Module de Recherche Croisée (Cross-Checking) :
+  * Lorsqu'un signal suspect ou urgent est détecté, le backend lance une 
+    requête de recherche automatique sur le web et dans la base documentaire.
+  * Récupération des articles existants ou des déclarations officielles 
+    traitant du même sujet.
+- Moteur de Synthèse et d'Évaluation de Crédibilité :
+  * Transmission des faits collectés au modèle de langage (LLM).
+  * Génération d'une proposition de titre, d'un résumé structuré et d'un score 
+    de crédibilité indicatif (Basé sur la concordance des sources).
+  * Stockage du résultat exclusivement dans la table `Drafts_IA` avec le statut 
+    "En attente de relecture".
+
+2.3 Module 3 : Copilot IA d'Investigation (Back-Office Chat Engine)
+- Architecture RAG (Retrieval-Augmented Generation) :
+  * Conversion des articles validés, des rapports de veille et des bases d'archives 
+    en vecteurs (Embeddings) stockés dans une base de données vectorielle.
+- Gestionnaire de Requêtes Complexe (Deep Research) :
+  * Quand le journaliste pose une question ("Donne-moi l'historique de X"), 
+    le backend effectue une recherche sémantique dans la base vectorielle.
+  * Il combine les résultats pertinents avec le prompt du journaliste et produit 
+    une réponse contextuelle avec citations et chronologie.
+- Gestion des Sessions de Chat : Sauvegarde de l'historique des échanges par 
+  journaliste pour permettre de reprendre une investigation à tout moment.
+
+2.4 Module 4 : Moteur de Secours et Passerelle SMS (Off-Grid Engine)
+- Gestionnaire des Alertes SMS aux Journalistes :
+  * Envoi automatique d'un SMS via passerelle (API SMS ou Modem GSM) aux 
+    numéros des journalistes configurés en cas d'urgence absolue détectée.
+  * Le SMS contient le résumé de l'alerte et un identifiant court.
+- Traitement des Requêtes SMS Grand Public :
+  * Réception du message entrant envoyé par un citoyen.
+  * Recherche stricte UNIQUEMENT dans la table `Articles_Certifies` (Contenus 
+    préalablement relus et publiés par les journalistes).
+  * Si correspondance trouvée : Envoi du résumé vérifié par SMS.
+  * Si aucune correspondance validée : Envoi de la réponse de sécurité 
+    ("Sujet en cours de vérification par nos journalistes").
+
+
+3. MODELISATION DE LA BASE DE DONNÉES (SCHÉMA FONCTIONNEL)
+--------------------------------------------------------------------------------
+
+3.1 Table : `Sources_Surveillees`
+- ID, Nom de la source, Type (Facebook, X, Web, RSS), URL, Statut (Actif/Inactif), 
+  Fréquence de scan, Dernière vérification.
+
+3.2 Table : `Signaux_Bruts` (Données collectées)
+- ID, Source_ID, Contenu brut, URL d'origine, Horodatage publication, 
+  Niveau de viralité calculé.
+
+3.3 Table : `Drafts_IA` (Pré-analyses non validées)
+- ID, Signal_ID, Titre suggéré, Synthèse IA, Score de crédibilité indicatif, 
+  Sources croisées (JSON), Statut (En_Attente / En_Cours / Rejete), Horodatage.
+
+3.4 Table : `Articles_Certifies` (Base Publique & SMS - Validée par l'humain)
+- ID, Draft_ID (optionnel), Titre final, Corps de l'article, Catégorie, 
+  Statut_Verification (Vrai / Faux / Trompeur), ID_Journaliste_Validateur, 
+  Horodatage_Validation, Contenu_Optimise_SMS.
+
+3.5 Table : `Historique_SMS`
+- ID, Numero_Expediteur, Message_Recu, Message_Envoye, Horodatage, Statut_Reponse.
+
+
+4. WORKFLOW TECHNIQUE D'UNE ALERTE (ÉTAPES APIS)
+--------------------------------------------------------------------------------
+1. Ingestion : Le scraper enregistre un post dans `Signaux_Bruts`.
+2. Traitement IA : Le worker de fond détecte une urgence, interroge le LLM et 
+   insère la réponse dans `Drafts_IA`.
+3. Notification : Envoi d'un événement WebSocket vers le Dashboard du Back-office 
+   + Déclenchement de l'API SMS si critère d'urgence atteint.
+4. Action Humaine : Le journaliste modifie le contenu via l'interface et clique 
+   sur "VALIDER ET PUBLIER".
+5. Mutation : Le backend déplace/transforme le brouillon dans `Articles_Certifies` 
+   et l'indexe dans la base vectorielle pour le service SMS et le public.
+
+
+5. SÉCURITÉ ET GARDE-FOUS (GUARDRAILS)
+--------------------------------------------------------------------------------
+- Contrôle d'accès (RBAC) : Seuls les utilisateurs authentifiés avec un rôle 
+  "Journaliste/Éditeur" peuvent appeler les endpoints de validation et de publication.
+- Validation des entrées IA : Filtrage des réponses générées par le LLM pour 
+  éviter les hallucinations avant affichage dans le back-office.
+- Étanchéité de l'API SMS Public : L'endpoint répondant aux SMS citoyens n'a 
+  techniquement aucun lien ou accès vers la table `Drafts_IA`. Il interroge 
+  une vue sécurisée et en lecture seule de `Articles_Certifies`.
+================================================================================

@@ -1,0 +1,158 @@
+================================================================================
+GUIDE FONCTIONNEL ET ERGONOMIQUE COMPLET (ÉCRAN PAR ÉCRAN)
+Projet Hackathon FANILO - Plateforme IA Veille, Investigation & Fact-Checking
+================================================================================
+
+1. VISION GLOBALE DES INTERFACES ET ACCÈS
+--------------------------------------------------------------------------------
+La plateforme se compose de trois grands espaces fonctionnels distincts :
+- L'Espace Rédaction (Back-Office restreint aux journalistes et éditeurs).
+- L'Espace Grand Public (Front-Office web et mobile accessible à tous).
+- Le Service SMS / Off-Grid (Interactions par messagerie texte sans internet).
+
+Le principe fondateur de toutes les interfaces est "L'Humain dans la Boucle" : 
+l'IA analyse, alerte et suggère, mais seul le journaliste valide et publie.
+
+
+2. ESPACE RÉDACTION : DASHBOARD PRINCIPAL (BACK-OFFICE)
+--------------------------------------------------------------------------------
+Le tableau de bord principal est structuré en 3 panneaux verticaux interactifs 
+pour permettre un travail fluide sans changement de page.
+
+2.1 Barre de Navigation et Contrôle (Header Supérieur)
+- Indicateur d'état du Moteur IA : Affichage en temps réel de l'activité de 
+  surveillance (ex: "IA en veille 24/7 - 28 sources surveillées").
+- Centre de Notifications de Secours : Icône cloche affichant le nombre d'alertes 
+  urgentes non lues.
+- Sélecteur de Mode : Basculement rapide entre l'Espace de Veille/Édition et 
+  le Panneau de Configuration.
+- Menu Profil Journaliste : Affichage du nom du journaliste connecté, de son rôle 
+  (Rédacteur / Électeur / Administrateur) et bouton de déconnexion.
+
+2.2 Panneau Gauche : Fil de Veille et Détection des Rumeurs en Temps Réel
+- Barre de Recherche Globale : Permet de chercher parmi les signaux captés 
+  sur les réseaux sociaux par mot-clé, date ou lieu.
+- Boutons de Filtrage par Catégorie :
+  * [Toutes les alertes]
+  * [Urgents / Crises] (ex: grèves, coupures d'électricité, incidents)
+  * [Politique & Institutions]
+  * [Société & Économie]
+  * [Faits Divers & Rumeurs]
+- Tri par Indice de Credibilité IA :
+  * Filtre "Suspect / À vérifier en priorité" (Faible score de fiabilité).
+  * Filtre "Tendance émergente" (Publication récente avec forte viralité).
+- Cartes d'Alerte (Alimentées en continu) :
+  * En-tête : Réseau d'origine (Facebook, X, etc.) + Ancienneté (ex: "Il y a 14 min").
+  * Titre / Extrait court détecté par l'IA.
+  * Badge d'Indice de Fiabilité Indicatif (Rouge = Suspect, Orange = Incertain, Vert = Crédible).
+  * Bouton d'Action "Ouvrir dans l'Éditeur" : Charge le contenu dans le panneau central.
+
+2.3 Panneau Central : Éditeur Augmenté et Module de Validation Éditoriale
+C'est le cœur du travail du journaliste où l'information pré-analysée par l'IA 
+est retravaillée, vérifiée puis validée pour publication.
+
+- En-tête du Document :
+  * Champ "Titre de l'Article" (Suggéré par l'IA, entièrement modifiable par l'humain).
+  * Menu Déroulant "Catégorie Éditoriale" pour le classement final sur le site public.
+  * Statut Visuel : Badge "Brouillon IA (Non Validé)".
+- Zone de Rédaction et de Correction (Éditeur de Texte Avancé) :
+  * Zone de texte contenant la proposition de synthèse rédigée par l'IA.
+  * Mise en évidence visuelle (Surlignage orange) des faits ou chiffres nécessitant 
+    une confirmation terrain.
+  * Barre d'outils d'édition classique (Formatage du texte, ajouts de citations, 
+    titres de paragraphes, images).
+- Bloc "Faisceau de Preuves et Sources Croisées" (Sous l'éditeur) :
+  * Liste détaillée de toutes les sources captées par l'IA (liens originaux, 
+    extraits de déclarations, articles de presse existants).
+  * Case à cocher pour chaque source : Permet au journaliste d'approuver 
+    individuellement les sources qu'il retient.
+- Barre d'Action et de Validation (Fixe au bas de l'écran) :
+  * Bouton "Rejeter / Fausse Information" : Archive l'alerte sans publier.
+  * Bouton "Enregistrer comme Brouillon" : Sauvegarde le travail en cours.
+  * Grand Bouton "VALIDER ET PUBLIER" : 
+    Déclenche une pop-up de confirmation explicite : 
+    "En publiant cet article, vous confirmez l'exactitude des informations. 
+    Il sera immédiatement visible sur le site public et accessible via SMS."
+    Actions au clic sur confirmer : Publication sur le site web/mobile + mise à 
+    jour de la base de réponses SMS.
+
+2.4 Panneau Droit : Copilot IA d'Investigation (Chat Interactif à la Demande)
+Interface conversationnelle dédiée aux recherches approfondies du journaliste.
+
+- En-tête du Chat : Titre "Assistant d'Investigation" + Bouton "Nouvelle Recherche".
+- Zone d'Échange Conversationnel :
+  * Messages du Journaliste (ex: "Retrouve-moi toutes les déclarations de X sur ce sujet depuis 6 mois").
+  * Réponses de l'IA présentées sous forme de fiches synthétiques, chronologies, 
+    ou comparaisons de citations.
+- Boutons de Prompts Rapides (Raccourcis en 1 clic) :
+  * [ 🔍 Générer la chronologie des événements ]
+  * [ ⚠️ Déceler les contradictions dans les sources ]
+  * [ 📱 Rédiger la version résumé pour SMS ]
+  * [ 🌐 Chercher si ce sujet a déjà été traité ailleurs ]
+- Champ de Saisie du Chat :
+  * Zone de texte pour poser des questions libres à l'IA.
+  * Bouton d'envoi et bouton pour joindre un document ou un lien à analyser.
+
+
+3. ESPACE RÉDACTION : PAGE DE GESTION DES SOURCES ET PARAMÈTRES
+--------------------------------------------------------------------------------
+Accessible via le menu supérieur du Back-Office pour la configuration.
+
+3.1 Section "Gestion de la Veille"
+- Liste de toutes les sources surveillées (Pages Facebook, groupes publics, comptes X, flux RSS).
+- Bouton "Ajouter une nouvelle source à surveiller" (Saisie de l'URL et du nom).
+- Interrupteurs Activation/Désactivation pour chaque source.
+
+3.2 Section "Gestion des Alertes Journalistes"
+- Liste des membres de la rédaction avec leurs numéros de téléphone.
+- Configuration des règles de notification SMS : Choix des thématiques urgentes 
+  qui doivent envoyer un SMS d'alerte sur le téléphone du journaliste en déplacement.
+
+3.3 Section "Historique et Traçabilité"
+- Journal des publications : Liste de tous les articles validés avec le nom du 
+  journaliste qui a approuvé et la date/heure exacte de publication.
+
+
+4. ESPACE GRAND PUBLIC (SITE WEB & APPLICATION MOBILE)
+--------------------------------------------------------------------------------
+Interface destinée aux citoyens pour consulter des informations certifiées.
+
+4.1 Page d'Accueil Public
+- En-tête : Logo de l'application + Slogan "L'Information Vérifiée par les Médias".
+- Badge de Garantie : "Tous les articles publiés sur ce site ont été vérifiés et 
+  validés par des journalistes professionnels."
+- Section "À LA UNE" : Présentation visuelle du dernier sujet d'actualité majeure ou 
+  de la dernière rumeur vérifiée/démentie.
+- Fil d'Actualité Chronologique :
+  * Cartes d'articles claires avec photo, titre, catégorie et heure de publication.
+  * Badge de Statut Visuel sur chaque carte : [VÉRIFIÉ] ou [FAUX / DÉMENTI].
+  * Nom du journaliste ou de la rédaction ayant validé l'article.
+- Barre de Recherche Public : Permet aux citoyens de chercher si un sujet ou une 
+  rumeur a déjà fait l'objet d'une vérification.
+
+4.2 Page de Lecture d'un Article
+- Titre complet et sous-titre.
+- Section "Le Vrai du Faux en Bref" : Résumé synthétique de 3 puces lisible en 15 secondes.
+- Corps complet de l'article rédigé et validé par la rédaction.
+- Section "Sources et Preuves" : Transparence sur les éléments ayant permis de vérifier l'information.
+- Boutons de Partage Facile (WhatsApp, Facebook, SMS) pour diffuser la vraie information.
+
+
+5. MODULE INTERACTIF SMS / MESSIERES SANS INTERNET (OFF-GRID)
+--------------------------------------------------------------------------------
+Service destiné aux citoyens ou journalistes n'ayant pas d'accès Internet actif.
+
+5.1 Interface de Simulation Web (Pour la démonstration au Hackathon)
+- Widget interactif représentant l'écran d'un téléphone portable basique (Téléphone à touches).
+- Zone de saisie permettant de simuler l'envoi d'un SMS par un citoyen (ex: "Est-ce vrai qu'il y a grève demain ?").
+- Écran du téléphone affichant la réponse automatique reçue.
+
+5.2 Fonctionnement du Service SMS Citoyen
+- Scénario A (Sujet Déjà Validé) : Si le citoyen interroge sur un sujet qui a été 
+  vérifié et validé par un journaliste sur le Back-Office, l'IA renvoie le résumé 
+  exact de la version validée par l'humain.
+- Scénario B (Sujet Non Validé / Inconnu) : Si le sujet n'a pas encore été traité 
+  ou validé par un humain, l'IA répond : "Ce sujet n'a pas encore été validé par 
+  la rédaction. Nos journalistes sont sur le coup. Réessayez plus tard."
+  (Garantie qu'aucune fausse information générée par l'IA ne sorte par SMS).
+================================================================================

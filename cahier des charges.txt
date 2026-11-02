@@ -1,0 +1,130 @@
+================================================================================
+CAHIER DES CHARGES : SYSTEME D'IA DE VEILLE, FACT-CHECKING ET INVESTIGATION
+Projet Hackathon FANILO - Résilience Informationnelle à Madagascar
+================================================================================
+
+1. CONTEXTE ET OBJECTIFS DU PROJET
+--------------------------------------------------------------------------------
+1.1 Contexte :
+ Le hackathon FANILO, porté conjointement par l'Institut français de Madagascar 
+ (IFM) et l'Ambassade de France (en partenariat avec 42 Antananarivo), a pour 
+ objectif de développer une solution numérique concrète répondant aux besoins 
+ des professionnels des médias face aux enjeux de désinformation, d'intelligence 
+ artificielle et de vérification d'informations.
+
+1.2 Objectif global :
+ Concevoir une plateforme intelligente hybride destinée aux rédactions et aux 
+ citoyens, basée sur le principe fondamental de **"L'Humain dans la Boucle" 
+ (Human-in-the-Loop)**. L'IA ne publie jamais de manière autonome et ne remplace 
+ en aucun cas le jugement du journaliste.
+ La solution comprend :
+ - Un moteur de veille automatisé 24/7 qui détecte et pré-vérifie les rumeurs 
+   et événements urgents sur les réseaux sociaux.
+ - Un Back-Office enrichi d'un Copilot IA conversationnel d'investigation 
+   pour aider les journalistes dans leurs recherches approfondies à la demande.
+ - Un système de validation stricte réservé aux journalistes professionnels.
+ - Un système d'accès multi-canal (Dashboard Web/Mobile et canal SMS/Messagerie 
+   basse bande) adapté aux contraintes de connectivité à Madagascar.
+
+
+2. PRINCIPE ETHIQUE FONDAMENTAL : AUTONOMIE VS CONTRÔLE HUMAIN
+--------------------------------------------------------------------------------
+2.1 Rôle exclusif de l'IA : Assistant d'Analyse et de Synthèse
+ - L'IA agit uniquement comme un **super-assistant d'investigation** et d'alerte.
+ - Elle accumule, filtre, croise les sources et propose des brouillons de synthèses.
+ - L'IA n'a **AUCUN** accès direct aux canaux de publication publique. 
+ - L'IA ne prend aucune décision éditoriale, ne qualifie pas de manière définitive
+   une information comme "Vraie" ou "Fausse", mais fournit un indice de crédibilité 
+   et des faisceaux d'indices argumentés pour éclairer le journaliste.
+
+2.2 Rôle exclusif du Journaliste : Décision Éditoriale et Validation
+ - Le journaliste conserve le monopole de la validation, de la retouche éditoriale, 
+   de la responsabilité légale et de la publication.
+ - Aucune alerte publique ni réponse automatique aux citoyens ne peut être diffusée 
+   sans qu'un membre de la rédaction n'ait relu et validé explicitement le contenu.
+
+
+3. DESCRIPTION FONCTIONNELLE ET WORKFLOWS
+--------------------------------------------------------------------------------
+3.1 Veille continue et Alerte automatique (24/7)
+ - Surveillance automatisée : Scraping / Ingestion continue des flux (groupes 
+   Facebook, pages d'actualités, X/Twitter, médias locaux).
+ - Détection d'urgences : Identification dynamique des sujets émergents ou 
+   suspects (grèves, manifestations, coupures d'eau/électricité, déclarations 
+   politiques) via analyse de mots-clés et détection d'anomalies de volume.
+ - Notifications multi-canaux : Alerte instantanée (push sur le dashboard) et 
+   notification SMS de secours pour les journalistes en déplacement sans internet, 
+   les invitant à venir relier/valider la pré-analyse de l'IA.
+
+3.2 Back-Office Enrichi : Copilot IA & Assistant d'Investigation
+ Interface de chat interactif directement intégrée au tableau de bord des 
+ journalistes.
+ - Deep Research à la demande : 
+   Exemple de requête : "Il me faut toutes les données et l'historique sur le 
+   retour de [Nom] en politique."
+   Action IA : Analyse simultanée des archives, des bases de données internes, 
+   des publications réseaux sociaux et du web.
+   Résultat : Synthèse complète avec chronologie, citations clés, croisement 
+   des sources et score de fiabilité indicatif soumis à vérification humaine.
+ - Fact-Checking personnalisé : Analyse instantanée d'un lien, d'un extrait de 
+   texte ou d'une image soumis par le journaliste.
+ - Assistance rédactionnelle : Suggestions d'angles journalistiques, résumés 
+   exécutifs et aide à la reformulation.
+
+3.3 Dashboard de Gestion et Édition (Supervision Journalistique)
+ - Fil d'actualités catégorisé : Filtrage par urgence et thématiques 
+   (Urgent, Politique, Faits divers, Société).
+ - Interface de Modération Stricte : Zone d'édition obligatoire où le journaliste 
+   relit, corrige les biais potentiels de l'IA, ajoute des sources terrain, 
+   puis signe/valide l'article.
+ - Bouton de Publication Sécurisé : Action exclusive déclenchée par l'humain pour 
+   alimenter les canaux publics.
+
+3.4 Diffusion & Accès Off-Grid (Grand Public)
+ - Portail Web / App Mobile : Consultation des informations strictement vérifiées, 
+   éditées et signées par les journalistes.
+ - Service Citoyen SMS / Off-Grid (Base de connaissances validée) :
+   Un citoyen sans accès internet envoie un SMS/Message pour interroger la plateforme.
+   L'IA consulte UNIQUEMENT la base d'articles préalablement **vérifiés et validés 
+   par les journalistes** pour formuler sa réponse. Si le sujet n'a pas encore été 
+   validé par un humain, l'IA répond : "Sujet en cours de vérification par la rédaction".
+
+
+4. ARCHITECTURE TECHNIQUE PRÉCONISÉE (MVP HACKATHON)
+--------------------------------------------------------------------------------
+- Backend & IA : Python (FastAPI / Flask) + Moteur RAG (LangChain / LlamaIndex).
+- Garde-fous IA (Guardrails) : Règles strictes empêchant le LLM de générer des 
+  réponses directes au public sans passer par la base de validation (Vector Store filtré).
+- Modèles LLM : Intégration via API (OpenAI / Gemini / Llama local).
+- Base de Données & Vector Store : Supabase (PostgreSQL + pgvector) avec une table 
+  clairement séparée entre `Drafts_IA` (données brutes) et `Verified_Articles` (valides par l'humain).
+- Frontend (Journaliste & Public) : React.js / Next.js (Dashboard responsive et 
+  PWA optimisée pour la consommation de données).
+- Gateway SMS / Notifications : Passerelle SMS (API Twilio ou modem GSM/Android).
+
+
+5. SCÉNARIO ET PERIMÈTRE POUR LE PITCH (3 MINUTES)
+--------------------------------------------------------------------------------
+1. Démonstration de la veille passive : Remontée automatique d'une rumeur de 
+   grève détectée il y a moins de 20 minutes sur Facebook (Statut : *En attente de relecture*).
+2. Démonstration du Copilot (Investigative Chat) : Requête du journaliste dans 
+   le chat back-office ("Donne-moi l'historique sur X en politique") et affichage 
+   de la synthèse de recherche préparatoire pour le journaliste.
+3. Démonstration de la validation humaine & publication : Le journaliste ajuste 
+   le texte, clique sur *Publier*.
+4. Démonstration Off-grid citoyenne : Un citoyen interroge par SMS et reçoit 
+   la réponse officielle et sécurisée validée par la rédaction.
+
+
+6. MATRICE DE RÉPARTITION DES RÔLES (ÉQUIPE DE 4 PERSONNES)
+--------------------------------------------------------------------------------
+- Membre 1 (Backend IA, Prompt Engineering & Guardrails) : 
+  Pipeline d'ingestion de données, logique RAG et paramétrage des règles de sécurité IA.
+- Membre 2 (Backend API & Passerelle SMS) : 
+  Architecture base de données (séparation Draft/Verified), endpoints d'alertes et SMS.
+- Membre 3 (Frontend Back-Office & Chat UI) : 
+  Interface du dashboard journaliste, module de chat Copilot et interface de validation.
+- Membre 4 (Frontend Public & Design Pitch) : 
+  Interface du site/app public, intégration visuelle et préparation des supports 
+  de présentation mettant en avant l'éthique et le contrôle humain.
+================================================================================
