@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Utilisateur
-from ..schemas import TokenRead, UserCreate
+from ..schemas import LoginRequest, TokenRead, UserCreate
 from ..services import create_access_token, password_hash, password_matches
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
@@ -17,7 +17,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     user = Utilisateur(
         email=payload.email.lower().strip(),
         mot_de_passe_hash=password_hash(payload.mot_de_passe),
-        role=payload.role,
+        role="Journaliste",
     )
     db.add(user)
     db.commit()
@@ -26,7 +26,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenRead)
-def login(payload: UserCreate, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.scalar(select(Utilisateur).where(Utilisateur.email == payload.email.lower().strip()))
     if user is None or not password_matches(payload.mot_de_passe, user.mot_de_passe_hash) or not user.actif:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants invalides.")

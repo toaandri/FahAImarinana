@@ -10,6 +10,7 @@ from jose import JWTError, jwt
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from .gemini_service import GeminiUnavailableError, generate_draft, research_web
 from .models import (
     ArticleCertifie,
     ContactJournaliste,
@@ -87,13 +88,28 @@ def create_draft(db: Session, signal: SignalBrut, sources: list[dict]) -> DraftI
     official = sum(1 for source in sources if source["officielle"])
     total = len(sources)
     score = 20.0 if not total else min(95.0, 35 + concordant / total * 45 + official * 10)
-    first_sentence = re.split(r"(?<=[.!?])\s+", signal.contenu_normalise)[0]
-    title = first_sentence[:247] + "..." if len(first_sentence) > 250 else first_sentence
-    summary = (
-        f"Signal détecté le {signal.horodatage_publication.isoformat()}. "
-        f"{signal.contenu_normalise} "
-        "Cette synthèse est une pré-analyse IA et doit être relue par un journaliste."
-    )
+    try:
+        generated = generate_draft(
+            signal.contenu_normalise,
+            signal.horodatage_publication.isoformat(),
+            sources,
+        )
+        title = str(generated["titre"])[:250]
+        summary = (
+            f"{generated['synthese']}\n\nLimites: {generated['limites']} "
+            "Cette synthèse est une pré-analyse IA et doit être relue par un journaliste."
+        )
+        score = max(0.0, min(100.0, float(generated["score_credibilite"])))
+        if generated.get("citations"):
+            sources = [*sources, *generated["citations"]]
+    except (GeminiUnavailableError, KeyError, TypeError, ValueError):
+        first_sentence = re.split(r"(?<=[.!?])\s+", signal.contenu_normalise)[0]
+        title = first_sentence[:247] + "..." if len(first_sentence) > 250 else first_sentence
+        summary = (
+            f"Signal détecté le {signal.horodatage_publication.isoformat()}. "
+            f"{signal.contenu_normalise} "
+            "Cette synthèse locale est une pré-analyse IA et doit être relue par un journaliste."
+        )
     draft = DraftIA(
         signal_id=signal.id,
         titre_suggere=title or "Signal sans titre",
@@ -170,6 +186,8 @@ def publish_draft(
 ) -> ArticleCertifie:
     if user.role not in {"Journaliste", "Editeur"}:
         raise ValueError("Seuls les journalistes et éditeurs peuvent publier.")
+    if draft.statut == "En_Cours":
+        raise ValueError("Ce brouillon a déjà été publié ou est en cours de publication.")
     article = ArticleCertifie(
         draft_id=draft.id,
         titre_final=payload.titre_final,
@@ -290,6 +308,12 @@ def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[di
 
 
 def build_research_answer(db: Session, question: str) -> tuple[str, list[dict], list[dict]]:
+    if os.getenv("GEMINI_API_KEY", "").strip():
+        try:
+            answer, citations = research_web(question)
+            return answer, citations, []
+        except GeminiUnavailableError:
+            pass
     results = search_knowledge_base(db, question)
     citations = [
         {"titre": item["titre"], "url": item["url"], "date": item["date"], "extrait": item["extrait"]}

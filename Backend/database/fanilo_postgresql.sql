@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS drafts_ia (
     sources_croisees JSONB NOT NULL DEFAULT '[]'::jsonb,
     statut VARCHAR(25) NOT NULL DEFAULT 'En_Attente'
         CHECK (statut IN ('En_Attente', 'En_Cours', 'Rejete')),
-    horodatage TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    horodatage TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_drafts_ia_signal_id UNIQUE (signal_id)
 );
 
 CREATE TABLE IF NOT EXISTS articles_certifies (

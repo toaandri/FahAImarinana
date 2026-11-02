@@ -6,12 +6,26 @@ from ..dependencies import journalist_or_editor
 from ..models import DraftIA, SignalBrut, Utilisateur
 from ..schemas import ArticlePublicRead, CrossCheckRead, PublishRequest
 from ..services import cross_check_signal, publish_draft
+from ..workers import process_pending_signals
 
 router = APIRouter(prefix="/workflow", tags=["Workflow éditorial"])
 
 
+@router.post("/process-pending", status_code=status.HTTP_200_OK)
+def process_pending(
+    db: Session = Depends(get_db),
+    _: Utilisateur = Depends(journalist_or_editor),
+):
+    """Run one supervised worker pass; scheduling remains an infrastructure concern."""
+    return {"processed": process_pending_signals(db)}
+
+
 @router.post("/signals/{signal_id}/cross-check", response_model=CrossCheckRead)
-def cross_check(signal_id: int, db: Session = Depends(get_db)):
+def cross_check(
+    signal_id: int,
+    db: Session = Depends(get_db),
+    _: Utilisateur = Depends(journalist_or_editor),
+):
     signal = db.get(SignalBrut, signal_id)
     if signal is None:
         raise HTTPException(status_code=404, detail="Signal introuvable.")
@@ -35,4 +49,4 @@ def publish(
     try:
         return publish_draft(db, draft, user, payload)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

@@ -24,7 +24,18 @@ Avec Docker et Docker Compose installés, depuis la racine du projet :
 docker compose up --build
 ```
 
-La configuration expose le backend sur le port 8000 et PostgreSQL sur le port 5432. Les identifiants fournis par cette configuration servent uniquement au développement local. Le lancement n’a pas été vérifié dans le cadre du rangement documentaire.
+La configuration expose le backend sur le port 8000 et PostgreSQL sur le port 5432. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
+la génération de brouillons IA, la validation humaine, le flux public/SMS et le
+Copilot limité aux articles certifiés. Les écritures de veille et la consultation
+des brouillons exigent un jeton de journaliste ou d’éditeur ; l’inscription crée
+toujours un compte journaliste. Le worker supervisé peut être déclenché avec
+`POST /api/workflow/process-pending` après authentification.
+
+Pour activer Google AI Studio, créer une clé dans [Google AI Studio](https://aistudio.google.com/apikey)
+et renseigner `GEMINI_API_KEY`. Le backend utilise alors Gemini pour les brouillons
+structurés et le Copilot web avec Google Search. Sans clé, il conserve le moteur local
+et indique que les sorties restent des pré-analyses. L’IA ne peut jamais publier
+directement un article certifié.
 
 Pour l’interface Java ME, les sources se trouvent dans `Touche/front/src/` et les distributions dans `Touche/front/deploy/`. Le script historique `Touche/lancement.sh` utilise des chemins propres à la machine de son auteur ; il doit être adapté à votre environnement.
 

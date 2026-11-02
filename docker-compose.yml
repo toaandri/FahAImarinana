@@ -25,8 +25,15 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg://fanilo:fanilo@postgres:5432/fanilo
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: fanilo
+      DATABASE_USER: fanilo
+      DATABASE_PASSWORD: fanilo
       AUTO_CREATE_TABLES: "true"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      GEMINI_TIMEOUT_SECONDS: ${GEMINI_TIMEOUT_SECONDS:-45}
     ports:
       - "8000:8000"
 

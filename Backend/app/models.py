@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -38,6 +38,7 @@ class SignalBrut(Base):
 
 class DraftIA(Base):
     __tablename__ = "drafts_ia"
+    __table_args__ = (UniqueConstraint("signal_id", name="uq_drafts_ia_signal_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     signal_id: Mapped[int] = mapped_column(ForeignKey("signaux_bruts.id"))

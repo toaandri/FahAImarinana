@@ -79,7 +79,11 @@ class ArticlePublicRead(BaseModel):
 class UserCreate(BaseModel):
     email: str
     mot_de_passe: str = Field(min_length=8)
-    role: Literal["Journaliste", "Editeur"] = "Journaliste"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    mot_de_passe: str = Field(min_length=8)
 
 
 class TokenRead(BaseModel):
