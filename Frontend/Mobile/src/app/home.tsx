@@ -3,27 +3,57 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { HeaderBar, GlassCard, BottomTabs, StoryCard } from '@/components/ui';
-import { getLatestNews } from '@/services/mockData';
+import { getLatestNews, type NewsItem } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 
 export default function HomeScreen() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    getLatestNews().then(setItems);
+    getLatestNews().then((news) => {
+      setItems(news);
+      setActiveIndex(0);
+    });
   }, []);
+
+  useEffect(() => {
+    if (items.length < 2) return undefined;
+
+    const timer = setTimeout(() => {
+      setActiveIndex((index) => (index + 1) % items.length);
+    }, 20_000);
+
+    return () => clearTimeout(timer);
+  }, [activeIndex, items.length]);
+
+  const activeItem = items[activeIndex];
 
   return (
     <SafeAreaView style={styles.screen}>
       <HeaderBar />
       <ScrollView contentContainerStyle={styles.content}>
         <StoryCard
-          title={items[0]?.title ?? 'Jeux Olympiques de la Jeunesse 2026'}
-          source={items[0]?.source ?? '2424.mg'}
-          credibility={items[0]?.credibility ?? 85}
-          image={items[0]?.image}
+          title={activeItem?.title ?? 'Jeux Olympiques de la Jeunesse 2026'}
+          source={activeItem?.source ?? '2424.mg'}
+          credibility={activeItem?.credibility ?? 85}
+          image={activeItem?.image}
           onPress={() => router.push('/discussion' as any)}
         />
+        {items.length > 1 ? (
+          <View style={styles.carouselIndicators} accessibilityRole="tablist">
+            {items.map((item, index) => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="tab"
+                accessibilityLabel={`Information ${index + 1} sur ${items.length}`}
+                accessibilityState={{ selected: index === activeIndex }}
+                onPress={() => setActiveIndex(index)}
+                style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
+              />
+            ))}
+          </View>
+        ) : null}
 
         <GlassCard style={styles.talkCard}>
           <View style={styles.talkRow}>
@@ -50,6 +80,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
   content: { padding: 16, paddingBottom: 120 },
+  carouselIndicators: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
+  carouselDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.4)' },
+  carouselDotActive: { width: 18, backgroundColor: palette.mint },
   talkCard: { padding: 16, marginTop: 16 },
   talkRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   bigText: { color: '#fff', fontSize: 22, fontFamily: 'Montserrat_700Bold_Italic', lineHeight: 28, flex: 1 },

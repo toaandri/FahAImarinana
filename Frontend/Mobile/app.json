@@ -37,6 +37,12 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser FA AI MARINANA à accéder aux photos sélectionnées pour votre article."
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Autoriser FA AI MARINANA à filmer pour une analyse visuelle assistée.",
