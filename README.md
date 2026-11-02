@@ -59,17 +59,21 @@ valide et publie ; les administrateurs et comptes IA n’héritent d’aucun dro
 
 ## Démarrage local du backend
 
-Avec Docker et Docker Compose installés, depuis la racine du projet :
+Lancez uniquement PostgreSQL avec Docker depuis la racine du projet :
 
 ```sh
-docker compose up --build
+docker compose up -d postgres
 ```
 
-La configuration expose le backend sur le port 18000 de la machine hôte (8000 dans le conteneur). PostgreSQL reste accessible au backend sur `postgres:5432` dans le réseau Docker, sans exposition directe sur la machine hôte. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
+PostgreSQL est accessible localement sur `localhost:55434`. Pour démarrer le backend
+localement, copiez `Backend/.env.example` vers `Backend/.env`, puis lancez Alembic
+et Uvicorn depuis `Backend/`. Les frontends se lancent séparément avec leurs scripts
+npm habituels.
 
 ### Démonstration hackathon
 
-Le Compose local démarre par défaut avec `DEMO_MODE=true`, charge un jeu de
+Le seed de démonstration doit être lancé par le backend local avec `DEMO_MODE=true`.
+Il charge un jeu de
 données entièrement fictif dans une rédaction `demo` isolée, et publie les
 articles fictifs via le flux public. Les comptes de test sont :
 

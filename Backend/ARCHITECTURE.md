@@ -55,7 +55,8 @@ Le moteur SQLAlchemy reste synchrone. FastAPI exécute les endpoints synchrones 
 
 Copier `Backend/.env.example` vers `Backend/.env` pour une exécution Python locale. Le chargeur lit ce fichier une seule fois ; les variables du processus ont priorité. La configuration Pydantic est validée au démarrage. `DATABASE_URL` prime sur les variables `DATABASE_*`.
 
-Pour Docker Compose, utiliser les variables du shell ou le fichier `.env` de la racine : Compose ne charge pas automatiquement `Backend/.env`. Le fichier `Backend/.env` est exclu de l'image par `.dockerignore`.
+Docker Compose ne gère ici que PostgreSQL, publié sur `localhost:55434`. Le backend
+local utilise `Backend/.env`, qui est exclu de l'image par `.dockerignore`.
 
 Développement : renseigner un secret JWT stable pour conserver les sessions entre redémarrages et partager les jetons entre processus. Sans secret, un secret aléatoire temporaire est généré et un avertissement est émis. Aucun secret fixe connu n'est utilisé.
 
@@ -68,16 +69,17 @@ Depuis `Backend/`, avec l'environnement Python activé :
 ```sh
 pip install -r requirements-dev.txt
 alembic upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 18000
 ```
 
-Pour une base neuve avec Docker, depuis la racine :
+Pour démarrer PostgreSQL avec Docker, depuis la racine :
 
 ```sh
-docker compose up --build
+docker compose up -d postgres
 ```
 
-Compose exécute Alembic avant Uvicorn. PostgreSQL n'est exposé que sur l'interface locale. Le processus applicatif du conteneur utilise un utilisateur non privilégié.
+Le backend local doit ensuite exécuter Alembic avant Uvicorn. PostgreSQL est publié
+sur `localhost:55434`.
 
 ### Base historique
 
