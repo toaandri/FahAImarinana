@@ -36,6 +36,14 @@ def history(draft_id: int,db: Session=Depends(get_db),user: Utilisateur=Depends(
         .order_by(DraftRevision.id).limit(limit).offset(offset)))
 
 
+@router.post('/{draft_id}/revisions',response_model=DraftVersionRead,status_code=201)
+def create_revision(draft_id: int,payload: DraftUpdate,db: Session=Depends(get_db),
+                    user: Utilisateur=Depends(require_permission(P.DRAFT_EDIT))):
+    # MIDP HttpConnection has no portable PATCH support. Same domain operation,
+    # explicit append-revision resource, same version conflict and validation reset.
+    return edit_draft(db,user,draft_id,payload)
+
+
 @router.get('/{draft_id}/version',response_model=DraftVersionRead)
 def get_version(draft_id: int,db: Session=Depends(get_db),user: Utilisateur=Depends(require_permission(P.DRAFT_READ))):
     return get_draft(draft_id,db,user)

@@ -4,6 +4,7 @@ Hackathon_Besoins.mp4
 /.analyse_deps/
 /.local-analysis/
 /.docs-push/
+/Backend/.local-data/
 
 # Fichiers générés
 __pycache__/

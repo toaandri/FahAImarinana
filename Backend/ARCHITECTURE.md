@@ -1,5 +1,11 @@
 # Backend FA AI MARINANA — architecture modulaire
 
+Mise à jour du 2 novembre 2026 : les paragraphes de limites et résultats historiques
+ci-dessous décrivent la restructuration initiale. Les ajouts ultérieurs (API dossiers,
+preuves/affirmations, historique immuable, file durable locale, synchronisation et
+mobile HTTP/RMS) sont détaillés dans le [guide d'intégration](../docs/INTEGRATION_TECHNIQUE.md)
+et son [rapport de recette](../docs/RAPPORT_FINAL_INTEGRATION.md).
+
 Les règles actuelles d’inscription, de session et de publication sont décrites dans [AUTHENTICATION.md](AUTHENTICATION.md).
 
 Le schéma actuel, les treize entités principales et la migration de confidentialité sont détaillés dans [PERSISTENCE.md](PERSISTENCE.md).

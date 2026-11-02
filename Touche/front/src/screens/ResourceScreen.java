@@ -24,10 +24,22 @@ public class ResourceScreen extends ApiForm {
     }
     private String display(Hashtable item) {
         if(item.containsKey("statement")) return "Affirmation #"+Json.str(item,"id")+" : "+Json.str(item,"statement")+" ["+Json.str(item,"verdict")+"]";
-        if(item.containsKey("synthese")) return "Recherche #"+Json.str(item,"id")+" ["+Json.str(item,"statut")+"]\\n"+Json.str(item,"synthese")+"\\n"+Json.encode(item.get("citations"));
-        if(item.containsKey("nom")) return "Source #"+Json.str(item,"id")+" : "+Json.str(item,"nom")+"\\n"+Json.str(item,"url");
-        if(item.containsKey("snapshot")) return "Version "+Json.str(item,"version")+" - "+Json.str(item,"event")+"\\n"+Json.encode(item.get("snapshot"));
-        return "Preuve #"+Json.str(item,"id")+" : "+Json.str(item,"title")+"\\n"+Json.str(item,"content")+"\\n"+Json.str(item,"original_url");
+        if(item.containsKey("synthese")) {
+            StringBuffer text=new StringBuffer("Recherche #"+Json.str(item,"id")+" ["+Json.str(item,"statut")+"]\n"+Json.str(item,"synthese"));
+            Vector citations=(Vector)item.get("citations");
+            for(int i=0;i<citations.size();i++) {
+                Hashtable citation=(Hashtable)citations.elementAt(i);
+                text.append("\nPreuve #").append(Json.str(citation,"evidence_id")).append(" : ").append(Json.str(citation,"titre"))
+                    .append("\n").append(Json.str(citation,"extrait")).append("\n").append(Json.str(citation,"url"));
+            }
+            return text.toString();
+        }
+        if(item.containsKey("nom")) return "Source #"+Json.str(item,"id")+" : "+Json.str(item,"nom")+"\n"+Json.str(item,"url");
+        if(item.containsKey("snapshot")) {
+            Hashtable snapshot=(Hashtable)item.get("snapshot");
+            return "Version "+Json.str(item,"version")+" - "+Json.str(item,"event")+"\n"+Json.str(snapshot,"titre_suggere")+"\n"+Json.str(snapshot,"synthese_ia");
+        }
+        return "Preuve #"+Json.str(item,"id")+" : "+Json.str(item,"title")+"\n"+Json.str(item,"content")+"\n"+Json.str(item,"original_url");
     }
     private void load() {
         call("GET",path+"?limit=20&offset="+offset,null,new Api.Listener() {

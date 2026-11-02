@@ -1,5 +1,5 @@
 """Add private draft history without rewriting existing records."""
-from alembic import op, context
+from alembic import op
 import sqlalchemy as sa
 
 revision = '0004_draft_history'

@@ -18,7 +18,7 @@ class ArticlePublicRead(BaseModel):
 
 class PublishRequest(BaseModel):
     titre_final: str = Field(min_length=1, max_length=250)
-    corps_article: str = Field(min_length=1)
+    corps_article: str = Field(min_length=1,max_length=100000)
     categorie: str = Field(min_length=1, max_length=50)
     statut_verification: Literal["Vrai", "Faux", "Trompeur"]
     contenu_optimise_sms: str = Field(min_length=1, max_length=480)

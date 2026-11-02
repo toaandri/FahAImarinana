@@ -1,7 +1,7 @@
 """Human input cannot supply verdicts, validators, scope or publication states."""
 from datetime import datetime
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
 class Input(BaseModel):

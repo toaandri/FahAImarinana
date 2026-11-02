@@ -32,7 +32,7 @@ public class CaseScreen extends ApiForm {
         call("GET",path,null,new Api.Listener() {
             public void success(Object data) {
                 Hashtable item=(Hashtable)data;
-                description.setText(Json.str(item,"title") + "\\n" + Json.str(item,"description") + "\\nEtat : " + Json.str(item,"status"));
+                description.setText(Json.str(item,"title") + "\n" + Json.str(item,"description") + "\nEtat : " + Json.str(item,"status"));
             }
             public void failure(String problem) { }
         });
@@ -54,7 +54,6 @@ public class CaseScreen extends ApiForm {
             .field("original_url","Reference URL originale",500,false).field("source_id","Numero source (voir Sources)",10,true);
         else if (action.equals("signal")) form=new EntryForm("Signal documente","/signals/ingest",this,new Api.Listener() {
             public void success(Object data) {
-                ScreenManager.show(new ResourceScreen("Signal enregistre",path+"/drafts",CaseScreen.this,false));
                 Alert alert=new Alert("Signal enregistre","Numero du signal : " + Json.str((Hashtable)data,"id") + ". Utilisez-le pour preparer le brouillon.",null,AlertType.INFO);
                 alert.setTimeout(Alert.FOREVER); ScreenManager.getDisplay().setCurrent(alert,CaseScreen.this);
             }

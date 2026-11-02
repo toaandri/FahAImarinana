@@ -171,3 +171,16 @@ Les tests ne téléchargent pas de preuves réelles, n'appellent pas Gemini et n
 - Vérifications réussies : syntaxe Python, cohérence des dépendances avec `pip check` et absence d'erreurs de diff avec `git diff --check`.
 - Les tests PostgreSQL couvrent les migrations neuves et historiques, les droits du compte public, les clés étrangères composites, les corrections auditées et les publications concurrentes.
 - Aucune migration ni donnée fictive n'a été appliquée à une base applicative existante ; seules les bases temporaires de test ont été utilisées.
+
+## Mise à jour : historique des brouillons
+
+La révision `0004_draft_history` ajoute `draft_revisions`, avec acteur, version,
+événement et snapshot privé. Les clés étrangères composites conservent l'isolation
+de rédaction/dataset ; les gardes SQL/ORM interdisent modification et suppression.
+Les versions antérieures à l'installation ne sont pas inventées. Aucun changement
+de colonne des tables existantes n'est requis par cette migration.
+
+Les recherches asynchrones locales réutilisent `research_jobs` et ses états existants.
+La synchronisation publique utilise un snapshot anonyme et des empreintes de contenu,
+sans accès privé ni duplication de publications. Voir le
+[guide d'intégration](../docs/INTEGRATION_TECHNIQUE.md).

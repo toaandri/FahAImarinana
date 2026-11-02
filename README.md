@@ -15,6 +15,25 @@ Projet pour le hackathon FANILO 2026 : assistance à la veille, à la recherche 
 
 ## État du projet
 
+Le parcours documentaire et éditorial local est maintenant connecté : dossiers,
+affirmations, preuves, recherche dans les pièces saisies, brouillons et révisions,
+validation humaine, publication, consultation SMS par HTTP et synchronisation du
+cache public Java ME. La recherche distante Maharavo et la livraison SMS opérateur
+restent indisponibles. Voir le [rapport de livraison](docs/RAPPORT_FINAL_INTEGRATION.md)
+et le [guide technique et de lancement](docs/INTEGRATION_TECHNIQUE.md).
+
+Pour lancer le backend local avec les dépendances déjà installées :
+
+```sh
+.venv/bin/python Backend/scripts/run_local.py --create-account
+.venv/bin/python Backend/scripts/run_local.py
+```
+
+Créer vos comptes administrateur, journaliste et éditeur avec `--create-account`
+avant de tester les différents rôles ; les mots de passe sont demandés au terminal.
+Le serveur local expose `http://127.0.0.1:8000/docs`. Le guide décrit aussi
+l'installation, PostgreSQL, les migrations, le worker et la compilation mobile.
+
 Le cahier étendu décrit une cible et des priorités, pas une liste de fonctionnalités déjà opérationnelles. Le document Java ME historique décrit une démonstration avec données fictives. Les fonctionnalités réelles doivent être vérifiées avant présentation. La transcription de la vidéo est automatique et peut comporter des erreurs, notamment en malagasy.
 
 ## Architecture du backend
@@ -84,7 +103,12 @@ npm run web
 
 Pour démarrer l’application sur Android, utilisez `npm run android`. Le lancement iOS nécessite macOS (`npm run ios`).
 
-Pour l’interface Java ME, les sources se trouvent dans `Touche/front/src/` et les distributions dans `Touche/front/deploy/`. Le script historique `Touche/lancement.sh` utilise des chemins propres à la machine de son auteur ; il doit être adapté à votre environnement.
+Pour l’interface Java ME connectée, les sources se trouvent dans `Touche/front/src/`.
+Le script `MICROEMU_HOME=/chemin/vers/microemulator-2.0.4 bash Touche/lancement.sh`
+compile et lance le client ; `--build` produit seulement le nouveau JAR/JAD dans
+`Touche/front/build/`. Les distributions de `deploy/` sont les anciennes versions.
+Le client utilise les vrais comptes et endpoints, sans code d'accès fixe. Son cache
+hors ligne contient uniquement les publications publiques synchronisées et leur date.
 
 ## Organisation locale
 

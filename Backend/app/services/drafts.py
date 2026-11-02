@@ -50,6 +50,9 @@ def create_draft(db: Session, signal: SignalBrut, sources: list[dict]) -> DraftI
         horodatage=datetime.now(timezone.utc),
     )
     db.add(draft)
+    if db.info.get('actor_id') is not None:
+        from .draft_workflow import record_revision
+        record_revision(db,draft,db.info['actor_id'],'created')
     db.commit()
     db.refresh(draft)
     return draft

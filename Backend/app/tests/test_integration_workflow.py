@@ -83,6 +83,8 @@ class IntegrationWorkflowTests(unittest.TestCase):
         case=self.case(); cid=case['id']
         updated=self.req('PATCH',f'/cases/{cid}',{'title':'Nouveau titre','expected_updated_at':case['updated_at']})
         self.assertEqual(updated['title'],'Nouveau titre')
+        self.req('PATCH',f'/cases/{cid}',{'description':'Deuxième modification',
+            'expected_updated_at':updated['updated_at']})
         self.req('PATCH',f'/cases/{cid}',{'title':'Version périmée','expected_updated_at':case['updated_at']},status=409)
         self.case()
         self.assertEqual(len(self.req('GET','/cases?limit=1&offset=1')),1)
@@ -149,6 +151,43 @@ class IntegrationWorkflowTests(unittest.TestCase):
             self.assertIn('retry-after',response.headers)
         response=self.client.get('/api/v1/cases',headers=self.headers['JOURNALISTE'])
         self.assertEqual(response.headers['cache-control'],'no-store')
+
+    def test_durable_queue_success_failure_cancellation_and_recovery(self):
+        from unittest.mock import patch
+        from app.database import SessionLocal
+        from app.repositories.identity import UserRepository
+        from app.services.tasks import run_one,fail_stale
+        from app.core.security import now
+        from app.models import ResearchJob
+        from datetime import timedelta
+        cid,claim,evidence,draft=self.prepare()
+        def queued():
+            return self.req('POST',f'/cases/{cid}/research/tasks',{'question':'eau'},status=202)['id']
+        first=queued()
+        self.assertEqual(self.req('GET',f'/research-jobs/{first}')['statut'],'queued')
+        def work():
+            with SessionLocal() as db:
+                worker=UserRepository(db).get_for_auth(self.users['SERVICE_IA'].id)
+                result=run_one(db,worker)
+                return result.statut if result else None
+        self.assertEqual(work(),'terminee')
+        self.assertEqual(self.req('GET',f'/research-jobs/{first}')['citations'][0]['evidence_id'],evidence['id'])
+        second=queued()
+        with patch('app.services.tasks.search_case_pieces',side_effect=RuntimeError('PRIVATE_FAILURE')):
+            self.assertEqual(work(),'echouee')
+        failed=self.req('GET',f'/research-jobs/{second}')
+        self.assertNotIn('PRIVATE_FAILURE',str(failed)); self.assertIsNotNone(failed['fin'])
+        third=queued()
+        self.assertEqual(self.req('POST',f'/research-jobs/{third}/cancel')['statut'],'cancelled')
+        self.req('POST',f'/research-jobs/{first}/cancel',status=409)
+        self.assertIsNone(work())
+        fourth=queued()
+        with system_session() as db:
+            job=db.get(ResearchJob,fourth); job.statut='en_cours'; job.debut=now()-timedelta(hours=1); db.commit()
+        with SessionLocal() as db:
+            worker=UserRepository(db).get_for_auth(self.users['SERVICE_IA'].id)
+            self.assertEqual(fail_stale(db,worker),1)
+        self.assertEqual(self.req('GET',f'/research-jobs/{fourth}')['statut'],'echouee')
 
 
 if __name__=='__main__':

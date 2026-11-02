@@ -66,6 +66,7 @@ def archive_case(case_id: int,db: Session=Depends(get_db),
                  user: User=Depends(require_permission(P.CASE_EDIT))):
     record=service.get_case(db,case_id,writable=True)
     record.status='archived'; db.commit()
+    db.refresh(record)
     return record
 
 
@@ -139,6 +140,25 @@ def local_research(case_id: int,payload: LocalResearchCreate,db: Session=Depends
 def case_research(case_id: int,db: Session=Depends(get_db),user: User=Depends(require_permission(P.CASE_READ)),
                    limit: int=Query(default=50,ge=1,le=200),offset: int=Query(default=0,ge=0)):
     return case_items(db,case_id,ResearchJob,limit,offset)
+
+
+@router.post('/cases/{case_id}/research/tasks',response_model=ResearchRead,status_code=202)
+def queue_research(case_id: int,payload: LocalResearchCreate,db: Session=Depends(get_db),
+                   user: User=Depends(require_permission(P.RESEARCH_RUN))):
+    from ....services.tasks import enqueue
+    return enqueue(db,user,case_id,payload)
+
+
+@router.get('/research-jobs/{job_id}',response_model=ResearchRead)
+def task_status(job_id: int,db: Session=Depends(get_db),user: User=Depends(require_permission(P.RESEARCH_RUN))):
+    from ....services.tasks import get_job
+    return get_job(db,user,job_id)
+
+
+@router.post('/research-jobs/{job_id}/cancel',response_model=ResearchRead)
+def cancel_task(job_id: int,db: Session=Depends(get_db),user: User=Depends(require_permission(P.RESEARCH_RUN))):
+    from ....services.tasks import cancel
+    return cancel(db,user,job_id)
 
 
 class Submission(BaseModel):

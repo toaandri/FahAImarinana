@@ -7,7 +7,6 @@ from ..core.rbac import Permission as P, authorize
 from ..core.security import now
 from ..database.scope import scope_for_user
 from ..models import Case, Claim, Evidence, ClaimEvidence, Source, Signal, Draft, ResearchJob
-from ..utils.text import tokenize
 
 
 def get_case(db, case_id, *, writable=False):
@@ -32,6 +31,7 @@ def update_case(db, user, case_id, payload):
     for field, value in payload.model_dump(exclude={'expected_updated_at'}, exclude_none=True).items():
         setattr(case, field, value)
     db.commit()
+    db.refresh(case)  # PostgreSQL's timestamp trigger is authoritative.
     return case
 
 
@@ -91,11 +91,9 @@ def create_manual_draft(db, user, case_id, payload):
     return draft
 
 
-def local_research(db, user, case_id, payload):
-    """Search stored pieces only. No web access, truth judgment or generated facts."""
-    authorize(user, P.RESEARCH_RUN); scope_for_user(db, user)
-    get_case(db, case_id, writable=True)
-    terms = list(dict.fromkeys(re.findall(r'\w{2,}',payload.question.casefold())))[:30]
+def search_case_pieces(db,case_id,question):
+    """Bounded CPU-only extraction, shared by HTTP and durable queue workers."""
+    terms = list(dict.fromkeys(re.findall(r'\w{2,}',question.casefold())))[:30]
     pieces = list(db.scalars(select(Evidence).where(Evidence.case_id == case_id).order_by(Evidence.id).limit(1001)))
     truncated = len(pieces)>1000
     pieces = pieces[:1000]
@@ -108,12 +106,19 @@ def local_research(db, user, case_id, payload):
     matches.sort(key=lambda pair: (-pair[0], pair[1].id))
     citations = [{'evidence_id': piece.id, 'source_id': piece.source_id, 'titre': piece.title,
                   'url': piece.original_url, 'extrait': piece.content[:1000]} for _, piece in matches[:20]]
-    job = ResearchJob(utilisateur_id=user.id, case_id=case_id, sujet=payload.question,
-        modele='local-document-search-v1', debut=now(), fin=now(), statut='partielle' if truncated else 'terminee',
-        questions=[payload.question], requetes=terms, citations=citations,
-        synthese=('Recherche lexicale locale : ' + str(len(citations)) + ' pièce(s) correspondante(s). '
+    return {'requetes':terms,'citations':citations,'statut':'partielle' if truncated else 'terminee',
+        'synthese':('Recherche lexicale locale : ' + str(len(citations)) + ' pièce(s) correspondante(s). '
             'Aucune recherche web ni analyse Maharavo effectuée. Les reprises d’une même source '
             'ne constituent pas des confirmations indépendantes. Validation humaine nécessaire.'),
-        erreurs=['Limite de 1000 pièces atteinte ; recherche partielle.'] if truncated else [])
+        'erreurs':['Limite de 1000 pièces atteinte ; recherche partielle.'] if truncated else []}
+
+
+def local_research(db, user, case_id, payload):
+    """Search stored pieces only. No web access, truth judgment or generated facts."""
+    authorize(user, P.RESEARCH_RUN); scope_for_user(db, user)
+    get_case(db, case_id, writable=True)
+    job = ResearchJob(utilisateur_id=user.id, case_id=case_id, sujet=payload.question,
+        modele='local-document-search-v1', debut=now(), fin=now(), questions=[payload.question],
+        **search_case_pieces(db,case_id,payload.question))
     db.add(job); db.commit()
     return job
