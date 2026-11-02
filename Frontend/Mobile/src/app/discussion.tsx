@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
+<<<<<<< Updated upstream
 import { SafeAreaView } from 'react-native-safe-area-context';
+=======
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+>>>>>>> Stashed changes
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar, CredibilityRing } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { sendMessageToAI } from '@/services/mockData';
 
 export default function DiscussionScreen() {
+  const { bottom } = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [answer, setAnswer] = useState('');
 
@@ -38,7 +43,7 @@ export default function DiscussionScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { bottom: Math.max(bottom, 12) + 8 }]}>
         <View style={styles.inputActions}><Ionicons name="image-outline" size={18} color="#fff" /><Ionicons name="videocam-outline" size={18} color="#fff" /></View>
         <TextInput value={text} onChangeText={setText} placeholder="Écrire un message..." placeholderTextColor="rgba(255,255,255,0.55)" style={styles.input} />
         <Pressable
@@ -61,7 +66,7 @@ export default function DiscussionScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
-  content: { padding: 16, paddingBottom: 100 },
+  content: { padding: 16, paddingBottom: 108 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
   avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: palette.mint, color: '#0b2b2b', textAlign: 'center', textAlignVertical: 'center', fontWeight: '800', fontFamily: 'Montserrat_700Bold_Italic', marginRight: 8 },
   aiBubble: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 12, maxWidth: '78%' },
@@ -79,7 +84,7 @@ const styles = StyleSheet.create({
   resultSummary: { color: '#fff', fontSize: 11, marginTop: 8, fontFamily: 'Montserrat_600SemiBold_Italic', lineHeight: 18 },
   tagRow: { flexDirection: 'row', marginTop: 12 },
   tag: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, color: '#fff', marginRight: 8, fontSize: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
-  inputBar: { position: 'absolute', left: 16, right: 16, bottom: 14, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
+  inputBar: { position: 'absolute', left: 16, right: 16, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
   inputActions: { flexDirection: 'row', gap: 10, marginRight: 8 },
   input: { flex: 1, color: '#fff', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
   sendButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },

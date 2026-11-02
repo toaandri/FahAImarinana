@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { palette } from '@/theme/theme';
 import { CredibilityRing as CredibilityRingCore } from '@/components/CredibilityRing';
 
@@ -23,7 +24,7 @@ export function HeaderBar({ title, showBack = false }: { title?: string; showBac
   return (
     <View style={styles.headerShell}>
       {showBack ? (
-        <Pressable style={styles.backButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Retour" onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={18} color="#fff" />
         </Pressable>
       ) : null}
@@ -56,34 +57,59 @@ export function TagChip({ label, active = false, small = false }: { label: strin
   );
 }
 
-export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'publier' | 'profil' }) {
+export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'discussion' | 'publier' | 'profil' }) {
+  const { bottom } = useSafeAreaInsets();
   const items = [
-    { key: 'home', label: 'Accueil', icon: 'home-outline' },
-    { key: 'actus', label: 'Actus', icon: 'newspaper-outline' },
-    { key: 'publier', label: 'Publier', icon: 'add-outline' },
-    { key: 'profil', label: 'Profil', icon: 'person-outline' },
+    { key: 'home', label: 'Accueil', icon: 'home-outline', route: '/home' },
+    { key: 'actus', label: 'Actus', icon: 'newspaper-outline', route: '/actualites' },
+    { key: 'publier', label: 'Publier', icon: 'add-outline', route: '/publier' },
+    { key: 'profil', label: 'Profil', icon: 'person-outline', route: '/profil' },
   ] as const;
 
   return (
-    <View style={styles.tabBar}>
-      {items.map((item) => {
+    <View style={[styles.tabBar, { bottom: Math.max(bottom, 12) + 8 }]} accessibilityRole="tablist">
+      {items.slice(0, 2).map((item) => {
         const isActive = active === item.key;
-        const isPublish = item.key === 'publier';
-        const target = item.key === 'home' ? '/home' : item.key === 'actus' ? '/actualites' : item.key === 'profil' ? '/profil' : '/publier';
-
+        const color = isActive ? palette.mint : palette.textMuted;
         return (
-          <View key={item.key} style={isPublish ? styles.publishWrap : styles.tabItem}>
-            {isPublish ? (
-              <Pressable style={styles.centerTab} onPress={() => router.push(target as any)}>
-                <Ionicons name={item.icon as any} size={28} color="#0B2B2B" />
-              </Pressable>
-            ) : (
-              <Pressable style={styles.tabButton} onPress={() => router.push(target as any)}>
-                <Ionicons name={item.icon as any} size={20} color={isActive ? palette.mint : 'rgba(255,255,255,0.7)'} />
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{item.label}</Text>
-              </Pressable>
-            )}
-          </View>
+          <Pressable
+            key={item.key}
+            accessibilityRole="tab"
+            accessibilityLabel={item.label}
+            accessibilityState={{ selected: isActive }}
+            onPress={() => router.push(item.route)}
+            style={styles.tabButton}
+          >
+            <Ionicons name={item.icon} size={20} color={color} />
+            <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Discuter avec l’IA"
+        accessibilityHint={active === 'discussion' ? 'Écran de discussion ouvert' : 'Ouvre la vérification avec l’IA'}
+        accessibilityState={{ selected: active === 'discussion' }}
+        onPress={() => router.push('/discussion')}
+        style={styles.centerTab}
+      >
+        <Ionicons name="chatbubble-ellipses-outline" size={26} color="#0E1B21" />
+      </Pressable>
+      {items.slice(2).map((item) => {
+        const isActive = active === item.key;
+        const color = isActive ? palette.mint : palette.textMuted;
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="tab"
+            accessibilityLabel={item.label}
+            accessibilityState={{ selected: isActive }}
+            onPress={() => router.push(item.route)}
+            style={styles.tabButton}
+          >
+            <Ionicons name={item.icon} size={20} color={color} />
+            <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{item.label}</Text>
+          </Pressable>
         );
       })}
     </View>
@@ -95,12 +121,19 @@ export function StoryCard({ title, source, credibility, image, onPress }: { titl
     <Pressable onPress={onPress} style={styles.storyCard}>
       <View style={styles.storyTopRow}>
         <View style={styles.storyBadge}><Text style={styles.storyBadgeText}>Dernière information</Text></View>
-        <View style={styles.ringWrap}><CredibilityRingCore value={credibility} size={60} /></View>
+        <View style={styles.ringWrap}>
+          <CredibilityRingCore value={credibility} size={40} />
+          <Text style={styles.credibilityCaption}>Crédibilité</Text>
+        </View>
       </View>
       <View style={styles.storyImageWrap}>
         {image ? <Image source={{ uri: image }} style={styles.storyImage} /> : <View style={styles.storyImagePlaceholder} />}
+        <View style={styles.storyImageScrim} />
+        <Text style={styles.storyImageTitle}>
+          <Text style={styles.storyTitleLabel}>TITRE :</Text>
+          {'\n'}{title}
+        </Text>
       </View>
-      <Text style={styles.storyTitle}>TITRE : <Text style={styles.storyTitleStrong}>{title}</Text></Text>
       <View style={styles.storyFooter}><Text style={styles.storySource}>{source}</Text></View>
     </Pressable>
   );
@@ -124,7 +157,7 @@ const styles = StyleSheet.create({
   aiPillText: { color: palette.ink, fontSize: 17, fontWeight: '800', fontFamily: 'Montserrat_800ExtraBold' },
   aiPillTextCompact: { fontSize: 12 },
   headerShell: { backgroundColor: palette.headerTint, borderBottomLeftRadius: 18, borderBottomRightRadius: 18, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerCenter: { flex: 1, alignItems: 'center' },
+  headerCenter: { flex: 1, alignItems: 'flex-start' },
   headerTitle: { color: '#1b2d30', fontWeight: '700', fontFamily: 'Montserrat_700Bold_Italic' },
   backButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#263a40', alignItems: 'center', justifyContent: 'center' },
   onlineWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -138,23 +171,23 @@ const styles = StyleSheet.create({
   chipSmall: { paddingVertical: 6 },
   chipText: { color: '#fff', fontSize: 11, fontFamily: 'Montserrat_600SemiBold_Italic' },
   chipTextActive: { color: '#0b2b2b' },
-  tabBar: { position: 'absolute', left: 12, right: 12, bottom: 14, height: 74, borderRadius: 20, backgroundColor: 'rgba(35,45,50,0.82)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8 },
-  tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  publishWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabButton: { alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
-  tabLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 10, marginTop: 4, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  tabBar: { position: 'absolute', left: 16, right: 16, height: 68, borderRadius: 34, backgroundColor: 'rgba(14,27,33,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
+  tabButton: { minWidth: 52, height: 52, flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  tabLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
   tabLabelActive: { color: palette.mint },
-  centerTab: { width: 58, height: 58, borderRadius: 29, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center', marginTop: -20, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
+  centerTab: { width: 56, height: 56, flexShrink: 0, borderRadius: 28, borderWidth: 4, borderColor: '#0E1B21', backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center', marginTop: -26, shadowColor: palette.mint, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   storyCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden', padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   storyTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   storyBadge: { backgroundColor: 'rgba(17,21,25,0.2)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
   storyBadgeText: { color: '#fff', fontSize: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
-  ringWrap: { marginRight: 8 },
-  storyImageWrap: { height: 140, borderRadius: 14, overflow: 'hidden', marginTop: 12, marginBottom: 10 },
-  storyImage: { width: '100%', height: '100%' },
-  storyImagePlaceholder: { flex: 1, backgroundColor: '#646d70' },
-  storyTitle: { color: '#fff', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic', marginBottom: 8 },
-  storyTitleStrong: { color: '#fff', fontWeight: '800' },
+  ringWrap: { alignItems: 'center', marginRight: 8 },
+  credibilityCaption: { color: '#fff', fontSize: 8, marginTop: 4, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  storyImageWrap: { height: 126, borderRadius: 14, overflow: 'hidden', marginTop: 8, marginBottom: 8, justifyContent: 'flex-start' },
+  storyImage: StyleSheet.absoluteFill,
+  storyImagePlaceholder: { ...StyleSheet.absoluteFill, backgroundColor: '#31545A' },
+  storyImageScrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(14,27,33,0.28)' },
+  storyImageTitle: { color: '#fff', fontSize: 11, lineHeight: 15, padding: 10, fontFamily: 'Montserrat_700Bold_Italic' },
+  storyTitleLabel: { color: palette.mint, fontSize: 10 },
   storyFooter: { alignItems: 'flex-end' },
   storySource: { backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, color: '#fff', fontSize: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
   listRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.12)' },

@@ -1,5 +1,9 @@
 import { useState } from 'react';
+<<<<<<< Updated upstream
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+=======
+import { Alert, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+>>>>>>> Stashed changes
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
