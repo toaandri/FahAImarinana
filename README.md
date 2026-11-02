@@ -5,6 +5,7 @@ Projet pour le hackathon FANILO 2026 : assistance à la veille, à la recherche 
 ## Où trouver les fichiers
 
 - `Backend/` : serveur Python/FastAPI et schéma de base de données.
+- `Frontends/Web/` : nouvelle application Expo avec React Native et support web.
 - `Touche/front/` : interface Java et fichiers de démonstration mobile.
 - `docker-compose.yml` : configuration locale du serveur et de PostgreSQL.
 - [Cahier des charges étendu](docs/specifications/Cahier_des_charges_etendu_FA_AI_MARINANA.md) et [version Word](docs/specifications/Cahier_des_charges_etendu_FA_AI_MARINANA.docx).
@@ -67,6 +68,17 @@ Le périmètre Maharavo est exposé sous `/api/maharavo` :
   les limites d’une analyse guidée ; il ne conclut jamais seul à une manipulation.
 - `POST /confidence` conserve séparément l’identité de la source, la solidité
   des preuves et l’état de validation éditoriale.
+
+## Démarrage de l’application React Native
+
+Depuis la racine du projet :
+
+```sh
+cd Frontends/Web
+npm run web
+```
+
+Pour démarrer l’application sur Android, utilisez `npm run android`. Le lancement iOS nécessite macOS (`npm run ios`).
 
 Pour l’interface Java ME, les sources se trouvent dans `Touche/front/src/` et les distributions dans `Touche/front/deploy/`. Le script historique `Touche/lancement.sh` utilise des chemins propres à la machine de son auteur ; il doit être adapté à votre environnement.
 
