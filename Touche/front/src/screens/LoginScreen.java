@@ -11,9 +11,21 @@ public class LoginScreen extends Canvas {
     private String code = "";
     private CustomButton loginBtn;
     private String message = "";
+    private int animFrame = 0;
+    private Thread animThread;
 
     public LoginScreen() {
         setFullScreenMode(true);
+        animThread = new Thread(new Runnable() {
+            public void run() {
+                while (true) {
+                    animFrame = (animFrame + 1) % 4;
+                    try { Thread.sleep(250); } catch (InterruptedException e) { }
+                    repaint();
+                }
+            }
+        });
+        animThread.start();
     }
 
     protected void paint(Graphics g) {
@@ -56,6 +68,14 @@ public class LoginScreen extends Canvas {
         if (message.length() > 0) {
             g.setColor(Colors.TURQUOISE);
             g.drawString(message, w / 2, btnY + Responsive.scale(40), Graphics.TOP | Graphics.HCENTER);
+        }
+        // animation dots
+        int dotY = h - Responsive.scale(24);
+        int dotX = w / 2 - Responsive.scale(18);
+        for (int i = 0; i < 4; i++) {
+            if (i < animFrame) g.setColor(Colors.TURQUOISE);
+            else g.setColor(Colors.SECONDARY_GRAY);
+            g.fillRoundRect(dotX + i * Responsive.scale(12), dotY, Responsive.scale(8), Responsive.scale(8), 4, 4);
         }
     }
 
