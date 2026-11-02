@@ -58,6 +58,20 @@ export function login(email: string, password: string) {
   });
 }
 
+export function register(email: string, password: string, invitationToken: string) {
+  return request<TokenResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      mot_de_passe: password,
+      invitation_token: invitationToken,
+    }),
+  }).then((tokens) => {
+    accessToken = tokens.access_token;
+    refreshToken = tokens.refresh_token;
+  });
+}
+
 export function logout() {
   return request<void>('/auth/logout', { method: 'POST' }).finally(clearTokens);
 }

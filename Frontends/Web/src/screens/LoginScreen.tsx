@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
 import { colors } from '../theme';
 import { login } from '../services/api';
 
-type Mode = 'login' | 'signup' | 'recovery';
+type Mode = 'login' | 'recovery';
 const socialProviders = [
   { label: 'Google', icon: 'google' },
   { label: 'Apple', icon: 'apple' },
@@ -47,9 +47,7 @@ export default function LoginScreen() {
 
   const heading = mode === 'login'
     ? 'Connectez-vous à votre espace'
-    : mode === 'signup'
-      ? 'Créez votre compte'
-      : 'Réinitialisez votre mot de passe';
+    : 'Réinitialisez votre mot de passe';
 
   return (
     <ScrollView role="main" contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
@@ -97,7 +95,7 @@ export default function LoginScreen() {
               </InteractivePressable>
             ) : null}
             <PrimaryButton
-              label={mode === 'login' ? 'SE CONNECTER' : mode === 'signup' ? 'S’INSCRIRE' : 'RÉINITIALISER'}
+              label={mode === 'login' ? 'SE CONNECTER' : 'RÉINITIALISER'}
               icon="arrow-right"
               onPress={submit}
             />
@@ -131,9 +129,11 @@ export default function LoginScreen() {
               </View>
               <View style={styles.account}>
                 <Text style={styles.accountText}>Vous n’avez pas de compte ?</Text>
-                <InteractivePressable accessibilityRole="button" onPress={() => { setMode('signup'); setErrors({}); }} style={styles.textLinkHitbox}>
-                  <Text style={styles.link}>Inscrivez-vous ici</Text>
-                </InteractivePressable>
+                <Link href="/inscription" asChild>
+                  <InteractivePressable accessibilityRole="link" style={styles.textLinkHitbox}>
+                    <Text style={styles.link}>Inscrivez-vous ici</Text>
+                  </InteractivePressable>
+                </Link>
               </View>
             </>
           ) : (
