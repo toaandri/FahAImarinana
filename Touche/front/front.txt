@@ -1,0 +1,133 @@
+Agis comme un développeur UI/UX senior spécialisé en Java ME (J2ME), MIDP 2.0 et CLDC 1.1.
+
+Je veux développer UNIQUEMENT LE FRONTEND de l'application mobile « FA AI MARINANA », en utilisant Java ME.
+
+Utilise l'image de référence comme modèle visuel principal.
+
+## 1. TECHNOLOGIES
+
+- Java ME (J2ME).
+- MIDP 2.0.
+- CLDC 1.1.
+- LCDUI.
+- Canvas et Graphics pour créer des interfaces personnalisées.
+
+Aucun backend.
+Aucune API.
+Aucune base de données.
+Aucune authentification réelle.
+
+Toutes les données affichées seront fictives et statiques pour la démonstration.
+
+## 2. DESIGN UI/UX
+
+Reproduire fidèlement l'identité visuelle de l'image :
+
+Palette :
+- Bleu pétrole : #365563.
+- Turquoise : #00E6B8.
+- Blanc : #FFFFFF.
+- Gris clair : #F2F2F2.
+- Gris secondaire : #999999.
+
+Style :
+- Interface minimaliste et professionnelle.
+- Design adapté aux anciens téléphones tactiles.
+- Boutons arrondis.
+- Icônes simples.
+- Textes lisibles.
+- Espacements optimisés.
+- Navigation intuitive.
+
+## 3. ÉCRANS À CRÉER
+
+### Écran 1 : Login
+- Logo FA AI MARINANA.
+- Champ Adresse e-mail.
+- Champ Mot de passe.
+- Bouton SE CONNECTER.
+- Lien Mot de passe oublié ?
+- Design avec fond bleu pétrole.
+
+### Écran 2 : Assistant IA
+- Logo dans la barre supérieure.
+- Messages de l'utilisateur.
+- Réponses fictives de l'IA.
+- Bulles de conversation.
+- Champ de saisie en bas.
+- Bouton Envoyer.
+- Barre de navigation inférieure.
+
+### Écran 3 : Publications
+- Barre supérieure avec logo.
+- Liste de publications.
+- Image miniature pour chaque publication.
+- Titre.
+- Description.
+- Date.
+- Catégorie.
+- Cartes de publication avec bordures fines.
+
+### Écran 4 : Détail publication
+- Image principale.
+- Titre.
+- Date de publication.
+- Auteur fictif.
+- Contenu de démonstration.
+- Bouton Retour.
+- Défilement vertical.
+
+### Écran 5 : Navigation
+Créer une barre de navigation inférieure avec trois icônes :
+- Publications.
+- Assistant IA.
+- Ajouter.
+
+## 4. RESPONSIVE DESIGN
+
+Adapter automatiquement l'interface aux résolutions :
+- 128 × 160 pixels.
+- 176 × 220 pixels.
+- 240 × 320 pixels.
+- 320 × 480 pixels.
+
+Prévoir :
+- Des boutons adaptés aux écrans tactiles.
+- Une interface compatible avec les petits écrans.
+- Une navigation au clavier pour les appareils non tactiles.
+- Des textes qui ne débordent jamais.
+- Des contenus défilants.
+
+## 5. ANIMATIONS ET INTERACTIONS
+
+Créer uniquement des animations légères :
+- Changement d'écran fluide.
+- Effet visuel au clic sur les boutons.
+- Changement de couleur des boutons sélectionnés.
+- Défilement des publications.
+- Apparition visuelle des messages.
+
+Les boutons doivent être interactifs et permettre de naviguer entre les écrans.
+
+## 6. ARCHITECTURE
+
+Organiser le frontend :
+
+src/
+├── Main.java
+├── screens/
+│   ├── LoginScreen.java
+│   ├── ChatScreen.java
+│   ├── PublicationScreen.java
+│   └── PublicationDetailScreen.java
+├── components/
+│   ├── CustomButton.java
+│   ├── NavigationBar.java
+│   ├── MessageBubble.java
+│   └── PublicationCard.java
+├── utils/
+│   ├── Colors.java
+│   ├── ScreenManager.java
+│   └── Responsive.java
+└── models/
+    ├──
