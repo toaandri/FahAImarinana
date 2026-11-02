@@ -23,14 +23,14 @@ export default function TerminerScreen() {
       <View style={styles.articleCard}>
         <Text style={styles.articleTag}>Article</Text>
         <Text style={styles.label}>TITRE :</Text>
-        <Text style={styles.title}>Titre généré par l'IA</Text>
-        <Text style={styles.body}>Premier paragraphe de l'article généré pendant le reportage.</Text>
-        <Text style={styles.body}>Deuxième paragraphe de l'article.</Text>
+        <Text style={styles.title}>Titre généré par l&apos;IA</Text>
+        <Text style={styles.body}>Premier paragraphe de l&apos;article généré pendant le reportage.</Text>
+        <Text style={styles.body}>Deuxième paragraphe de l&apos;article.</Text>
       </View>
 
       <View style={styles.summaryCard}>
-        <View style={styles.summaryRow}><Text style={styles.summaryTitle}>Résumé de l'article</Text><Text style={styles.percent}>78%</Text></View>
-        <Text style={styles.summaryText}>Résumé en deux ou trois lignes généré par l'IA à la fin de la vidéo.</Text>
+        <View style={styles.summaryRow}><Text style={styles.summaryTitle}>Résumé de l&apos;article</Text><Text style={styles.percent}>78%</Text></View>
+        <Text style={styles.summaryText}>Résumé en deux ou trois lignes généré par l&apos;IA à la fin de la vidéo.</Text>
         <View style={styles.actionRow}><Pressable style={styles.secondaryButton}><Text style={styles.secondaryText}>Modifier</Text></Pressable><Pressable style={styles.primaryButton}><Text style={styles.primaryText}>PUBLIER</Text></Pressable></View>
       </View>
       <BottomTabs active="home" />

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Card, Field, Icon, InteractivePressable, PageTitle, PrimaryButton, ProfileRow } from '../components/ui';
 import { colors, spacing } from '../theme';
+import { getProfile, logout } from '../services/api';
 
 const profileLinks = [
   { icon: 'file-document-outline', label: 'Mes publications' },
@@ -20,6 +21,12 @@ export default function ProfileScreen() {
   const [name, setName] = useState('[Nom de l’utilisateur]');
   const [email, setEmail] = useState('[adresse@email.mg]');
   const [notice, setNotice] = useState('');
+  useEffect(() => {
+    getProfile().then((profile) => {
+      setName(profile.role);
+      setEmail(profile.email);
+    }).catch((error) => setNotice(error instanceof Error ? error.message : 'Profil indisponible.'));
+  }, []);
 
   const saveProfile = () => {
     setEditing(false);
@@ -75,7 +82,7 @@ export default function ProfileScreen() {
             label="Se déconnecter"
             icon="logout"
             outline
-            onPress={() => router.replace('/connexion')}
+            onPress={async () => { await logout(); router.replace('/connexion'); }}
           />
           {notice ? <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text> : null}
         </View>

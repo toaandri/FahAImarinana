@@ -10,6 +10,14 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
+Le mobile appelle le backend via `expo.extra.apiUrl` dans [app.json](./app.json).
+La valeur par défaut est `http://localhost:18000/api/v1`; sur un appareil physique,
+remplacez-la par l’adresse IP accessible de la machine qui exécute le backend.
+
+En mode hackathon, Docker charge automatiquement des données fictives dans la
+rédaction `demo`. Utilisez `journaliste.demo@example.invalid` ou
+`contributeur.demo@example.invalid`, avec le mot de passe `demo12345`.
+
 2. Start the app
 
    ```bash

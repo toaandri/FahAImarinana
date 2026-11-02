@@ -1,24 +1,40 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
+import { getProfile, logout } from '@/services/mockData';
 
 export default function ProfilScreen() {
+  const [profile, setProfile] = useState({ name: 'Nom de l’utilisateur', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: 0 });
+
+  useEffect(() => {
+    getProfile().then(setProfile).catch((error) => {
+      Alert.alert('Profil indisponible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+    });
+  }, []);
+
   return (
     <SafeAreaView style={styles.screen}>
       <HeaderBar />
       <ScrollView contentContainerStyle={styles.content}>
         <GlassCard style={styles.profileCard}>
+<<<<<<< Updated upstream
           <View style={styles.avatar}>N</View>
+          <Text style={styles.name}>{profile.name}</Text>
+          <Text style={styles.email}>{profile.email}</Text>
+=======
+          <Text style={styles.avatar}>N</Text>
           <Text style={styles.name}>Nom de l’utilisateur</Text>
           <Text style={styles.email}>adresse@email.mg</Text>
+>>>>>>> Stashed changes
           <Pressable style={styles.outlineButton}><Text style={styles.outlineText}>Modifier le profil</Text></Pressable>
           <View style={styles.statsRow}>
-            <View style={styles.stat}><Text style={styles.statNumber}>0</Text><Text style={styles.statLabel}>Publications</Text></View>
-            <View style={styles.stat}><Text style={styles.statNumber}>0</Text><Text style={styles.statLabel}>Vérifications</Text></View>
-            <View style={styles.stat}><Text style={styles.statNumber}>0%</Text><Text style={styles.statLabel}>Crédibilité</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.publications}</Text><Text style={styles.statLabel}>Publications</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.verifications}</Text><Text style={styles.statLabel}>Vérifications</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.credibility}%</Text><Text style={styles.statLabel}>Crédibilité</Text></View>
           </View>
         </GlassCard>
 
@@ -37,7 +53,7 @@ export default function ProfilScreen() {
           ))}
         </GlassCard>
 
-        <Pressable style={styles.disconnectButton} onPress={() => router.replace('/')}>
+        <Pressable style={styles.disconnectButton} onPress={async () => { await logout(); router.replace('/'); }}>
           <Ionicons name="log-out-outline" size={18} color="#fff" />
           <Text style={styles.disconnectText}>Se déconnecter</Text>
         </Pressable>

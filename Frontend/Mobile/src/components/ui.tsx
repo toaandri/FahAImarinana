@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { palette, radius, spacing } from '@/theme/theme';
+import { palette } from '@/theme/theme';
 import { CredibilityRing as CredibilityRingCore } from '@/components/CredibilityRing';
 
 export { CredibilityRingCore as CredibilityRing };

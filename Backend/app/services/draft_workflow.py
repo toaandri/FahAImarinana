@@ -8,6 +8,17 @@ from ..repositories import DraftRepository
 from ..schemas import PublishRequest
 
 
+def record_revision(db,draft,actor_id,event):
+    from ..models import DraftRevision
+    from ..schemas.editorial import DraftVersionRead
+    db.flush()
+    snapshot=DraftVersionRead.model_validate(draft).model_dump(mode='json')
+    snapshot['approved_payload']=draft.approved_payload
+    snapshot['validated_at']=draft.validated_at.isoformat() if draft.validated_at else None
+    db.add(DraftRevision(draft_id=draft.id,actor_id=actor_id,version=draft.version,
+                         event=event,snapshot=snapshot))
+
+
 def payload_hash(payload):
     data=PublishRequest.model_validate(payload).model_dump()
     return hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
@@ -32,10 +43,12 @@ def edit_draft(db,user,identifier,payload):
     draft=locked_draft(db,user,identifier,P.DRAFT_EDIT)
     if draft.version!=payload.expected_version:
         raise ConflictError('Le brouillon a changé ; recharger sa version.')
+    record_revision(db,draft,user.id,'before_edit')
     for key in ('titre_suggere','synthese_ia'):
         if getattr(payload,key) is not None:
             setattr(draft,key,getattr(payload,key))
     draft.version+=1; clear_validation(draft)
+    record_revision(db,draft,user.id,'edited')
     db.commit()
     return draft
 
@@ -48,6 +61,7 @@ def review_draft(db,user,identifier,payload):
     clear_validation(draft)
     if payload.decision=='rejected':
         draft.statut='Rejete'
+    record_revision(db,draft,user.id,'reviewed')
     db.commit()
     return draft
 
@@ -63,5 +77,6 @@ def validate_draft(db,user,identifier,payload):
     draft.approved_payload_hash=payload_hash(approved)
     draft.validated_version=draft.version
     draft.validated_by_id=user.id; draft.validated_at=now()
+    record_revision(db,draft,user.id,'validated')
     db.commit()
     return draft

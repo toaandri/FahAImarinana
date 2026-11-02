@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Logo } from '@/components/ui';
+<<<<<<< Updated upstream
 import { palette, spacing, radius } from '@/theme/theme';
+import { login } from '@/services/mockData';
+=======
+import { palette, radius } from '@/theme/theme';
+>>>>>>> Stashed changes
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,10 +38,14 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await login(email, password);
       router.replace('/home' as any);
-    }, 600);
+    } catch (error) {
+      Alert.alert('Connexion impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,7 +102,7 @@ export default function LoginScreen() {
           <Pressable style={styles.socialButton}><Ionicons name="logo-facebook" size={18} color="#fff" /><Text style={styles.socialText}>Facebook</Text></Pressable>
         </View>
 
-        <Text style={styles.footerText}>Vous n'avez pas de compte ? <Text style={styles.footerLink}>Inscrivez-vous ici</Text></Text>
+        <Text style={styles.footerText}>Vous n&apos;avez pas de compte ? <Text style={styles.footerLink}>Inscrivez-vous ici</Text></Text>
       </View>
     </SafeAreaView>
   );

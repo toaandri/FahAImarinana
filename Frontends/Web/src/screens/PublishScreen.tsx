@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Field, Icon, InteractivePressable, PageTitle, PrimaryButton } from '../components/ui';
 import { colors, spacing } from '../theme';
+import { submitContribution } from '../services/api';
 
 const categories = ['Politique', 'Société', 'Sport', 'Économie'];
 
@@ -38,7 +39,7 @@ export default function PublishScreen() {
     }
   };
 
-  const publish = () => {
+  const publish = async () => {
     const nextErrors = {
       title: title.trim() ? undefined : 'Le titre est obligatoire.',
       article: article.trim() ? undefined : 'Le texte de votre article est obligatoire.',
@@ -47,7 +48,15 @@ export default function PublishScreen() {
       setErrors(nextErrors);
       return;
     }
-    setErrors({ status: 'Le service de publication n’est pas encore connecté. Votre article n’a pas été envoyé.' });
+    try {
+      await submitContribution({ title: title.trim(), body: article.trim(), category, source: source.trim() });
+      setErrors({ status: 'Votre contribution a été envoyée pour traitement éditorial.' });
+      setTitle('');
+      setArticle('');
+      setSource('');
+    } catch (error) {
+      setErrors({ status: error instanceof Error ? error.message : 'Envoi impossible.' });
+    }
   };
 
   return (

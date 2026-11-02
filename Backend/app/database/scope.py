@@ -60,13 +60,13 @@ def isolate_queries(state):
 
 @event.listens_for(Session, 'before_flush')
 def isolate_writes(db, flush_context, instances):
-    from ..models import CorrectionAudit, User, Draft, Publication
+    from ..models import CorrectionAudit, DraftRevision, User, Draft, Publication
     from ..core.rbac import authorize, Permission as P
     from sqlalchemy import select
     for entity in set(db.new) | set(db.dirty) | set(db.deleted):
         if isinstance(entity,User) and inspect(entity).persistent and inspect(entity).attrs.account_type.history.has_changes():
             raise ForbiddenError('Le type d’identité est immuable.')
-        if isinstance(entity, CorrectionAudit) and entity not in db.new:
+        if isinstance(entity, (CorrectionAudit, DraftRevision)) and entity not in db.new:
             if entity in db.deleted or db.is_modified(entity):
                 raise ConflictError('Le journal des corrections est immuable.')
         if not isinstance(entity, ScopedRecord) or db.info.get('system'):

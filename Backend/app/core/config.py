@@ -39,6 +39,8 @@ class Settings(BaseModel):
     gemini_model: str = "gemini-3.8-flash"
     gemini_timeout_seconds: float = Field(default=45, gt=0, le=300)
     sms_backend: Literal["simulation"] = "simulation"
+    auth_requests_per_minute: int = Field(default=60,ge=1,le=10000)
+    public_requests_per_minute: int = Field(default=60,ge=1,le=10000)
 
     @model_validator(mode="after")
     def validate_security(self):

@@ -18,7 +18,7 @@ export default function DirectScreen() {
     <SafeAreaView style={styles.screen}>
       <HeaderBar showBack />
       <View style={styles.videoCard}>
-        <View style={styles.liveBadge}>● DIRECT</View>
+        <Text style={styles.liveBadge}>● DIRECT</Text>
         <Text style={styles.timer}>00:42</Text>
         {permission ? <View style={styles.cameraFrame}><Text style={styles.frameText}>Caméra</Text></View> : <View style={styles.cameraFrame}><Text style={styles.frameText}>Accès caméra</Text></View>}
         <View style={styles.controlsRow}>
@@ -29,15 +29,15 @@ export default function DirectScreen() {
       </View>
 
       <View style={styles.articleCard}>
-        <View style={styles.articleHeader}><Text style={styles.articleTag}>Article en direct</Text><Text style={styles.aiText}><Text style={styles.dot} /> L'IA analyse...</Text></View>
+        <View style={styles.articleHeader}><Text style={styles.articleTag}>Article en direct</Text><Text style={styles.aiText}><Text style={styles.dot} /> L&apos;IA analyse...</Text></View>
         <Text style={styles.label}>TITRE :</Text>
-        <Text style={styles.title}>Titre généré par l'IA</Text>
+        <Text style={styles.title}>Titre généré par l&apos;IA</Text>
         <Text style={styles.line}>00:08 · Phrase générée à partir de la vidéo</Text>
         <Text style={styles.line}>00:15 · Phrase générée à partir de la vidéo</Text>
-        <Text style={styles.line}>00:18 · Phrase en cours d'écriture</Text>
+        <Text style={styles.line}>00:18 · Phrase en cours d&apos;écriture</Text>
       </View>
 
-      <View style={styles.lockCard}><Ionicons name="lock-closed-outline" size={18} color="#fff" /><Text style={styles.lockText}>Résumé de l'article disponible à la fin du reportage</Text></View>
+      <View style={styles.lockCard}><Ionicons name="lock-closed-outline" size={18} color="#fff" /><Text style={styles.lockText}>Résumé de l&apos;article disponible à la fin du reportage</Text></View>
       <BottomTabs active="home" />
     </SafeAreaView>
   );

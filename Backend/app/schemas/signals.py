@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
 class SignalIngest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    case_id: int | None = Field(default=None, gt=0)
     source_id: int = Field(gt=0)
     contenu: str = Field(min_length=1, max_length=100_000)
     url_origine: HttpUrl = Field(max_length=500)
@@ -17,6 +19,7 @@ class SignalRead(BaseModel):
 
     id: int
     source_id: int
+    case_id: int | None
     contenu_normalise: str
     niveau_viralite: float
     mots_cles_detectes: list[str]

@@ -15,6 +15,8 @@ class Role(StrEnum):
 class Permission(StrEnum):
     CASE_READ = 'cases.read'
     CASE_CREATE = 'cases.create'
+    CASE_EDIT = 'cases.edit'
+    CLAIM_ADD = 'claims.add'
     EVIDENCE_ADD = 'evidence.add'
     SIGNAL_INGEST = 'signals.ingest'
     CONTRIBUTION_ADD = 'contributions.add'
@@ -38,7 +40,7 @@ class Permission(StrEnum):
 
 P = Permission
 ROLE_PERMISSIONS = {
-    Role.JOURNALISTE: frozenset({P.CASE_READ,P.CASE_CREATE,P.EVIDENCE_ADD,P.SIGNAL_INGEST,
+    Role.JOURNALISTE: frozenset({P.CASE_READ,P.CASE_CREATE,P.CASE_EDIT,P.CLAIM_ADD,P.EVIDENCE_ADD,P.SIGNAL_INGEST,
         P.RESEARCH_RUN,P.ANALYSIS_WRITE,P.DRAFT_READ,P.DRAFT_CREATE,P.DRAFT_EDIT,P.ALERTS_READ}),
     Role.EDITEUR: frozenset({P.CASE_READ,P.DRAFT_READ,P.DRAFT_REVIEW,P.VERSION_VALIDATE,
         P.PUBLISH,P.CORRECT,P.ALERTS_READ,P.ALERTS_SEND}),

@@ -37,6 +37,8 @@ def publish_draft(db: Session, draft: DraftIA, user: Utilisateur, payload) -> Ar
         db.add(CorrectionAudit(publication_id=article.id, actor_id=user.id,
                                action="published", reason="Validation éditoriale humaine.",
                                after={"revision": article.revision, "title": article.titre_final}))
+        from .draft_workflow import record_revision
+        record_revision(db,locked,user.id,'published')
         db.commit()
     except Exception:
         db.rollback()

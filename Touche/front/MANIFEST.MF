@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+MIDlet-Name: FA AI MARINANA
+MIDlet-Version: 1.1.0
+MIDlet-Vendor: FANILO
+MIDlet-1: FA AI MARINANA, , Main
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
+MIDlet-Permissions: javax.microedition.io.Connector.http, javax.microedition.io.Connector.https
+

@@ -9,6 +9,9 @@ from ..utils.text import normalize_text, tokenize as _tokenize
 logger = logging.getLogger(__name__)
 
 def ingest_signal(db: Session, payload) -> SignalBrut:
+    if payload.case_id is not None:
+        from .investigations import get_case
+        get_case(db,payload.case_id,writable=True)
     source = SourceRepository(db).get(payload.source_id)
     if source is None or source.statut != "Actif":
         raise NotFoundError("La source est introuvable ou inactive.")
@@ -21,6 +24,7 @@ def ingest_signal(db: Session, payload) -> SignalBrut:
     virality = min(100.0, float(payload.nombre_interactions) / 10 + recent_count * 5)
 
     signal = SignalBrut(
+        case_id=payload.case_id,
         source_id=payload.source_id,
         contenu_brut=payload.contenu,
         contenu_normalise=normalized,

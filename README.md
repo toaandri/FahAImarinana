@@ -15,6 +15,25 @@ Projet pour le hackathon FANILO 2026 : assistance à la veille, à la recherche 
 
 ## État du projet
 
+Le parcours documentaire et éditorial local est maintenant connecté : dossiers,
+affirmations, preuves, recherche dans les pièces saisies, brouillons et révisions,
+validation humaine, publication, consultation SMS par HTTP et synchronisation du
+cache public Java ME. La recherche distante Maharavo et la livraison SMS opérateur
+restent indisponibles. Voir le [rapport de livraison](docs/RAPPORT_FINAL_INTEGRATION.md)
+et le [guide technique et de lancement](docs/INTEGRATION_TECHNIQUE.md).
+
+Pour lancer le backend local avec les dépendances déjà installées :
+
+```sh
+.venv/bin/python Backend/scripts/run_local.py --create-account
+.venv/bin/python Backend/scripts/run_local.py
+```
+
+Créer vos comptes administrateur, journaliste et éditeur avec `--create-account`
+avant de tester les différents rôles ; les mots de passe sont demandés au terminal.
+Le serveur local expose `http://127.0.0.1:8000/docs`. Le guide décrit aussi
+l'installation, PostgreSQL, les migrations, le worker et la compilation mobile.
+
 Le cahier étendu décrit une cible et des priorités, pas une liste de fonctionnalités déjà opérationnelles. Le document Java ME historique décrit une démonstration avec données fictives. Les fonctionnalités réelles doivent être vérifiées avant présentation. La transcription de la vidéo est automatique et peut comporter des erreurs, notamment en malagasy.
 
 ## Architecture du backend
@@ -46,7 +65,21 @@ Avec Docker et Docker Compose installés, depuis la racine du projet :
 docker compose up --build
 ```
 
-La configuration expose le backend sur le port 8000 et PostgreSQL sur le port 5432. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
+La configuration expose le backend sur le port 18000 de la machine hôte (8000 dans le conteneur). PostgreSQL reste accessible au backend sur `postgres:5432` dans le réseau Docker, sans exposition directe sur la machine hôte. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
+
+### Démonstration hackathon
+
+Le Compose local démarre par défaut avec `DEMO_MODE=true`, charge un jeu de
+données entièrement fictif dans une rédaction `demo` isolée, et publie les
+articles fictifs via le flux public. Les comptes de test sont :
+
+- `journaliste.demo@example.invalid` / `demo12345`
+- `contributeur.demo@example.invalid` / `demo12345`
+
+Pour désactiver le seed fictif, lancer Compose avec
+`DEMO_MODE=false`, `DEFAULT_DATASET=real`, `PUBLIC_DATASET=real`,
+`DEFAULT_NEWSROOM_ID=1` et `PUBLIC_NEWSROOM_ID=1`. Ne jamais activer le mode
+demo sur une base de production. Le backend expose notamment l’authentification, les sources et signaux de veille,
 la génération de brouillons IA, la validation humaine, le flux public/SMS et le
 Copilot local sur les articles certifiés, ou web lorsque Gemini est activé. Les écritures et consultations privées appliquent des permissions par rôle et rédaction ;
 l’inscription exige une invitation attribuant un rôle explicite. Seuls les éditeurs
@@ -84,7 +117,12 @@ npm run web
 
 Pour démarrer l’application sur Android, utilisez `npm run android`. Le lancement iOS nécessite macOS (`npm run ios`).
 
-Pour l’interface Java ME, les sources se trouvent dans `Touche/front/src/` et les distributions dans `Touche/front/deploy/`. Le script historique `Touche/lancement.sh` utilise des chemins propres à la machine de son auteur ; il doit être adapté à votre environnement.
+Pour l’interface Java ME connectée, les sources se trouvent dans `Touche/front/src/`.
+Le script `MICROEMU_HOME=/chemin/vers/microemulator-2.0.4 bash Touche/lancement.sh`
+compile et lance le client ; `--build` produit seulement le nouveau JAR/JAD dans
+`Touche/front/build/`. Les distributions de `deploy/` sont les anciennes versions.
+Le client utilise les vrais comptes et endpoints, sans code d'accès fixe. Son cache
+hors ligne contient uniquement les publications publiques synchronisées et leur date.
 
 ## Organisation locale
 

@@ -78,7 +78,10 @@ class BackendTests(unittest.TestCase):
             target = schema['paths'][path.replace('/api/', '/api/v1/', 1)]
             for method, expected in methods.items():
                 self.assertIn(method, target)
-                self.assertEqual(set(target[method]['responses']), set(expected['responses']))
+                responses=set(expected['responses'])
+                if path=='/api/public/articles' and method=='get':
+                    responses.add('422')  # added bounded pagination query validation
+                self.assertEqual(set(target[method]['responses']), responses)
                 self.assertEqual(bool(target[method].get('security')), expected['auth'])
         self.assertEqual(self.client.get('/api/health').json(), self.client.get('/api/v1/health').json())
         self.assertEqual(self.client.get('/api/public/articles').json(), self.client.get('/api/v1/public/articles').json())
