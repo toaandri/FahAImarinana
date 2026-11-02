@@ -39,7 +39,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Autoriser FA AI MARINANA à accéder aux photos sélectionnées pour votre article."
+          "photosPermission": "Autoriser FA AI MARINANA à accéder aux photos sélectionnées pour votre profil ou vos articles."
         }
       ],
       [

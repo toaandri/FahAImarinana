@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
@@ -9,6 +10,11 @@ import { getProfile, logout } from '@/services/mockData';
 
 export default function ProfilScreen() {
   const [profile, setProfile] = useState({ name: 'Nom de l’utilisateur', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: 0 });
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState('');
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     getProfile().then(setProfile).catch((error) => {
@@ -16,13 +22,57 @@ export default function ProfilScreen() {
     });
   }, []);
 
+  async function chooseProfilePhoto() {
+    setPhotoError('');
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (!result.canceled) setProfilePhoto(result.assets[0].uri);
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : 'Impossible de sélectionner cette photo.');
+    }
+  }
+
+  async function confirmAndLogout() {
+    setLoggingOut(true);
+    setLogoutError('');
+    try {
+      await logout();
+      router.replace('/');
+    } catch (error) {
+      setLogoutError(error instanceof Error
+        ? `La session locale a été fermée, mais le serveur n’a pas confirmé la déconnexion : ${error.message}`
+        : 'La session locale a été fermée, mais le serveur n’a pas confirmé la déconnexion.');
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.screen}>
       <HeaderBar />
       <ScrollView contentContainerStyle={styles.content}>
         <GlassCard style={styles.profileCard}>
           <View style={styles.profileHeader}>
-            <Text style={styles.avatar}>{profile.name.slice(0, 1).toUpperCase()}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={profilePhoto ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
+              onPress={chooseProfilePhoto}
+              style={styles.avatarButton}
+            >
+              {profilePhoto ? (
+                <Image source={{ uri: profilePhoto }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatar}>{profile.name.slice(0, 1).toUpperCase()}</Text>
+              )}
+              <View style={styles.avatarCamera}>
+                <Ionicons name="camera" size={12} color={palette.ink} />
+              </View>
+            </Pressable>
             <View style={styles.identity}>
               <Text style={styles.name}>{profile.name}</Text>
               <Text style={styles.email}>{profile.email}</Text>
@@ -38,6 +88,7 @@ export default function ProfilScreen() {
             <View style={styles.stat}><Text style={styles.statNumber}>{profile.credibility}%</Text><Text style={styles.statLabel}>Crédibilité</Text></View>
           </View>
         </GlassCard>
+        {photoError ? <Text accessibilityRole="alert" style={styles.photoError}>{photoError}</Text> : null}
 
         <GlassCard style={styles.menuCard}>
           {[
@@ -54,12 +105,65 @@ export default function ProfilScreen() {
           ))}
         </GlassCard>
 
-        <Pressable style={styles.disconnectButton} onPress={async () => { await logout(); router.replace('/'); }}>
+        <Pressable
+          accessibilityRole="button"
+          style={styles.disconnectButton}
+          onPress={() => {
+            setLogoutError('');
+            setConfirmLogout(true);
+          }}
+        >
           <Ionicons name="log-out-outline" size={18} color="#fff" />
           <Text style={styles.disconnectText}>Se déconnecter</Text>
         </Pressable>
       </ScrollView>
       <BottomTabs active="profil" />
+      <Modal
+        transparent
+        visible={confirmLogout}
+        animationType="fade"
+        onRequestClose={() => {
+          if (logoutError) router.replace('/');
+          else setConfirmLogout(false);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            accessibilityViewIsModal
+            accessibilityLabel={logoutError ? 'Déconnexion non confirmée' : 'Confirmer la déconnexion'}
+            style={styles.confirmCard}
+          >
+            <Text style={styles.confirmTitle}>{logoutError ? 'Déconnexion non confirmée' : 'Se déconnecter ?'}</Text>
+            <Text style={styles.confirmMessage}>
+              {logoutError || 'Voulez-vous vraiment fermer votre session ?'}
+            </Text>
+            {logoutError ? (
+              <Pressable style={[styles.confirmButton, styles.confirmButtonStandalone]} onPress={() => router.replace('/')}>
+                <Text style={styles.confirmButtonText}>Continuer</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.confirmActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={loggingOut}
+                  style={styles.cancelButton}
+                  onPress={() => setConfirmLogout(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Annuler</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={loggingOut}
+                  style={styles.confirmButton}
+                  onPress={confirmAndLogout}
+                >
+                  <Text style={styles.confirmButtonText}>{loggingOut ? 'Déconnexion…' : 'Se déconnecter'}</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -69,7 +173,11 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120 },
   profileCard: { padding: 12 },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: palette.mint, color: '#0b2b2b', textAlign: 'center', textAlignVertical: 'center', fontFamily: 'Montserrat_700Bold_Italic', fontSize: 21 },
+  avatarButton: { width: 61, height: 61, borderRadius: 31, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center' },
+  avatar: { color: '#0b2b2b', textAlign: 'center', textAlignVertical: 'center', fontFamily: 'Montserrat_700Bold_Italic', fontSize: 21 },
+  avatarImage: { width: 61, height: 61, borderRadius: 31 },
+  avatarCamera: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: palette.mint, borderWidth: 2, borderColor: palette.background, alignItems: 'center', justifyContent: 'center' },
+  photoError: { marginTop: 8, color: '#ffd0d0', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
   identity: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
   name: { color: '#fff', fontSize: 18, fontFamily: 'Montserrat_700Bold_Italic' },
   email: { color: '#fff', fontSize: 12, marginTop: 4, opacity: 0.8, fontFamily: 'Montserrat_600SemiBold_Italic' },
@@ -85,4 +193,14 @@ const styles = StyleSheet.create({
   menuLabel: { color: '#fff', marginLeft: 10, fontSize: 13, fontFamily: 'Montserrat_600SemiBold_Italic' },
   disconnectButton: { marginTop: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: palette.mint, borderRadius: 12, paddingVertical: 14 },
   disconnectText: { color: '#fff', marginLeft: 8, fontFamily: 'Montserrat_700Bold_Italic' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  confirmCard: { width: '100%', maxWidth: 360, borderRadius: 18, borderWidth: 1, borderColor: palette.cardBorder, backgroundColor: palette.backgroundDeep, padding: 20 },
+  confirmTitle: { color: '#fff', fontSize: 18, fontFamily: 'Montserrat_700Bold_Italic' },
+  confirmMessage: { color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 20, marginTop: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
+  cancelButton: { minHeight: 42, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  cancelButtonText: { color: '#fff', fontFamily: 'Montserrat_600SemiBold_Italic' },
+  confirmButton: { minHeight: 42, borderRadius: 12, backgroundColor: palette.mint, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  confirmButtonStandalone: { marginTop: 20 },
+  confirmButtonText: { color: palette.ink, fontFamily: 'Montserrat_700Bold_Italic' },
 });
