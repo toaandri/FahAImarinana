@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import DraftIA, SignalBrut
-from .services import create_draft, cross_check_signal
+from ..models import DraftIA, SignalBrut
+from ..services import create_draft, cross_check_signal
 
 
 def process_pending_signals(db: Session) -> int:

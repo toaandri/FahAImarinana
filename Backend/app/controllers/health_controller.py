@@ -1,8 +1,2 @@
-from fastapi import APIRouter
-
-router = APIRouter(tags=["Système"])
-
-
-@router.get("/health")
-def health():
-    return {"status": "ok"}
+"""Compatibility facade for the health HTTP adapter."""
+from ..api.v1.endpoints.health import *
