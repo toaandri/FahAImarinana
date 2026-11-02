@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +17,8 @@ router = APIRouter(prefix='/vision', tags=['Gemini Vision — vidéo privée'])
 def capabilities(user: User = Depends(require_permission(P.ANALYSIS_WRITE))):
     settings = get_settings()
     return {'configured': bool(settings.gemini_api_key.get_secret_value().strip()),
-            'provider': 'gemini', 'model': settings.gemini_model,
+            'capture_id': str(uuid4()),
+            'provider': 'gemini', 'model': settings.gemini_vision_model,
             'clip_seconds': 6, 'max_video_bytes': MAX_VIDEO_BYTES,
             'max_duration_seconds': 10, 'requires_human_review': True}
 

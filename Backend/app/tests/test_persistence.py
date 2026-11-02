@@ -206,7 +206,8 @@ class PersistenceTests(unittest.TestCase):
             second=seed_demo(db); db.commit(); self.assertEqual(second.id,identifier)
             for model in MODELS:
                 rows=list(db.scalars(select(model)))
-                self.assertEqual(len(rows),1)
+                # The demo now deliberately provisions a journalist and a contributor.
+                self.assertEqual(len(rows),2 if model is User else 1)
                 self.assertTrue(all(row.dataset=='demo' and row.newsroom_id==identifier for row in rows))
 
     def test_public_endpoints_expose_only_approved_real_publications(self):

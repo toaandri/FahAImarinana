@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar, BottomTabs, GlassCard, TagChip } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { publishArticle } from '@/services/mockData';
+import { router } from 'expo-router';
 
 export default function PublierScreen() {
   const [title, setTitle] = useState('');
@@ -30,6 +31,7 @@ export default function PublierScreen() {
         </GlassCard>
 
         <GlassCard style={styles.mediaCard}>
+<<<<<<< Updated upstream
           <View style={styles.mediaPreview}>
             <View style={styles.mediaButton}><Text style={styles.mediaPlus}>+</Text></View>
             <View style={styles.mediaActions}>
@@ -42,6 +44,10 @@ export default function PublierScreen() {
             <Text style={styles.credibilityLabel}>Crédibilité</Text>
             <Text style={styles.source}>Source</Text>
           </View>
+=======
+          <Pressable accessibilityLabel="Filmer une vidéo pour analyse" style={styles.mediaButton} onPress={() => router.push('/direct')}><Text style={styles.mediaPlus}>+</Text></Pressable>
+          <View style={styles.mediaActions}><Text style={styles.mediaAction}>Photo</Text><Pressable onPress={() => router.push('/direct')}><Text style={styles.mediaAction}>Filmer une vidéo</Text></Pressable></View>
+>>>>>>> Stashed changes
         </GlassCard>
 
         <Text style={styles.bodyLabel}>Votre article</Text>

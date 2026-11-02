@@ -15,6 +15,12 @@ Projet pour le hackathon FANILO 2026 : assistance à la veille, à la recherche 
 
 ## État du projet
 
+L'intégration [caméra mobile et Gemini Vision](docs/GEMINI_VIDEO.md) enregistre de
+courts clips et passe par le backend authentifié. Les résultats restent privés et
+soumis à relecture humaine. Le parcours backend avec une vidéo synthétique, Gemini
+Flash Lite et un stockage privé a été vérifié. La capture sur téléphone physique
+reste à recetter dans Expo Go.
+
 Le parcours documentaire et éditorial local est maintenant connecté : dossiers,
 affirmations, preuves, recherche dans les pièces saisies, brouillons et révisions,
 validation humaine, publication, consultation SMS par HTTP et synchronisation du

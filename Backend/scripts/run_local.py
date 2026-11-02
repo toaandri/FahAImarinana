@@ -12,6 +12,7 @@ def main():
     root=Path(__file__).resolve().parents[1]
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port',type=int,default=8000)
+    parser.add_argument('--host',default='127.0.0.1',help='Utiliser 0.0.0.0 pour un téléphone sur le réseau local.')
     parser.add_argument('--create-account',action='store_true')
     args=parser.parse_args()
     load_dotenv(root/'.env',override=False)
@@ -39,7 +40,7 @@ def main():
         return
     print(f'Backend local : http://127.0.0.1:{args.port}/docs',flush=True)
     os.chdir(root)
-    os.execv(sys.executable,[sys.executable,'-m','uvicorn','app.main:app','--host','127.0.0.1','--port',str(args.port)])
+    os.execv(sys.executable,[sys.executable,'-m','uvicorn','app.main:app','--host',args.host,'--port',str(args.port)])
 
 
 if __name__=='__main__':

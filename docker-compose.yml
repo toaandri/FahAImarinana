@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: fanilo
       POSTGRES_PASSWORD: fanilo
     ports:
-      - "55434:5432"
+      - "127.0.0.1:55434:5432"
     volumes:
       - fanilo-postgres-data:/var/lib/postgresql/data
     healthcheck:

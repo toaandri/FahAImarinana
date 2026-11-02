@@ -20,7 +20,7 @@ def _api_key() -> str:
     key = get_settings().gemini_api_key.get_secret_value().strip()
     if not key:
         raise GeminiUnavailableError(
-            "GEMINI_API_KEY n'est pas configurée; utilisation du moteur local."
+            "GEMINI_API_KEY n'est pas configurée sur le backend."
         )
     return key
 
@@ -32,6 +32,7 @@ def _request(payload: dict) -> dict:
         headers={
             "Content-Type": "application/json",
             "x-goog-api-key": _api_key(),
+            'Api-Revision': '2026-05-20',
         },
         method="POST",
     )
@@ -54,7 +55,11 @@ def _request(payload: dict) -> dict:
         raise GeminiUnavailableError(message, code=f'gemini_http_{exc.code}') from None
     except TimeoutError:
         raise GeminiUnavailableError('Le délai de réponse Gemini est dépassé.', code='provider_timeout', http_status=504) from None
-    except (URLError, UnicodeError, json.JSONDecodeError):
+    except URLError as exc:
+        if isinstance(exc.reason, TimeoutError):
+            raise GeminiUnavailableError('Le délai de réponse Gemini est dépassé.', code='provider_timeout', http_status=504) from None
+        raise GeminiUnavailableError('Google AI Studio est indisponible.', code='provider_unavailable') from None
+    except (UnicodeError, json.JSONDecodeError):
         raise GeminiUnavailableError('Google AI Studio est indisponible.', code='provider_unavailable') from None
 
 
@@ -169,7 +174,7 @@ def analyze_video_clip(clip):
         'required': ['title', 'summary', 'observations', 'limitations', 'questions_to_verify'],
     }
     response = _request({
-        'model': get_settings().gemini_model,
+        'model': get_settings().gemini_vision_model,
         'store': False,
         'system_instruction': (
             'Tu assistes un journaliste. Décris uniquement ce qui est visible ou audible dans le clip. '
@@ -180,14 +185,15 @@ def analyze_video_clip(clip):
             'Les time_seconds sont relatifs au début de ce seul clip, pas à toute la capture.'
         ),
         'input': [
-            {'type': 'video', 'data': clip.video_base64, 'mime_type': clip.mime_type},
+            {'type': 'video', 'data': clip.video_base64,
+             'mime_type': 'video/mov' if clip.mime_type == 'video/quicktime' else clip.mime_type},
             {'type': 'text', 'text': f'Analyse ce clip de {clip.duration_seconds:.2f} secondes. '
                 f'Langue de réponse : {clip.language}. JSON uniquement, selon le schéma.'},
         ],
         'response_format': {'type': 'text', 'mime_type': 'application/json', 'schema': schema},
-        'generation_config': {'max_output_tokens': 3000},
+        'generation_config': {'max_output_tokens': 3000, 'thinking_level': 'low'},
     })
-    if response.get('status', 'completed') != 'completed':
+    if response.get('status') != 'completed':
         raise GeminiUnavailableError('Analyse Gemini incomplète ; aucun résultat validé.', code='incomplete_response')
     try:
         result = VideoAnalysisResult.model_validate_json(_output_text(response))

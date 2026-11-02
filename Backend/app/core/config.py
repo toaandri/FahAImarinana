@@ -37,6 +37,8 @@ class Settings(BaseModel):
     frontend_origins: str = "http://localhost:3000,http://localhost:5173"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.8-flash"
+    gemini_vision_model: str = Field(default='gemini-3.5-flash-lite', min_length=1, max_length=80,
+                                    pattern=r'^[a-zA-Z0-9._-]+$')
     gemini_timeout_seconds: float = Field(default=45, gt=0, le=300)
     sms_backend: Literal["simulation"] = "simulation"
     auth_requests_per_minute: int = Field(default=60,ge=1,le=10000)

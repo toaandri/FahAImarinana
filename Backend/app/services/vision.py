@@ -42,7 +42,7 @@ def analyze_clip(db, user, clip):
     record = None
     try:
         metadata = {
-            'version': 1, 'provider': 'gemini', 'model': get_settings().gemini_model,
+            'version': 1, 'provider': 'gemini', 'model': get_settings().gemini_vision_model,
             'capture_id': str(clip.capture_id), 'sequence': clip.sequence,
             'captured_at': clip.captured_at.isoformat(), 'received_at': now().isoformat(),
             'duration_seconds': clip.duration_seconds, 'language': clip.language,
@@ -50,7 +50,7 @@ def analyze_clip(db, user, clip):
         }
         record = MediaAnalysis(utilisateur_id=user.id, case_id=clip.case_id, type_media='video',
             reference_originale='capture://' + key, empreinte_sha256=digest,
-            outil='gemini-vision', version_outil=get_settings().gemini_model[:80],
+            outil='gemini-vision', version_outil=get_settings().gemini_vision_model,
             observations=[], limites=[REVIEW_NOTICE], indice_indicatif='non_evalue',
             cree_le=now(), status='running', capture_key=key, result=metadata)
         db.add(record); db.commit()

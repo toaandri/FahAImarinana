@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { setVideoReport } from './video-session';
 
 type TokenResponse = {
   access_token: string;
@@ -6,11 +7,17 @@ type TokenResponse = {
 };
 
 type ApiError = {
-  detail?: string | Array<{ msg?: string }>;
+  detail?: string | { msg?: string }[];
 };
 
-const configuredUrl = Constants.expoConfig?.extra?.apiUrl;
-const API_URL = (configuredUrl || 'http://localhost:8000/api/v1').replace(/\/$/, '');
+const configuredUrl = process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl;
+const backendUrl = new URL(configuredUrl || 'http://localhost:8000/api/v1');
+const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
+if (__DEV__ && ['localhost', '127.0.0.1'].includes(backendUrl.hostname) && metroHost &&
+    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(metroHost)) {
+  backendUrl.hostname = metroHost;
+}
+const API_URL = backendUrl.toString().replace(/\/$/, '');
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
@@ -22,6 +29,24 @@ export function setTokens(tokens: TokenResponse | null) {
 
 export function clearTokens() {
   setTokens(null);
+  setVideoReport(null);
+}
+
+async function boundedFetch(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (init.signal?.aborted) controller.abort();
+  init.signal?.addEventListener('abort', abort);
+  const timer = setTimeout(abort, 60000);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('Requête interrompue ou délai dépassé. Le serveur peut encore traiter le clip.');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    init.signal?.removeEventListener('abort', abort);
+  }
 }
 
 function errorMessage(payload: ApiError) {
@@ -37,9 +62,9 @@ async function request<T>(path: string, init: RequestInit = {}, canRefresh = tru
   headers.set('Content-Type', 'application/json');
   if (accessToken) headers.set('Authorization', 'Bearer ' + accessToken);
 
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  const response = await boundedFetch(`${API_URL}${path}`, { ...init, headers });
   if (response.status === 401 && canRefresh && refreshToken) {
-    const refreshed = await fetch(`${API_URL}/auth/refresh`, {
+    const refreshed = await boundedFetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
