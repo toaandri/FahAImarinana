@@ -37,6 +37,15 @@ structurés et le Copilot web avec Google Search. Sans clé, il conserve le mote
 et indique que les sorties restent des pré-analyses. L’IA ne peut jamais publier
 directement un article certifié.
 
+Le périmètre Maharavo est exposé sous `/api/maharavo` :
+
+- `POST /research` conserve le sujet, les questions, la période, les langues,
+  le territoire, les citations et l’état `terminee`, `partielle` ou `echouee`.
+- `POST /media-analysis` enregistre l’empreinte, l’outil, les observations et
+  les limites d’une analyse guidée ; il ne conclut jamais seul à une manipulation.
+- `POST /confidence` conserve séparément l’identité de la source, la solidité
+  des preuves et l’état de validation éditoriale.
+
 Pour l’interface Java ME, les sources se trouvent dans `Touche/front/src/` et les distributions dans `Touche/front/deploy/`. Le script historique `Touche/lancement.sh` utilise des chemins propres à la machine de son auteur ; il doit être adapté à votre environnement.
 
 ## Organisation locale

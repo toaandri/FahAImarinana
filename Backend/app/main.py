@@ -15,6 +15,7 @@ from .controllers.auth_controller import router as auth_router
 from .controllers.copilot_controller import router as copilot_router
 from .controllers.sms_controller import router as sms_router
 from .controllers.workflow_controller import router as workflow_router
+from .controllers.maharavo_controller import router as maharavo_router
 
 
 @asynccontextmanager
@@ -56,5 +57,6 @@ for router in (
     sms_router,
     alert_router,
     copilot_router,
+    maharavo_router,
 ):
     app.include_router(router, prefix="/api")
