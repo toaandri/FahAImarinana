@@ -1,5 +1,5 @@
-"""Maharavo operations use the shared Gemini adapter.
+"""Independent, disabled-by-default connector pending a real Maharavo interface.
 
-Business rules and persistence live in services.maharavo. This package is the
-boundary for future external Maharavo adapters; no separate HTTP API is assumed.
+contracts.py defines a PROPOSED backend-normalized schema, not a vendor API.
+No concrete remote route, authentication header or wire protocol is invented.
 """

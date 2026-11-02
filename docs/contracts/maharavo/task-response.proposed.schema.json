@@ -1,0 +1,477 @@
+{
+  "$defs": {
+    "Analysis": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 100000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "summary_evidence_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Summary Evidence Ids",
+          "type": "array"
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/DocumentAnalysis"
+          },
+          "maxItems": 50,
+          "title": "Documents",
+          "type": "array"
+        },
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/ClaimSuggestion"
+          },
+          "maxItems": 500,
+          "title": "Claims",
+          "type": "array"
+        },
+        "source_matches": {
+          "items": {
+            "$ref": "#/$defs/SourceMatch"
+          },
+          "maxItems": 200,
+          "title": "Source Matches",
+          "type": "array"
+        },
+        "contradictions": {
+          "items": {
+            "$ref": "#/$defs/Contradiction"
+          },
+          "maxItems": 200,
+          "title": "Contradictions",
+          "type": "array"
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DraftProposal"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Analysis",
+      "type": "object"
+    },
+    "ClaimSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 5000,
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_id",
+        "statement",
+        "evidence_ids"
+      ],
+      "title": "ClaimSuggestion",
+      "type": "object"
+    },
+    "Contradiction": {
+      "additionalProperties": false,
+      "properties": {
+        "statement": {
+          "maxLength": 5000,
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 200,
+          "minItems": 2,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "statement",
+        "evidence_ids"
+      ],
+      "title": "Contradiction",
+      "type": "object"
+    },
+    "DocumentAnalysis": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "format": "uuid",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "document_id",
+        "summary",
+        "evidence_ids"
+      ],
+      "title": "DocumentAnalysis",
+      "type": "object"
+    },
+    "DraftProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 250,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "language": {
+          "enum": [
+            "fr",
+            "mg",
+            "en"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "body",
+        "language",
+        "evidence_ids"
+      ],
+      "title": "DraftProposal",
+      "type": "object"
+    },
+    "EvidenceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "document_id": {
+          "format": "uuid",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "consultation_id": {
+          "format": "uuid",
+          "title": "Consultation Id",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "document_id",
+        "consultation_id",
+        "quote"
+      ],
+      "title": "EvidenceReference",
+      "type": "object"
+    },
+    "SourceMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "document_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "minItems": 2,
+          "title": "Document Ids",
+          "type": "array"
+        },
+        "explanation": {
+          "maxLength": 5000,
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "document_ids",
+        "explanation",
+        "evidence_ids"
+      ],
+      "title": "SourceMatch",
+      "type": "object"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "format": "uuid",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "consultation_id": {
+          "format": "uuid",
+          "title": "Consultation Id",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "consulted_at": {
+          "format": "date-time",
+          "title": "Consulted At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "consultation_id",
+        "url",
+        "sha256",
+        "consulted_at"
+      ],
+      "title": "SourceReference",
+      "type": "object"
+    },
+    "TaskError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[a-z0-9_]{1,80}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "TaskError",
+      "type": "object"
+    },
+    "TaskType": {
+      "enum": [
+        "research",
+        "document_analysis",
+        "claim_extraction",
+        "source_matching",
+        "contradiction_analysis",
+        "synthesis",
+        "draft_preparation"
+      ],
+      "title": "TaskType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "fa-ai-marinana.proposal.v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_type": {
+      "$ref": "#/$defs/TaskType"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "partial",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "space": {
+      "enum": [
+        "research",
+        "analysis",
+        "drafts"
+      ],
+      "title": "Space",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceReference"
+      },
+      "maxItems": 100,
+      "title": "Sources",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceReference"
+      },
+      "maxItems": 200,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "analysis": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Analysis"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/TaskError"
+      },
+      "maxItems": 50,
+      "title": "Errors",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "task_id",
+    "task_type",
+    "status",
+    "model_version",
+    "generated_at",
+    "space",
+    "sources",
+    "evidence",
+    "analysis",
+    "limitations",
+    "errors"
+  ],
+  "title": "TaskResponse",
+  "type": "object",
+  "$comment": "PROPOSITION BACKEND : aucune compatibilité avec une API Maharavo distante n’est affirmée. Les vérifications de provenance nécessitent aussi le validateur Python."
+}

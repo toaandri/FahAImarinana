@@ -161,13 +161,11 @@ class BackendTests(unittest.TestCase):
             self.assertEqual(payload, {'type': 'alert', 'signal_id': signal_id, 'sent_count': 0})
 
     def test_maharavo_capabilities_are_preserved(self):
-        class Provider:
-            def research(self, question):
-                return 'Synthèse sourcée', [{'url': 'https://example.invalid', 'titre': 'Source'}]
-        self.app.dependency_overrides[get_research_provider] = Provider
         research = self.client.post('/api/maharavo/research', headers=self.headers, json={'sujet': 'Sujet de recherche'})
-        self.assertEqual(research.status_code, 201, research.text)
-        self.assertEqual(research.json()['statut'], 'terminee')
+        self.assertEqual(research.status_code, 503, research.text)
+        from app.models import ResearchJob
+        with SessionLocal() as db:
+            self.assertEqual(db.scalar(select(func.count(ResearchJob.id))), 0)
         media = self.client.post('/api/maharavo/media-analysis', headers=self.headers, json={
             'type_media': 'image', 'reference_originale': 'preuve.jpg', 'empreinte_sha256': 'a' * 64,
             'outil': 'Inspection humaine', 'version_outil': '1'})

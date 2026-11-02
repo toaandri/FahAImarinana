@@ -1,14 +1,12 @@
 from ..core.rbac import authorize, Permission as P
-from ..core.errors import ForbiddenError
-from ..core.config import get_settings
 from ..database.scope import scope_for_user
 from ..core.errors import ValidationDomainError
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from ..integrations.ai.gemini import GeminiUnavailableError
-from ..integrations.maharavo.research import ResearchProvider, GeminiResearchProvider
+from ..integrations.maharavo.research import ResearchProvider
+from ..integrations.maharavo.errors import MaharavoNotConfigured
 from ..models import (
     AnalyseMediaMaharavo,
     EvaluationConfianceMaharavo,
@@ -29,47 +27,9 @@ def run_research(
 ) -> RechercheMaharavo:
     authorize(user,P.RESEARCH_RUN)
     scope_for_user(db, user)
-    started = datetime.now(timezone.utc)
-    prompt = "Sujet: " + sujet
-    if questions:
-        prompt += "\nQuestions: " + "; ".join(questions)
-    if periode:
-        prompt += "\nPériode: " + periode
-    if langues:
-        prompt += "\nLangues: " + ", ".join(langues)
-    if territoire:
-        prompt += "\nTerritoire: " + territoire
-    job = RechercheMaharavo(
-        utilisateur_id=user.id,
-        sujet=sujet,
-        questions=questions,
-        periode=periode,
-        langues=langues,
-        territoire=territoire,
-        requetes=[prompt],
-        documents_ouverts=[],
-        citations=[],
-        erreurs=[],
-        statut="en_cours",
-        modele=get_settings().gemini_model,
-        debut=started,
-    )
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-    try:
-        synthesis, citations = (provider or GeminiResearchProvider()).research(prompt)
-        job.synthese = synthesis
-        job.citations = citations
-        job.documents_ouverts = citations[:5]
-        job.statut = "terminee" if citations else "partielle"
-    except GeminiUnavailableError as exc:
-        job.erreurs = [str(exc)]
-        job.statut = "echouee"
-    job.fin = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(job)
-    return job
+    # The repository contains no separate Maharavo server or documented wire protocol.
+    # Never issue a Gemini request or fabricate a successful job under this name.
+    raise MaharavoNotConfigured()
 
 
 def record_media_analysis(db: Session, user: Utilisateur, payload) -> AnalyseMediaMaharavo:

@@ -110,7 +110,7 @@ Aucun ordonnanceur ni processus autonome n'est démarré implicitement. Les requ
 
 Gemini reste facultatif. Les réponses structurées des brouillons sont validées avec Pydantic ; une indisponibilité ou une réponse invalide déclenche le moteur local. La clé, le modèle et les délais sont configurables. La compatibilité réelle du modèle et du service externe nécessite une recette avec une clé valide.
 
-Maharavo utilise actuellement le fournisseur Gemini partagé, avec un protocole injectable. Aucune API externe Maharavo distincte n'est supposée. Les analyses média enregistrent des observations fournies par un opérateur ; elles ne réalisent pas de détection automatique de manipulation.
+Le connecteur indépendant Maharavo est désactivé sans adaptateur documenté. La recherche `/maharavo/research` renvoie 503 et n’utilise plus Gemini sous ce nom. Le socle HTTP asynchrone et les contrats proposés sont détaillés dans [MAHARAVO_INTEGRATION.md](MAHARAVO_INTEGRATION.md). Les analyses média existantes enregistrent des observations fournies par un opérateur.
 
 La passerelle SMS reste un simulateur explicite. Elle n'envoie aucun SMS et ne journalise ni numéro ni contenu. `/sms/citizen` calcule une réponse JSON ; aucun webhook opérateur, accusé de livraison ou envoi réel n'est annoncé.
 
