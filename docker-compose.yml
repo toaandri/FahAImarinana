@@ -17,5 +17,18 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build: ./Backend
+    container_name: fanilo-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://fanilo:fanilo@postgres:5432/fanilo
+      AUTO_CREATE_TABLES: "true"
+    ports:
+      - "8000:8000"
+
 volumes:
   fanilo-postgres-data:
