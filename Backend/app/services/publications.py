@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from ..core.rbac import authorize, Permission as P
 from ..core.errors import ForbiddenError, ConflictError, NotFoundError, ValidationDomainError
 from ..database.scope import scope_for_user
 from ..models import Publication, CorrectionAudit
@@ -13,8 +14,7 @@ PUBLIC_FIELDS = ('titre_final','corps_article','categorie','statut_verification'
 
 
 def _locked(db, user, publication_id, reason):
-    if not user.actif or user.status != 'active' or user.role not in {'Journaliste','Editeur'}:
-        raise ForbiddenError('Validation éditoriale requise.')
+    authorize(user,P.CORRECT)
     if not reason.strip() or len(reason) > 5000:
         raise ValidationDomainError('Une justification de 1 à 5000 caractères est requise.')
     scope_for_user(db,user)

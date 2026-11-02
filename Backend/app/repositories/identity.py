@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from ..models import Utilisateur, ContactJournaliste
+from ..models import Utilisateur, ContactJournaliste, Newsroom
 from .base import Repository
 
 
@@ -11,7 +11,12 @@ class UserRepository(Repository[Utilisateur]):
 
 
     def get_for_auth(self, identifier):
-        return self.db.scalar(select(Utilisateur).where(Utilisateur.id == identifier)
+        return self.db.scalar(select(Utilisateur).join(Newsroom).where(Utilisateur.id == identifier, Newsroom.status == "active")
+                              .execution_options(authentication_lookup=True))
+
+
+    def get_active_by_email(self,email):
+        return self.db.scalar(select(Utilisateur).join(Newsroom).where(Utilisateur.email==email,Newsroom.status=='active')
                               .execution_options(authentication_lookup=True))
 
 

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 from ....database import get_db
-from ....core.errors import AuthenticationError
+from ....core.errors import AuthenticationError, ForbiddenError
+from ....core.rbac import authorize, Permission as P
 from ....core.security import authenticate_token
 from ....integrations.notifications.websocket import alert_manager
 
@@ -27,7 +28,9 @@ async def alerts_websocket(websocket: WebSocket, db: Session = Depends(get_db)):
     except AuthenticationError:
         await websocket.close(code=1008)
         return
-    if user.role not in {"Journaliste", "Editeur"}:
+    try:
+        authorize(user,P.ALERTS_READ)
+    except ForbiddenError:
         await websocket.close(code=1008)
         return
     scope = (user.newsroom_id, user.dataset)

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from ....database import get_db
-from ....core.permissions import journalist_or_editor
+from ....core.permissions import require_permission
+from ....core.rbac import Permission as P
 from ....core.errors import NotFoundError
 from ....models import Utilisateur
 from ....schemas import AnalyzeRequest, DraftRead, SignalIngest, SignalRead
@@ -14,13 +15,13 @@ router = APIRouter(prefix="/signals", tags=["Veille et analyse"])
 
 @router.post("/ingest", response_model=SignalRead, status_code=status.HTTP_201_CREATED)
 def ingest(payload: SignalIngest, db: Session = Depends(get_db),
-           _: Utilisateur = Depends(journalist_or_editor)):
+           _: Utilisateur = Depends(require_permission(P.SIGNAL_INGEST))):
     return ingest_signal(db, payload)
 
 
 @router.post("/{signal_id}/analyze", response_model=DraftRead, status_code=status.HTTP_201_CREATED)
 def analyze(signal_id: int, payload: AnalyzeRequest, db: Session = Depends(get_db),
-            _: Utilisateur = Depends(journalist_or_editor)):
+            _: Utilisateur = Depends(require_permission(P.DRAFT_CREATE))):
     signal = SignalRepository(db).get(signal_id)
     if signal is None:
         raise NotFoundError("Signal introuvable.")

@@ -40,9 +40,9 @@ def isolate_queries(state):
         return
     if state.execution_options.get('authentication_lookup'):
         # This flag is an internal capability, never derived from request parameters.
-        from ..models import User
+        from ..models import User, AuthSession, RefreshToken, Invitation
         descriptions = getattr(state.statement, 'column_descriptions', [])
-        if not descriptions or any(item.get('entity') is not User for item in descriptions):
+        if not descriptions or any(item.get('entity') not in {User,AuthSession,RefreshToken,Invitation} for item in descriptions):
             raise ForbiddenError('Recherche d’identité invalide.')
         return
     scope = require_scope(state.session)
@@ -56,8 +56,10 @@ def isolate_queries(state):
 
 @event.listens_for(Session, 'before_flush')
 def isolate_writes(db, flush_context, instances):
-    from ..models import CorrectionAudit
+    from ..models import CorrectionAudit, User
     for entity in set(db.new) | set(db.dirty) | set(db.deleted):
+        if isinstance(entity,User) and inspect(entity).persistent and inspect(entity).attrs.account_type.history.has_changes():
+            raise ForbiddenError('Le type d’identité est immuable.')
         if isinstance(entity, CorrectionAudit) and entity not in db.new:
             if entity in db.deleted or db.is_modified(entity):
                 raise ConflictError('Le journal des corrections est immuable.')

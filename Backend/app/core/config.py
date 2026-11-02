@@ -28,8 +28,12 @@ class Settings(BaseModel):
     db_max_overflow: int = Field(default=10, ge=0)
     auto_create_tables: bool = False
     jwt_secret: SecretStr = SecretStr("")
-    jwt_expire_minutes: int = Field(default=480, ge=1)
-    allow_public_registration: bool = True
+    jwt_expire_minutes: int = Field(default=15, ge=1)
+    jwt_issuer: str = 'fa-ai-marinana'
+    jwt_audience: str = 'fa-ai-marinana-api'
+    refresh_expire_days: int = Field(default=30,ge=1,le=90)
+    invitation_expire_hours: int = Field(default=48,ge=1,le=168)
+    allow_public_registration: bool = False
     frontend_origins: str = "http://localhost:3000,http://localhost:5173"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.8-flash"

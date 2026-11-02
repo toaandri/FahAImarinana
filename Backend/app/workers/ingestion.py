@@ -9,8 +9,10 @@ from ..services.drafts import create_draft
 
 
 def process_pending_signals(db: Session) -> int:
+    from ..services.administration import technical_setting
+    limit = technical_setting(db,"ingestion_batch_size",100)
     processed = 0
-    for signal in SignalRepository(db).pending_urgent():
+    for signal in SignalRepository(db).pending_urgent()[:limit]:
         create_draft(db, signal, cross_check_signal(db, signal))
         processed += 1
     return processed

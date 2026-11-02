@@ -14,6 +14,9 @@ class Draft(ScopedRecord, Base):
         scoped_fk("case_id", "cases", name="fk_drafts_case_scope"),
         case_link("claim_id", "claims", name="fk_drafts_claim_case"),
         CheckConstraint("claim_id IS NULL OR case_id IS NOT NULL", name="ck_drafts_claim_case"),
+        scoped_fk("validated_by_id","users",name="fk_drafts_validator"),
+        CheckConstraint("version >= 1",name="ck_drafts_version"),
+        CheckConstraint("validated_version IS NULL OR (validated_version=version AND validated_by_id IS NOT NULL AND validated_at IS NOT NULL AND approved_payload_hash IS NOT NULL)",name="ck_drafts_validation"),
         CheckConstraint("statut IN ('En_Attente','En_Cours','Rejete')", name="ck_drafts_status"),
         CheckConstraint("score_credibilite_indicatif >= 0 AND score_credibilite_indicatif <= 100", name="ck_drafts_score"),
         Index("ix_drafts_status", "newsroom_id", "dataset", "statut", "horodatage"),
@@ -32,6 +35,13 @@ class Draft(ScopedRecord, Base):
 
     case_id: Mapped[int | None] = mapped_column(Integer)
     claim_id: Mapped[int | None] = mapped_column(Integer)
+    version: Mapped[int] = mapped_column(Integer,default=1)
+    validated_version: Mapped[int|None] = mapped_column(Integer)
+    validated_by_id: Mapped[int|None] = mapped_column(Integer)
+    validated_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True))
+    approved_payload: Mapped[dict|None] = mapped_column(JSON)
+    approved_payload_hash: Mapped[str|None] = mapped_column(String(64))
+    review_notes: Mapped[str] = mapped_column(Text,default='')
     title = synonym("titre_suggere")
     status = synonym("statut")
     signal: Mapped["Signal"] = relationship(primaryjoin="Draft.signal_id == Signal.id", foreign_keys=[signal_id], back_populates="draft")

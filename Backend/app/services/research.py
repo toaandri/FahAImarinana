@@ -26,6 +26,8 @@ def index_certified_article(db: Session, article: ArticleCertifie, *, commit: bo
 
 
 def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[dict]:
+    from .administration import technical_setting
+    limit = technical_setting(db,"research_result_limit",limit)
     terms = _tokenize(question)
     if not terms:
         return []

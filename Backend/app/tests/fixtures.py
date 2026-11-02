@@ -23,3 +23,31 @@ def reset_schema():
         if connection.dialect.name == 'postgresql':
             from sqlalchemy import text
             connection.execute(text("SELECT setval(pg_get_serial_sequence('newsrooms','id'),2,true)"))
+
+
+_TEST_HASH=None
+
+
+def make_account(role='JOURNALISTE',email=None,newsroom_id=1,dataset='real',service_permissions=None):
+    global _TEST_HASH
+    from ..models import User
+    from ..core.security import password_hash
+    from ..core.rbac import Role,ROLE_PERMISSIONS
+    if _TEST_HASH is None:
+        _TEST_HASH=password_hash('password123')
+    role=Role(role)
+    with system_session() as db:
+        user=User(email=email or role.value.lower()+'@example.invalid',role=role.value,
+            account_type='service' if role==Role.SERVICE_IA else 'human',
+            service_permissions=list(service_permissions if service_permissions is not None else ROLE_PERMISSIONS[role]) if role==Role.SERVICE_IA else [],
+            mot_de_passe_hash=_TEST_HASH,newsroom_id=newsroom_id,dataset=dataset)
+        db.add(user); db.commit()
+        return user
+
+
+def tokens_for(user):
+    from ..services.auth import issue_tokens
+    with system_session() as db:
+        from ..models import User
+        current=db.get(User,user.id)
+        return issue_tokens(db,current)

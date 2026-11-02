@@ -16,6 +16,11 @@ def install_guards(connection, tables):
         connection.execute(text('CREATE TRIGGER tr_audit_immutable BEFORE UPDATE OR DELETE ON corrections_audit FOR EACH ROW EXECUTE FUNCTION fanilo_immutable_audit()'))
         connection.execute(text('DROP TRIGGER IF EXISTS tr_audit_no_truncate ON corrections_audit'))
         connection.execute(text('CREATE TRIGGER tr_audit_no_truncate BEFORE TRUNCATE ON corrections_audit FOR EACH STATEMENT EXECUTE FUNCTION fanilo_immutable_audit()'))
+        if 'account_type' in {column['name'] for column in inspect(connection).get_columns('users')}:
+            connection.execute(text("""CREATE OR REPLACE FUNCTION fanilo_immutable_identity() RETURNS trigger LANGUAGE plpgsql AS $$
+                BEGIN IF OLD.account_type <> NEW.account_type THEN RAISE EXCEPTION 'identity type is immutable'; END IF; RETURN NEW; END $$"""))
+            connection.execute(text('DROP TRIGGER IF EXISTS tr_users_identity ON users'))
+            connection.execute(text('CREATE TRIGGER tr_users_identity BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION fanilo_immutable_identity()'))
         for table, name, expression in (
             ('evidence', 'ck_evidence_sha256_format', "sha256 IS NULL OR sha256 ~ '^[0-9a-f]{64}$'"),
             ('media_analyses', 'ck_media_sha256_format', "empreinte_sha256 ~ '^[0-9a-f]{64}$'"),
@@ -24,5 +29,7 @@ def install_guards(connection, tables):
             if name not in existing:
                 connection.execute(text(f'ALTER TABLE {table} ADD CONSTRAINT {name} CHECK ({expression})'))
     else:
+        if 'account_type' in {column['name'] for column in inspect(connection).get_columns('users')}:
+            connection.execute(text("CREATE TRIGGER IF NOT EXISTS tr_users_identity BEFORE UPDATE OF account_type ON users WHEN OLD.account_type != NEW.account_type BEGIN SELECT RAISE(ABORT,'identity type is immutable'); END"))
         for action in ('UPDATE', 'DELETE'):
             connection.execute(text(f"CREATE TRIGGER IF NOT EXISTS tr_audit_no_{action.lower()} BEFORE {action} ON corrections_audit BEGIN SELECT RAISE(ABORT, 'corrections_audit is append-only'); END"))

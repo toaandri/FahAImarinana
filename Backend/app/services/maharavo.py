@@ -1,3 +1,5 @@
+from ..core.rbac import authorize, Permission as P
+from ..core.errors import ForbiddenError
 from ..core.config import get_settings
 from ..database.scope import scope_for_user
 from ..core.errors import ValidationDomainError
@@ -25,6 +27,7 @@ def run_research(
     territoire: str | None,
     provider: ResearchProvider | None = None,
 ) -> RechercheMaharavo:
+    authorize(user,P.RESEARCH_RUN)
     scope_for_user(db, user)
     started = datetime.now(timezone.utc)
     prompt = "Sujet: " + sujet
@@ -70,6 +73,7 @@ def run_research(
 
 
 def record_media_analysis(db: Session, user: Utilisateur, payload) -> AnalyseMediaMaharavo:
+    authorize(user,P.ANALYSIS_WRITE)
     scope_for_user(db, user)
     analysis = AnalyseMediaMaharavo(
         utilisateur_id=user.id,
@@ -93,6 +97,9 @@ def record_media_analysis(db: Session, user: Utilisateur, payload) -> AnalyseMed
 def record_confidence(
     db: Session, user: Utilisateur, payload
 ) -> EvaluationConfianceMaharavo:
+    authorize(user,P.ANALYSIS_WRITE)
+    if user.account_type == "service" and payload.validation_editoriale != "non_evalue":
+        raise ForbiddenError("L’IA ne peut pas enregistrer une validation éditoriale.")
     scope_for_user(db, user)
     if (
         payload.identite_source == "eleve"

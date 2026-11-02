@@ -17,3 +17,6 @@ ArticleCertifie = Publication
 RechercheMaharavo = ResearchJob
 AnalyseMediaMaharavo = MediaAnalysis
 HistoriqueSms = SmsExchange
+
+from .authentication import AuthSession, RefreshToken, Invitation
+from .administration import Contribution, TechnicalSetting

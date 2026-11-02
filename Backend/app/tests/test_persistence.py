@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from app.database import SessionLocal, engine
 from app.database.scope import set_scope
 from app.database.seed_demo import seed_demo
-from app.tests.fixtures import reset_schema, system_session
+from app.tests.fixtures import reset_schema, system_session, tokens_for
 from app.models import (Newsroom, User, Source, Signal, Case, Claim, Evidence, ClaimEvidence,
                         ResearchJob, MediaAnalysis, Draft, Publication, CorrectionAudit, SmsExchange)
 from app.repositories.base import Repository
@@ -208,7 +208,7 @@ class PersistenceTests(unittest.TestCase):
     def test_public_endpoints_expose_only_approved_real_publications(self):
         with self.session() as db:
             records=graph(db,'public'); db.commit()
-            token=create_access_token(records[User]); public_id=records[Publication].id
+            token=tokens_for(records[User]).access_token; public_id=records[Publication].id
             # A known private publication must never be discoverable through public text search.
             records[Publication].confidentiality='private'; records[Publication].corps_article='PRIVATE_PUBLICATION_SENTINEL'
             db.commit()
@@ -244,7 +244,7 @@ class PersistenceTests(unittest.TestCase):
         from app.schemas import PublishRequest
         from app.repositories.publications import PublicPublicationRepository
         with self.session() as db:
-            records=graph(db,'correction'); db.commit()
+            records=graph(db,'correction'); records[User].role='EDITEUR'; db.commit()
             publication=records[Publication]
             payload=PublishRequest(titre_final='Corrected title',corps_article='Corrected approved body',
                 categorie='Fixture',statut_verification='Faux',contenu_optimise_sms='Corrected SMS')

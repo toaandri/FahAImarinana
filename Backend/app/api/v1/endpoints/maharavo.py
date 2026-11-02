@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from ....database import get_db
-from ....core.permissions import journalist_or_editor
+from ....core.permissions import require_permission
+from ....core.rbac import Permission as P
 from ....services.maharavo import record_confidence, record_media_analysis, run_research
 from ....models import Utilisateur
 from ....integrations.maharavo.research import ResearchProvider, get_research_provider
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/maharavo", tags=["Maharavo IA"])
 def research(
     payload: MaharavoResearchRequest,
     db: Session = Depends(get_db),
-    user: Utilisateur = Depends(journalist_or_editor),
+    user: Utilisateur = Depends(require_permission(P.RESEARCH_RUN)),
     provider: ResearchProvider = Depends(get_research_provider),
 ):
     return run_research(
@@ -35,7 +36,7 @@ def research(
 def media_analysis(
     payload: MediaAnalysisRequest,
     db: Session = Depends(get_db),
-    user: Utilisateur = Depends(journalist_or_editor),
+    user: Utilisateur = Depends(require_permission(P.ANALYSIS_WRITE)),
 ):
     return record_media_analysis(db, user, payload)
 
@@ -44,6 +45,6 @@ def media_analysis(
 def confidence(
     payload: ConfidenceRequest,
     db: Session = Depends(get_db),
-    user: Utilisateur = Depends(journalist_or_editor),
+    user: Utilisateur = Depends(require_permission(P.ANALYSIS_WRITE)),
 ):
     return record_confidence(db, user, payload)

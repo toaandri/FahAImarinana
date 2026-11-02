@@ -6,6 +6,7 @@ from .database import Base, engine, public_engine
 from .database.public import create_public_views, verify_public_role
 from . import models  # register metadata before startup
 from .api.v1.router import api_router
+from .middleware.authorization import AuthorizationMiddleware
 from .middleware.errors import register_error_handlers
 
 
@@ -39,9 +40,10 @@ def create_app() -> FastAPI:
         description="API de veille et fact-checking avec validation humaine obligatoire.",
         lifespan=lifespan,
     )
+    application.add_middleware(AuthorizationMiddleware)
     application.add_middleware(
         CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["*"],
     )
     register_error_handlers(application)
     application.include_router(api_router, prefix="/api/v1")

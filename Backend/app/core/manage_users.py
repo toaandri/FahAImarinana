@@ -8,12 +8,13 @@ from ..models import Utilisateur
 from ..repositories.identity import UserRepository
 from ..schemas.auth import UserCreate
 from .security import password_hash
+from .rbac import Role
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Créer un compte approuvé par la rédaction.")
     parser.add_argument('--email', required=True)
-    parser.add_argument('--role', choices=['Journaliste', 'Editeur'], default='Journaliste')
+    parser.add_argument('--role', choices=[role.value for role in Role if role!=Role.SERVICE_IA], default=Role.ADMINISTRATEUR.value)
     args = parser.parse_args()
     password = getpass('Mot de passe : ')
     if password != getpass('Confirmer : '):

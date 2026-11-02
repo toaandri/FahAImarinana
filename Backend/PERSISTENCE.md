@@ -161,3 +161,11 @@ Les tests par défaut utilisent SQLite en mémoire. Pour vérifier PostgreSQL, f
 - [test_migrations.py](app/tests/test_migrations.py) : cohérence ORM/migrations, adoption et garde-fous.
 
 Les tests ne téléchargent pas de preuves réelles, n'appellent pas Gemini et n'envoient aucun SMS. Ils ne constituent pas un déploiement de production.
+
+## Résultats de vérification
+
+- PostgreSQL 17 temporaire : 34 tests réussis, sans test ignoré.
+- SQLite en mémoire : 28 tests réussis ; 6 tests propres à PostgreSQL ignorés comme prévu.
+- Vérifications réussies : syntaxe Python, cohérence des dépendances avec `pip check` et absence d'erreurs de diff avec `git diff --check`.
+- Les tests PostgreSQL couvrent les migrations neuves et historiques, les droits du compte public, les clés étrangères composites, les corrections auditées et les publications concurrentes.
+- Aucune migration ni donnée fictive n'a été appliquée à une base applicative existante ; seules les bases temporaires de test ont été utilisées.
