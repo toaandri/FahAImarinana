@@ -33,9 +33,11 @@ def repository(db, model):
 
 def graph(db, label, *, audit=True):
     now = datetime.now(timezone.utc)
-    user = User(email=f'{label}@example.invalid', mot_de_passe_hash='fixture-not-a-usable-password', role='Journaliste')
+    user = User(email=f'{label}@example.invalid', mot_de_passe_hash='fixture-not-a-usable-password', role='EDITEUR')
     source = Source(nom=label, type='Web', url='https://source.example.invalid')
     db.add_all([user, source]); db.flush()
+    from app.database.scope import scope_for_user
+    scope_for_user(db,user)
     case = Case(title=f'Case {label}', created_by_id=user.id)
     db.add(case); db.flush()
     signal = Signal(source_id=source.id, case_id=case.id, contenu_brut='PRIVATE_SIGNAL_SENTINEL',
@@ -78,6 +80,8 @@ class PersistenceTests(unittest.TestCase):
     def session(self, newsroom_id=1, dataset='real'):
         db = SessionLocal()
         set_scope(db, newsroom_id, dataset)
+        actor=db.scalar(select(User.id).where(User.role=='EDITEUR').limit(1))
+        if actor is not None: db.info['actor_id']=actor
         self.addCleanup(db.close)
         return db
 
@@ -298,10 +302,10 @@ class PersistenceTests(unittest.TestCase):
             async def accept(self,subprotocol=None): pass
             async def send_json(self,payload): self.messages.append(payload)
         async def scenario():
-            manager=AlertManager(); real=Socket(); demo=Socket(); other=Socket()
-            await manager.connect(real,scope=(1,'real'))
-            await manager.connect(demo,scope=(3,'demo'))
-            await manager.connect(other,scope=(4,'real'))
+            manager=AlertManager(validator=lambda token,scope:True); real=Socket(); demo=Socket(); other=Socket()
+            await manager.connect(real,scope=(1,'real'),token='fixture')
+            await manager.connect(demo,scope=(3,'demo'),token='fixture')
+            await manager.connect(other,scope=(4,'real'),token='fixture')
             await manager.broadcast({'signal_id':1},scope=(1,'real'))
             self.assertEqual(real.messages,[{'signal_id':1}])
             self.assertEqual(demo.messages,[])

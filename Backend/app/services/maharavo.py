@@ -98,8 +98,8 @@ def record_confidence(
     db: Session, user: Utilisateur, payload
 ) -> EvaluationConfianceMaharavo:
     authorize(user,P.ANALYSIS_WRITE)
-    if user.account_type == "service" and payload.validation_editoriale != "non_evalue":
-        raise ForbiddenError("L’IA ne peut pas enregistrer une validation éditoriale.")
+    if payload.validation_editoriale != "non_evalue":
+        authorize(user,P.VERSION_VALIDATE)
     scope_for_user(db, user)
     if (
         payload.identite_source == "eleve"

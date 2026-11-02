@@ -1,12 +1,14 @@
 # Persistance FA AI MARINANA
 
+Les règles actuelles d’inscription, de session et de publication sont décrites dans [AUTHENTICATION.md](AUTHENTICATION.md).
+
 Cette livraison implémente les treize entités demandées, les contraintes de rédaction/jeu de données et une frontière de lecture publique. Elle conserve les noms de champs historiques utilisés par les schémas HTTP ; les noms de tables sont désormais canoniques en anglais.
 
 ## Modèles livrés
 
 | Table | Classe SQLAlchemy | Fichier | Rôle et statuts |
 |---|---|---|---|
-| users | User, alias Utilisateur | [identity.py](app/models/identity.py) | Comptes, rôles Journaliste/Editeur ; active, suspended, archived |
+| users | User, alias Utilisateur | [identity.py](app/models/identity.py) | Comptes, six rôles RBAC ; active, suspended, archived |
 | sources | Source, alias SourceSurveillee | [monitoring.py](app/models/monitoring.py) | Sources privées ; Actif, Inactif |
 | signals | Signal, alias SignalBrut | [monitoring.py](app/models/monitoring.py) | Signaux originaux privés ; new, triaged, investigating, archived |
 | cases | Case | [investigation.py](app/models/investigation.py) | Dossiers ; open, investigating, review, closed, archived |
@@ -20,7 +22,7 @@ Cette livraison implémente les treize entités demandées, les contraintes de r
 | corrections_audit | CorrectionAudit | [audit.py](app/models/audit.py) | Journal privé et immuable ; recorded ; published/corrected/withdrawn/restored |
 | sms_exchanges | SmsExchange, alias HistoriqueSms | [sms.py](app/models/sms.py) | Échanges privés ; Trouve/Non_Trouve/Pending/Failed et état de livraison distinct |
 
-La table supplémentaire [newsrooms](app/models/newsroom.py) constitue le registre des rédactions. Les cinq tables auxiliaires existantes — contacts_journalistes, documents_recherche, sessions_chat, messages_chat, evaluations_confiance_maharavo — sont conservées et reçoivent le même cloisonnement. Il y a donc dix-neuf tables métier au total, en plus d'alembic_version.
+La table supplémentaire [newsrooms](app/models/newsroom.py) constitue le registre des rédactions. Les cinq tables auxiliaires existantes — contacts_journalistes, documents_recherche, sessions_chat, messages_chat, evaluations_confiance_maharavo — sont conservées et reçoivent le même cloisonnement. Ces dix-neuf tables de persistance sont complétées par cinq tables d’authentification/administration de la migration 0003, soit vingt-quatre tables en plus d’alembic_version.
 
 Chaque entité principale possède `id`, `created_at`, `updated_at`, `newsroom_id`, `dataset` et `confidentiality`. Les définitions communes sont dans [common.py](app/models/common.py). PostgreSQL actualise `updated_at` par trigger, y compris pour les UPDATE SQL directs ; SQLAlchemy gère aussi les dates des écritures ORM. Les dates utilisent TIMESTAMPTZ sur PostgreSQL.
 
@@ -162,7 +164,7 @@ Les tests par défaut utilisent SQLite en mémoire. Pour vérifier PostgreSQL, f
 
 Les tests ne téléchargent pas de preuves réelles, n'appellent pas Gemini et n'envoient aucun SMS. Ils ne constituent pas un déploiement de production.
 
-## Résultats de vérification
+## Résultats de la phase de persistance (historique)
 
 - PostgreSQL 17 temporaire : 34 tests réussis, sans test ignoré.
 - SQLite en mémoire : 28 tests réussis ; 6 tests propres à PostgreSQL ignorés comme prévu.

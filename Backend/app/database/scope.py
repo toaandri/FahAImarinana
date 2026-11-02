@@ -24,7 +24,11 @@ def set_scope(db: Session, newsroom_id: int, dataset: str) -> DataScope:
 
 
 def scope_for_user(db: Session, user) -> DataScope:
-    return set_scope(db, user.newsroom_id, user.dataset)
+    scope=set_scope(db,user.newsroom_id,user.dataset)
+    if db.info.get('actor_id') not in (None,user.id):
+        raise ForbiddenError('Une session ne peut pas changer d’acteur.')
+    db.info['actor_id']=user.id
+    return scope
 
 
 def require_scope(db: Session) -> DataScope:
@@ -56,7 +60,9 @@ def isolate_queries(state):
 
 @event.listens_for(Session, 'before_flush')
 def isolate_writes(db, flush_context, instances):
-    from ..models import CorrectionAudit, User
+    from ..models import CorrectionAudit, User, Draft, Publication
+    from ..core.rbac import authorize, Permission as P
+    from sqlalchemy import select
     for entity in set(db.new) | set(db.dirty) | set(db.deleted):
         if isinstance(entity,User) and inspect(entity).persistent and inspect(entity).attrs.account_type.history.has_changes():
             raise ForbiddenError('Le type d’identité est immuable.')
@@ -65,6 +71,20 @@ def isolate_writes(db, flush_context, instances):
                 raise ConflictError('Le journal des corrections est immuable.')
         if not isinstance(entity, ScopedRecord) or db.info.get('system'):
             continue
+        permission=None
+        if isinstance(entity,Publication):
+            permission=P.PUBLISH if entity in db.new else P.CORRECT
+        elif isinstance(entity,Draft) and entity.validated_version is not None:
+            if entity in db.new or any(inspect(entity).attrs[name].history.has_changes() for name in
+                ('validated_version','validated_by_id','validated_at','approved_payload','approved_payload_hash')):
+                permission=P.VERSION_VALIDATE
+        elif isinstance(entity,CorrectionAudit):
+            permission=P.PUBLISH if entity.action=='published' else P.CORRECT
+        if permission is not None:
+            actor=db.scalar(select(User).where(User.id==db.info.get('actor_id')))
+            if actor is None:
+                raise ForbiddenError('Un acteur éditorial autorisé est requis.')
+            authorize(actor,permission)
         scope = require_scope(db)
         if entity in db.new:
             if entity.newsroom_id is None:

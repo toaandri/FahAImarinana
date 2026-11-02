@@ -35,7 +35,7 @@ async def alerts_websocket(websocket: WebSocket, db: Session = Depends(get_db)):
         return
     scope = (user.newsroom_id, user.dataset)
     db.close()  # Return the connection to the pool before the long-lived socket.
-    await alert_manager.connect(websocket, scope=scope, subprotocol=protocol)
+    await alert_manager.connect(websocket, scope=scope, token=token, subprotocol=protocol)
     try:
         while True:
             await websocket.receive_text()

@@ -101,7 +101,8 @@ def refresh_tokens(db,secret):
         raise AuthenticationError('Refresh token réutilisé ; session révoquée.')
     user=UserRepository(db).get_for_auth(session.user_id)
     if (session.revoked_at or utc(session.expires_at)<=now() or utc(token.expires_at)<=now()
-        or user is None or not user.actif or user.status!='active' or user.auth_version!=session.auth_version):
+        or user is None or not user.actif or user.status!='active' or user.auth_version!=session.auth_version
+        or (user.newsroom_id,user.dataset)!=(session.newsroom_id,session.dataset)):
         raise AuthenticationError('Session expirée ou révoquée.')
     token.used_at=now()
     pair=_pair(db,user,session)

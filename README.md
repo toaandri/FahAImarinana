@@ -26,13 +26,16 @@ leurs responsabilités, les migrations et les commandes de test sont décrits da
 
 Une base existante doit être sauvegardée puis adoptée explicitement avec Alembic
 avant le premier démarrage de cette version ; voir la procédure dans ce document.
-L'inscription publique sert uniquement au développement et doit être désactivée
-en production. Les SMS restent simulés.
+L'inscription exige une invitation nominative à usage unique, dans tous les environnements. Les SMS restent simulés.
 
 La [documentation de persistance](Backend/PERSISTENCE.md) décrit les treize entités,
 les relations SQLAlchemy, les migrations, les fixtures et la séparation privé/public.
 La migration conserve les données historiques en quarantaine, sans remise en ligne
 automatique. La production exige un compte PostgreSQL public distinct en lecture seule.
+
+L’[authentification et les permissions](Backend/AUTHENTICATION.md) reposent sur six rôles explicites,
+des invitations nominatives et des sessions révocables avec refresh tokens. Seul un éditeur
+valide et publie ; les administrateurs et comptes IA n’héritent d’aucun droit de publication.
 
 ## Démarrage local du backend
 
@@ -44,10 +47,11 @@ docker compose up --build
 
 La configuration expose le backend sur le port 8000 et PostgreSQL sur le port 5432. Les identifiants fournis par cette configuration servent uniquement au développement local. Le backend expose notamment l’authentification, les sources et signaux de veille,
 la génération de brouillons IA, la validation humaine, le flux public/SMS et le
-Copilot local sur les articles certifiés, ou web lorsque Gemini est activé. Les écritures de veille et la consultation
-des brouillons exigent un jeton de journaliste ou d’éditeur ; l’inscription crée
-toujours un compte journaliste. Le worker supervisé peut être déclenché avec
-`POST /api/workflow/process-pending` après authentification.
+Copilot local sur les articles certifiés, ou web lorsque Gemini est activé. Les écritures et consultations privées appliquent des permissions par rôle et rédaction ;
+l’inscription exige une invitation attribuant un rôle explicite. Seuls les éditeurs
+peuvent valider et publier les versions. Le worker supervisé peut être déclenché avec
+`POST /api/workflow/process-pending` avec un compte SERVICE_IA disposant des scopes
+`tasks.run` et `drafts.create`.
 
 Pour activer Google AI Studio, créer une clé dans [Google AI Studio](https://aistudio.google.com/apikey)
 et renseigner `GEMINI_API_KEY`. Le backend utilise alors Gemini pour les brouillons

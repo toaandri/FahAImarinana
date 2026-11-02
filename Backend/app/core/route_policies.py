@@ -11,7 +11,7 @@ POLICIES=[
     ('GET',r'/admin/users',P.USERS_MANAGE),('PATCH',r'/admin/users/[0-9]+',P.USERS_MANAGE),
     ('POST',r'/admin/(invitations|service-accounts)',P.USERS_MANAGE),
     ('GET',r'/admin/settings',P.SETTINGS_MANAGE),('PUT',r'/admin/settings/[a-z_]+',P.SETTINGS_MANAGE),
-    ('POST',r'/sources',P.CONNECTORS_MANAGE),('PATCH',r'/sources/[0-9]+',P.CONNECTORS_MANAGE),
+    ('GET',r'/sources',P.CONNECTORS_MANAGE),('POST',r'/sources',P.CONNECTORS_MANAGE),('PATCH',r'/sources/[0-9]+',P.CONNECTORS_MANAGE),
     ('GET',r'/cases(/[0-9]+)?',P.CASE_READ),('POST',r'/cases',P.CASE_CREATE),
     ('POST',r'/cases/[0-9]+/evidence',P.EVIDENCE_ADD),
     ('POST',r'/contributions/signals',P.CONTRIBUTION_ADD),

@@ -34,3 +34,12 @@ def update_connector(source_id: int,payload: ConnectorUpdate,db: Session=Depends
     record=SourceRepository(db).update(source_id,**payload.model_dump(exclude_none=True))
     db.commit()
     return record
+
+
+from sqlalchemy import select
+from ....models import SourceSurveillee
+
+
+@router.get('',response_model=list[SourceRead])
+def list_connectors(db: Session=Depends(get_db),user: Utilisateur=Depends(require_permission(P.CONNECTORS_MANAGE))):
+    return list(db.scalars(select(SourceSurveillee).order_by(SourceSurveillee.id).limit(200)))

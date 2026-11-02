@@ -67,6 +67,7 @@ class AuthRBACTests(unittest.TestCase):
             ('POST',f'/signals/{self.signal_id}/analyze',{}, {'JOURNALISTE','SERVICE_IA'},409),
             ('GET',f'/drafts/{self.draft_id}',None,{'JOURNALISTE','EDITEUR'},200),
             ('GET','/admin/users',None,{'ADMINISTRATEUR'},200),
+            ('GET','/sources',None,{'ADMINISTRATEUR'},200),
             ('POST','/sources',{'nom':'Managed source','type':'Web','url':'https://managed.example.invalid'},{'ADMINISTRATEUR'},201),
             ('PUT','/admin/settings/research_result_limit',{'value':3},{'ADMINISTRATEUR'},200),
             ('POST','/contributions/signals',{'content':'A report'},{'CONTRIBUTEUR'},201),
@@ -229,12 +230,67 @@ class AuthRBACTests(unittest.TestCase):
         from app.core.route_policies import PUBLIC_ROUTES,policy_for
         for path,methods in self.app.openapi()['paths'].items():
             relative=path.removeprefix('/api/v1')
-            relative=re.sub(r'\{session_id\}','a'*32,relative)
+            relative=re.sub(r'\{session_id\}','a'*32 if relative.startswith('/auth/') else '1',relative)
             relative=re.sub(r'\{key\}','research_result_limit',relative)
             relative=re.sub(r'\{[^}]+\}','1',relative)
             for method in methods:
                 if (method.upper(),relative) not in PUBLIC_ROUTES:
                     self.assertTrue(policy_for(method.upper(),relative)[0],(method,relative))
+
+    def test_orm_guard_rejects_ai_admin_and_journalist_validation(self):
+        from app.database.scope import scope_for_user
+        from app.core.security import now
+        for role in ('SERVICE_IA','ADMINISTRATEUR','JOURNALISTE'):
+            with SessionLocal() as db:
+                from app.repositories.identity import UserRepository
+                user=UserRepository(db).get_for_auth(self.users[Role(role)].id)
+                scope_for_user(db,user)
+                draft=db.get(Draft,self.draft_id)
+                draft.validated_version=1; draft.validated_by_id=user.id; draft.validated_at=now()
+                draft.approved_payload=FINAL; draft.approved_payload_hash='a'*64
+                with self.assertRaises(ForbiddenError): db.flush()
+                db.rollback()
+
+    def test_service_identity_type_is_immutable_even_in_sql(self):
+        from sqlalchemy import update
+        from sqlalchemy.exc import DBAPIError
+        with system_session() as db:
+            with self.assertRaises(DBAPIError):
+                with db.begin_nested():
+                    db.execute(update(User).where(User.id==self.users[Role.SERVICE_IA].id)
+                               .values(role='EDITEUR',account_type='human'))
+
+    def test_revoked_websocket_cannot_receive_the_next_alert(self):
+        from starlette.websockets import WebSocketDisconnect
+        token=self.tokens[Role.JOURNALISTE].access_token
+        with self.client.websocket_connect('/api/alerts/ws',subprotocols=['bearer',token]) as websocket:
+            self.assertEqual(self.req('JOURNALISTE','POST','/auth/logout').status_code,204)
+            self.assertEqual(self.req('EDITEUR','POST',f'/copilot/alerts/signal/{self.signal_id}').status_code,200)
+            with self.assertRaises(WebSocketDisconnect) as closed:
+                websocket.receive_json()
+            self.assertEqual(closed.exception.code,1008)
+
+    def test_ai_can_create_only_a_private_unvalidated_draft(self):
+        with system_session() as db:
+            original=db.get(Signal,self.signal_id)
+            signal=Signal(source_id=original.source_id,case_id=self.case_id,contenu_brut='Another signal',
+                contenu_normalise='Another signal',url_origine='https://source.example.invalid/other',horodatage_publication=now())
+            db.add(signal); db.commit(); identifier=signal.id
+        result=self.req('SERVICE_IA','POST',f'/signals/{identifier}/analyze',{})
+        self.assertEqual(result.status_code,201,result.text)
+        with system_session() as db:
+            draft=db.get(Draft,result.json()['id'])
+            self.assertEqual(draft.confidentiality,'private')
+            self.assertIsNone(draft.validated_version)
+        payload={'objet_type':'draft','objet_id':result.json()['id'],'identite_source':'faible',
+            'solidite_preuves':'faible','validation_editoriale':'eleve','conclusion':'confirme','justification':'Test'}
+        self.assertEqual(self.req('SERVICE_IA','POST','/maharavo/confidence',payload).status_code,403)
+
+    def test_expired_refresh_is_rejected_without_rotation(self):
+        secret=self.tokens[Role.JOURNALISTE].refresh_token
+        with system_session() as db:
+            db.get(RefreshToken,secret.split('.')[0]).expires_at=now()-timedelta(seconds=1); db.commit()
+        self.assertEqual(self.client.post('/api/auth/refresh',json={'refresh_token':secret}).status_code,401)
 
     @unittest.skipUnless(engine.dialect.name=='postgresql','PostgreSQL row locks required')
     def test_concurrent_refresh_detects_reuse(self):

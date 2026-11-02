@@ -1,5 +1,7 @@
 # Backend FA AI MARINANA — architecture modulaire
 
+Les règles actuelles d’inscription, de session et de publication sont décrites dans [AUTHENTICATION.md](AUTHENTICATION.md).
+
 Le schéma actuel, les treize entités principales et la migration de confidentialité sont détaillés dans [PERSISTENCE.md](PERSISTENCE.md).
 
 La restructuration conserve les fonctionnalités existantes et leur stockage. Elle sépare les adaptateurs HTTP, les règles métier, les requêtes SQL et les fournisseurs externes. Les ajouts Maharavo présents dans la fusion concurrente sont intégrés : recherche, enregistrement d'analyse média guidée et évaluation de confiance.
@@ -41,7 +43,7 @@ Le moteur SQLAlchemy reste synchrone. FastAPI exécute les endpoints synchrones 
 - Une ressemblance lexicale produit une piste non confirmée (`concorde=false`, `officielle=false`). Ce changement corrige une fausse affirmation de vérification.
 - Les mots de passe dépassant 72 octets UTF-8 sont rejetés avec 422. L'email est normalisé avant la recherche de doublon. Les emails restent des chaînes pour préserver les clients existants.
 - Les alertes WebSocket exigent désormais un JWT : correction nécessaire de l'accès public aux alertes privées. Les clients utilisent `Authorization: Bearer <jeton>` ou les sous-protocoles `['bearer', jeton]` ; le serveur sélectionne `bearer`. Aucun jeton dans l'URL. Les diffusions donnent `sent_count`, sans numéro de téléphone. La réponse HTTP autorisée conserve son champ historique `sent`.
-- Les inscriptions publiques restent disponibles en développement pour les démonstrations historiques ; elles sont désactivées en production. La création d'un compte approuvé passe par la CLI opérateur.
+- L’inscription exige une invitation nominative à usage unique. La CLI opérateur permet de créer le premier administrateur.
 
 ## Configuration
 
@@ -95,7 +97,7 @@ Le retour arrière initial supprime les tables : il est volontairement réservé
 Créer un compte approuvé, inscription publique désactivée :
 
 ```sh
-python -m app.core.manage_users --email redacteur@example.org --role Editeur
+python -m app.core.manage_users --email redacteur@example.org --role EDITEUR
 ```
 
 Le mot de passe est demandé au terminal, jamais dans la ligne de commande.
@@ -124,7 +126,7 @@ Les tests utilisent SQLite en mémoire, sans appel IA externe. Le manifeste de c
 
 Pour tester PostgreSQL, utiliser uniquement une base jetable, puis définir `FANILO_TEST_DATABASE_URL` et relancer la même commande. Les tests HTTP suppriment et recréent les tables dans cette base. Les tests de migrations PostgreSQL utilisent des schémas isolés, et le test de publication concurrente utilise de véritables verrous PostgreSQL.
 
-## Résultats de vérification de cette livraison
+## Résultats de la première restructuration (historique)
 
 - 17 tests réussis sur un PostgreSQL 17 temporaire, incluant les tests HTTP, WebSocket, concurrence et migrations ; aucun appel fournisseur externe.
 - Sur SQLite : 14 tests réussis, 3 tests PostgreSQL ignorés comme prévu.
@@ -134,7 +136,7 @@ Pour tester PostgreSQL, utiliser uniquement une base jetable, puis définir `FAN
 
 ## Limites et prochaines étapes
 
-Cette livraison constitue une base modulaire et testée, sans annoncer la fin de tous les travaux de l'audit. Restent à traiter : limites de débit, révocation des jetons, autorisations par rédaction/dossier, audit des décisions, versions et retraits d'articles, contraintes et index SQL harmonisés, recherche à grande échelle, contexte conversationnel, collecte planifiée, file durable, diffusion WebSocket partagée, SMS réel et intégration mobile réseau. Les WebSockets authentifient à la connexion ; expiration et révocation pendant une connexion prolongée restent à gérer.
+Cette livraison constitue une base modulaire et testée, sans annoncer la fin de tous les travaux de l'audit. Restent à traiter : limites de débit, restrictions fines par dossier, historique intégral des révisions de brouillons, recherche à grande échelle, contexte conversationnel, collecte planifiée, file durable, diffusion WebSocket partagée, SMS réel et intégration mobile réseau. Les sessions et permissions WebSocket sont désormais revérifiées avant chaque diffusion.
 
 Le frontend Java ME reste une démonstration avec données locales. Les routes historiques sont conservées pour son intégration ultérieure ; cela ne constitue pas une preuve de connexion mobile de bout en bout.
 
@@ -178,7 +180,7 @@ Les sources complètes se trouvent aux chemins ci-dessous. Les façades ne dupli
 | [app/core/errors.py](app/core/errors.py) | Exceptions métier et correspondances de statut. |
 | [app/core/manage_users.py](app/core/manage_users.py) | CLI de création de comptes éditoriaux approuvés. |
 | [app/core/permissions.py](app/core/permissions.py) | Dépendances FastAPI pour identité et droits de rédaction. |
-| [app/core/security.py](app/core/security.py) | Hachage bcrypt, émission et vérification JWT, compte actif. |
+| [app/core/security.py](app/core/security.py) | Hachage scrypt avec compatibilité bcrypt, JWT liés aux sessions et compte actif. |
 | [app/database/__init__.py](app/database/__init__.py) | Réexport de Base, engine, SessionLocal et get_db. |
 | [app/database/base.py](app/database/base.py) | Registre DeclarativeBase partagé. |
 | [app/database/connection.py](app/database/connection.py) | Moteur SQLAlchemy, pool, sessions et rollback à la sortie en erreur. |
@@ -197,7 +199,7 @@ Les sources complètes se trouvent aux chemins ci-dessous. Les façades ne dupli
 | [app/main.py](app/main.py) | Fabrique FastAPI, cycle de vie, CORS et montage des routes historiques/v1. |
 | [app/middleware/__init__.py](app/middleware/__init__.py) | Déclaration du package, sans tâche ni service démarré à l’import. |
 | [app/middleware/errors.py](app/middleware/errors.py) | Gestionnaires centralisés des erreurs métier, SQL et inattendues. |
-| [app/models/__init__.py](app/models/__init__.py) | Registre des treize modèles et réexport des noms historiques. |
+| [app/models/__init__.py](app/models/__init__.py) | Registre des modèles de persistance, d’authentification et réexport des noms historiques. |
 | [app/models/editorial.py](app/models/editorial.py) | Tables brouillons IA et articles certifiés. |
 | [app/models/identity.py](app/models/identity.py) | Tables utilisateurs et contacts de journalistes. |
 | [app/models/maharavo.py](app/models/maharavo.py) | Tables recherches, analyses média guidées et évaluations de confiance. |

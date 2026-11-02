@@ -174,7 +174,7 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(media.status_code, 201, media.text)
         confidence = self.client.post('/api/maharavo/confidence', headers=self.headers, json={
             'objet_type': 'media', 'objet_id': media.json()['id'], 'identite_source': 'faible',
-            'solidite_preuves': 'faible', 'validation_editoriale': 'faible',
+            'solidite_preuves': 'faible', 'validation_editoriale': 'non_evalue',
             'conclusion': 'non_verifiable', 'justification': 'Preuves insuffisantes'})
         self.assertEqual(confidence.status_code, 201, confidence.text)
 
