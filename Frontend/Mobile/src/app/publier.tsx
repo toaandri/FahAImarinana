@@ -31,12 +31,11 @@ export default function PublierScreen() {
         </GlassCard>
 
         <GlassCard style={styles.mediaCard}>
-<<<<<<< Updated upstream
           <View style={styles.mediaPreview}>
-            <View style={styles.mediaButton}><Text style={styles.mediaPlus}>+</Text></View>
+            <Pressable accessibilityLabel="Filmer une vidéo pour analyse" style={styles.mediaButton} onPress={() => router.push('/direct')}><Text style={styles.mediaPlus}>+</Text></Pressable>
             <View style={styles.mediaActions}>
               <View style={styles.mediaAction}><Ionicons name="image-outline" size={11} color="#fff" /><Text style={styles.mediaActionText}>Photo</Text></View>
-              <View style={styles.mediaAction}><Ionicons name="videocam-outline" size={11} color="#fff" /><Text style={styles.mediaActionText}>Vidéo</Text></View>
+              <Pressable style={styles.mediaAction} onPress={() => router.push('/direct')}><Ionicons name="videocam-outline" size={11} color="#fff" /><Text style={styles.mediaActionText}>Filmer une vidéo</Text></Pressable>
             </View>
           </View>
           <View style={styles.mediaDetails}>
@@ -44,10 +43,6 @@ export default function PublierScreen() {
             <Text style={styles.credibilityLabel}>Crédibilité</Text>
             <Text style={styles.source}>Source</Text>
           </View>
-=======
-          <Pressable accessibilityLabel="Filmer une vidéo pour analyse" style={styles.mediaButton} onPress={() => router.push('/direct')}><Text style={styles.mediaPlus}>+</Text></Pressable>
-          <View style={styles.mediaActions}><Text style={styles.mediaAction}>Photo</Text><Pressable onPress={() => router.push('/direct')}><Text style={styles.mediaAction}>Filmer une vidéo</Text></Pressable></View>
->>>>>>> Stashed changes
         </GlassCard>
 
         <Text style={styles.bodyLabel}>Votre article</Text>
