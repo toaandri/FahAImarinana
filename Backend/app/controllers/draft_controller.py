@@ -1,0 +1,19 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from ..database import get_db
+from ..models import DraftIA
+from ..schemas import DraftRead
+
+router = APIRouter(prefix="/drafts", tags=["Brouillons IA"])
+
+
+@router.get("/{draft_id}", response_model=DraftRead)
+def get_draft(draft_id: int, db: Session = Depends(get_db)):
+    draft = db.get(DraftIA, draft_id)
+    if draft is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brouillon introuvable.",
+        )
+    return draft
