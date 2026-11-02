@@ -16,8 +16,8 @@ class RateLimitMiddleware:
         if scope['type']!='http':
             return await self.app(scope,receive,send)
         path=canonical_api_path(scope['path']) or ''
-        group='auth' if path in {'/auth/login','/auth/register','/auth/refresh','/auth/service-token'} else 'public'
-        protected=(group=='auth' and scope['method']=='POST') or path in {'/sms/citizen','/public/sync'}
+        group='vision' if path=='/vision/video' else 'auth' if path in {'/auth/login','/auth/register','/auth/refresh','/auth/service-token'} else 'public'
+        protected=(group in {'auth','vision'} and scope['method']=='POST') or path in {'/sms/citizen','/public/sync'}
         if protected:
             tick=time.monotonic()
             # ASGI event loop serializes this synchronous section; no await between read/write.
@@ -26,7 +26,7 @@ class RateLimitMiddleware:
             start,count=self.buckets.get(key,(tick,0))
             if tick-start>=60:
                 start,count=tick,0
-            limit=self.auth_limit if group=='auth' else self.public_limit
+            limit=12 if group=='vision' else self.auth_limit if group=='auth' else self.public_limit
             if count>=limit:
                 return await JSONResponse({'detail':'Trop de requêtes ; réessayez après le délai indiqué.'},
                     status_code=429,headers={'Retry-After':str(max(1,int(60-(tick-start))+1)),

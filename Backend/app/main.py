@@ -9,6 +9,7 @@ from .api.v1.router import api_router
 from .middleware.authorization import AuthorizationMiddleware
 from .middleware.errors import register_error_handlers
 from .middleware.rate_limit import RateLimitMiddleware
+from .middleware.video_body_limit import VideoBodyLimitMiddleware
 
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
         description="API de veille et fact-checking avec validation humaine obligatoire.",
         lifespan=lifespan,
     )
+    application.add_middleware(VideoBodyLimitMiddleware)
     application.add_middleware(AuthorizationMiddleware)
     application.add_middleware(RateLimitMiddleware,auth_limit=settings.auth_requests_per_minute,
                                public_limit=settings.public_requests_per_minute)

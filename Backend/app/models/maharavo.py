@@ -59,6 +59,7 @@ class MediaAnalysis(ScopedRecord, Base):
         Index("ix_media_case", "case_id"),
         Index("ix_media_evidence", "evidence_id"),
         Index("ix_media_user", "utilisateur_id"),
+        Index('uq_media_capture', 'newsroom_id', 'dataset', 'utilisateur_id', 'capture_key', unique=True),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -76,6 +77,8 @@ class MediaAnalysis(ScopedRecord, Base):
     case_id: Mapped[int | None] = mapped_column(Integer)
     evidence_id: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default="completed")
+    capture_key: Mapped[str | None] = mapped_column(String(80))
+    result: Mapped[dict | None] = mapped_column(JSON)
     user: Mapped["User"] = relationship(primaryjoin="MediaAnalysis.utilisateur_id == User.id", foreign_keys=[utilisateur_id])
     case: Mapped["Case | None"] = relationship(primaryjoin="MediaAnalysis.case_id == Case.id", foreign_keys=[case_id])
     evidence: Mapped["Evidence | None"] = relationship(primaryjoin="MediaAnalysis.evidence_id == Evidence.id", foreign_keys=[evidence_id], back_populates="media_analyses")

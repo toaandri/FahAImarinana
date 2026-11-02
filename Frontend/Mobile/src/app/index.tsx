@@ -1,15 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Logo } from '@/components/ui';
-<<<<<<< Updated upstream
-import { palette, spacing, radius } from '@/theme/theme';
-import { login } from '@/services/mockData';
-=======
 import { palette, radius } from '@/theme/theme';
->>>>>>> Stashed changes
+import { login } from '@/services/mockData';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');

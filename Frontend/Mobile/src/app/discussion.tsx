@@ -1,9 +1,5 @@
 import { useState } from 'react';
-<<<<<<< Updated upstream
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
-=======
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
->>>>>>> Stashed changes
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar, CredibilityRing } from '@/components/ui';

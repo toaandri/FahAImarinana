@@ -8,6 +8,19 @@ logger = logging.getLogger(__name__)
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    from fastapi.exceptions import RequestValidationError
+    from fastapi.exception_handlers import request_validation_exception_handler
+    from ..core.route_policies import canonical_api_path
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, exc: RequestValidationError):
+        if canonical_api_path(request.url.path) == '/vision/video':
+            # Never echo several MB of private footage in a validation response.
+            return JSONResponse(status_code=422, content={'detail': [
+                {key: item[key] for key in ('loc', 'type', 'msg') if key in item}
+                for item in exc.errors()]})
+        return await request_validation_exception_handler(request, exc)
+
     @app.exception_handler(DomainError)
     async def domain_error(_: Request, exc: DomainError):
         return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
