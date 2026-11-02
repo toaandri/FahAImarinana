@@ -15,9 +15,73 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.*.example
+!.env.sample
+!.env.template
 .venv/
 venv/
+env/
+ENV/
+.python-version
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Caches Python, tests et paquets générés
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+/.cache/
+**/build/
+**/dist/
+
+# Dépendances et sorties web éventuelles
+node_modules/
+.next/
+.nuxt/
+coverage/
+*.tsbuildinfo
+
+# Journaux, bases locales et sauvegardes
+*.log
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak
+*.dump
+
+# Réglages personnels des éditeurs et du système
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
 
 # Fichiers temporaires des éditeurs
 ~$*
 *.tmp
+*.swp
+*.swo
+*~
+
+# Les sources SQL, documents et distributions JAR/JAD restent versionnés.
