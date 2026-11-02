@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
 import { colors } from '../theme';
+import { login } from '../services/api';
 
 type Mode = 'login' | 'signup' | 'recovery';
 const socialProviders = [
@@ -22,7 +23,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; status?: string }>({});
 
-  const submit = () => {
+  const submit = async () => {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     const nextErrors = {
       email: emailValid ? undefined : 'Saisissez une adresse email valide.',
@@ -33,7 +34,12 @@ export default function LoginScreen() {
       return;
     }
     if (mode === 'login') {
-      setErrors({ status: 'Aucun service d’authentification n’est encore connecté.' });
+      try {
+        await login(email.trim(), password);
+        router.replace('/actualites');
+      } catch (error) {
+        setErrors({ status: error instanceof Error ? error.message : 'Connexion impossible.' });
+      }
     } else {
       setErrors({ status: 'Cette fonctionnalité sera disponible lorsque le service sera connecté.' });
     }

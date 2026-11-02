@@ -1,22 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, InteractivePressable, MediaPreview, PageTitle } from '../components/ui';
 import { colors, spacing } from '../theme';
+import { getArticles } from '../services/api';
 
 const filters = ['Tous', 'Vérifiés', 'Politique', 'Sport'];
-const stories = [
-  { source: '2424.mg', title: 'Jeux Olympiques de la Jeunesse 2026 : la compétition historique de Dakar lancée le 31 octobre', category: 'Sport' },
-  { source: 'France24.com', title: 'Les relations avec nos partenaires africains ont changé, affirme Bruno Fuchs', category: 'Politique' },
-  { source: 'TVM.mg', title: 'Coopération russo-malgache : la TVM lance « Russamada TV »', category: 'Politique' },
-  { source: '24h mada.mg', title: 'Moramanga : violentes chutes de grêle dans la commune', category: 'Tous' },
-  { source: '[Source]', title: '[Titre de l’actualité sur deux ou trois lignes]', category: 'Tous' },
-  { source: '[Source]', title: '[Titre de l’actualité sur deux ou trois lignes]', category: 'Tous' },
-];
-
 export default function NewsScreen() {
   const { width } = useWindowDimensions();
   const mobile = width < 768;
   const [filter, setFilter] = useState('Tous');
+  const [stories, setStories] = useState<Array<{ source: string; title: string; category: string }>>([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    getArticles().then((articles) => setStories(articles.map((article) => ({
+      source: 'FANILO',
+      title: article.titre_final,
+      category: article.categorie,
+    })))).catch((reason) => setError(reason instanceof Error ? reason.message : 'Actualités indisponibles.'));
+  }, []);
   const visibleStories = useMemo(
     () => (filter === 'Tous' ? stories : filter === 'Vérifiés' ? [] : stories.filter((story) => story.category === filter)),
     [filter],
@@ -44,6 +45,7 @@ export default function NewsScreen() {
         })}
       </View>
       <View style={styles.list}>
+        {error ? <Text style={styles.empty}>{error}</Text> : null}
         {visibleStories.length === 0 ? (
           <Text style={styles.empty}>Aucune actualité vérifiée n’est disponible pour le moment.</Text>
         ) : visibleStories.map((story, index) => (
