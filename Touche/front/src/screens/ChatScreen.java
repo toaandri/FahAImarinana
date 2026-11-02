@@ -5,24 +5,30 @@ import utils.Responsive;
 import utils.ScreenManager;
 import components.NavigationBar;
 import components.MessageBubble;
+import components.CustomButton;
 import models.Message;
 import screens.SmsNewsScreen;
 import screens.PublicationScreen;
+import screens.LoginScreen;
 import javax.microedition.lcdui.Canvas;
 import javax.microedition.lcdui.Graphics;
 import java.util.Vector;
 
-public class ChatScreen extends Canvas {
+public class ChatScreen extends Canvas implements javax.microedition.lcdui.CommandListener {
     private Vector messages = new Vector();
     private String input = "";
     private NavigationBar nav = new NavigationBar();
+    private CustomButton backBtn;
     private int scrollY = 0;
     private int lastDragY = 0;
     private int maxScroll = 0;
 
     public ChatScreen() {
         setFullScreenMode(true);
-        messages.addElement(new Message("Bonjour ", false));
+        messages.addElement(new Message("Bonjour ! Comment puis-je vous aider ?", false));
+        javax.microedition.lcdui.Command backCmd = new javax.microedition.lcdui.Command("Retour", javax.microedition.lcdui.Command.BACK, 0);
+        addCommand(backCmd);
+        setCommandListener(this);
     }
 
     protected void paint(Graphics g) {
@@ -37,6 +43,8 @@ public class ChatScreen extends Canvas {
         g.fillRect(0, 0, w, barH);
         g.setColor(Colors.WHITE);
         g.drawString("FA AI MARINANA", w / 2, barH / 2, Graphics.BASELINE | Graphics.HCENTER);
+        backBtn = new CustomButton("Retour", Responsive.scale(4), Responsive.scale(4), Responsive.scale(52), barH - Responsive.scale(8));
+        backBtn.paint(g);
         // messages area
         int navH = nav.getBarHeight();
         int inputH = Responsive.scale(30);
@@ -54,8 +62,16 @@ public class ChatScreen extends Canvas {
         int inputY = h - navH - inputH;
         g.setColor(Colors.LIGHT_GRAY);
         g.fillRect(Responsive.scale(8), inputY, w - Responsive.scale(60), inputH);
+        g.setColor(Colors.SECONDARY_GRAY);
+        g.drawRect(Responsive.scale(8), inputY, w - Responsive.scale(60), inputH);
         g.setColor(Colors.BLACK);
-        g.drawString(input, Responsive.scale(12), inputY + 4, Graphics.TOP | Graphics.LEFT);
+        if (input.length() == 0) {
+            g.setColor(Colors.SECONDARY_GRAY);
+            g.drawString("Ecrire un message...", Responsive.scale(12), inputY + 4, Graphics.TOP | Graphics.LEFT);
+            g.setColor(Colors.BLACK);
+        } else {
+            g.drawString(input, Responsive.scale(12), inputY + 4, Graphics.TOP | Graphics.LEFT);
+        }
         // send button
         g.setColor(Colors.TURQUOISE);
         g.fillRoundRect(w - Responsive.scale(48), inputY, Responsive.scale(40), inputH, 6, 6);
@@ -65,6 +81,10 @@ public class ChatScreen extends Canvas {
     }
 
     protected void keyPressed(int keyCode) {
+        if (keyCode == -6 || keyCode == -7) {
+            ScreenManager.show(new LoginScreen());
+            return;
+        }
         int action = getGameAction(keyCode);
         if (action == UP) { scrollY = Math.max(0, scrollY - Responsive.scale(20)); repaint(); return; }
         if (action == DOWN) { scrollY = Math.min(maxScroll, scrollY + Responsive.scale(20)); repaint(); return; }
@@ -82,6 +102,10 @@ public class ChatScreen extends Canvas {
         int w = getWidth();
         int h = getHeight();
         int navH = nav.getBarHeight();
+        if (backBtn != null && backBtn.contains(x, y)) {
+            backBtn.pressed = true;
+            repaint(); return;
+        }
         int idx = nav.hitTest(x, y, w, h);
         if (idx >= 0) {
             nav.selected = idx;
@@ -91,6 +115,14 @@ public class ChatScreen extends Canvas {
         int inputY = h - navH - Responsive.scale(30);
         if (x >= w - Responsive.scale(48) && y >= inputY) {
             sendMessage();
+        }
+    }
+
+    protected void pointerReleased(int x, int y) {
+        if (backBtn != null && backBtn.contains(x, y)) {
+            backBtn.pressed = false;
+            ScreenManager.show(new LoginScreen());
+            repaint(); return;
         }
     }
 
@@ -113,5 +145,9 @@ public class ChatScreen extends Canvas {
     private void navigate(int idx) {
         if (idx == 1) ScreenManager.show(new SmsNewsScreen());
         else if (idx == 2) ScreenManager.show(new PublicationScreen());
+    }
+
+    public void commandAction(javax.microedition.lcdui.Command c, javax.microedition.lcdui.Displayable d) {
+        ScreenManager.show(new LoginScreen());
     }
 }

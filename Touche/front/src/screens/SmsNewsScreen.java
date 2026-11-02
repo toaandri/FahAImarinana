@@ -49,27 +49,36 @@ public class SmsNewsScreen extends Canvas {
         int y = barH + Responsive.scale(4) - scrollY;
         // SMS
         g.setColor(Colors.PETROL_BLUE);
-        g.drawString("SMS", Responsive.scale(8), y, Graphics.TOP | Graphics.LEFT);
+        TextWrap.draw(g, "SMS", Responsive.scale(8), y, w - Responsive.scale(16));
         y += g.getFont().getHeight() + Responsive.scale(2);
         for (int i = 0; i < smsList.size(); i++) {
+            String txt = (String) smsList.elementAt(i);
+            int th = g.getFont().getHeight() + Responsive.scale(4);
+            g.setColor(Colors.LIGHT_GRAY);
+            g.fillRoundRect(Responsive.scale(6), y - Responsive.scale(2), w - Responsive.scale(12), th + Responsive.scale(4), 6, 6);
             g.setColor(Colors.BLACK);
-            int th = TextWrap.draw(g, (String) smsList.elementAt(i), Responsive.scale(8), y, w - Responsive.scale(16));
-            y += th + Responsive.scale(2);
+            int hh = TextWrap.draw(g, txt, Responsive.scale(10), y, w - Responsive.scale(20));
+            y += hh + Responsive.scale(6);
         }
         // NEWS
         y += Responsive.scale(6);
         g.setColor(Colors.PETROL_BLUE);
-        g.drawString("NEWS", Responsive.scale(8), y, Graphics.TOP | Graphics.LEFT);
+        TextWrap.draw(g, "NEWS", Responsive.scale(8), y, w - Responsive.scale(16));
         y += g.getFont().getHeight() + Responsive.scale(2);
         for (int i = 0; i < newsList.size(); i++) {
+            String txt = (String) newsList.elementAt(i);
+            g.setColor(Colors.WHITE);
+            g.fillRoundRect(Responsive.scale(6), y - Responsive.scale(2), w - Responsive.scale(12), g.getFont().getHeight() * 2 + Responsive.scale(8), 6, 6);
+            g.setColor(Colors.SECONDARY_GRAY);
+            g.drawRoundRect(Responsive.scale(6), y - Responsive.scale(2), w - Responsive.scale(12), g.getFont().getHeight() * 2 + Responsive.scale(8), 6, 6);
             g.setColor(Colors.BLACK);
-            int th = TextWrap.draw(g, (String) newsList.elementAt(i), Responsive.scale(8), y, w - Responsive.scale(16));
-            y += th + Responsive.scale(2);
+            int hh = TextWrap.draw(g, txt, Responsive.scale(10), y, w - Responsive.scale(20));
+            y += hh + Responsive.scale(8);
         }
         // DISCUSSION IA / JOURNALISTE
         y += Responsive.scale(6);
         g.setColor(Colors.PETROL_BLUE);
-        g.drawString("Discussion IA - Journaliste", Responsive.scale(8), y, Graphics.TOP | Graphics.LEFT);
+        TextWrap.draw(g, "Discussion IA - Journaliste", Responsive.scale(8), y, w - Responsive.scale(16));
         y += g.getFont().getHeight() + Responsive.scale(2);
         int maxW = w - Responsive.scale(16);
         for (int i = 0; i < messages.size(); i++) {

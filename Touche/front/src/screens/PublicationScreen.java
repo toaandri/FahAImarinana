@@ -40,9 +40,14 @@ public class PublicationScreen extends Canvas {
         int navH = nav.getBarHeight();
         int y = barH + Responsive.scale(4) - scrollY;
         for (int i = 0; i < publications.size(); i++) {
-            g.setColor(Colors.BLACK);
-            int th = TextWrap.draw(g, (String) publications.elementAt(i), Responsive.scale(8), y, w - Responsive.scale(16));
-            y += th + Responsive.scale(6);
+            String txt = (String) publications.elementAt(i);
+            g.setColor(Colors.WHITE);
+            g.fillRoundRect(Responsive.scale(6), y - Responsive.scale(2), w - Responsive.scale(12), g.getFont().getHeight() * 2 + Responsive.scale(10), 6, 6);
+            g.setColor(Colors.SECONDARY_GRAY);
+            g.drawRoundRect(Responsive.scale(6), y - Responsive.scale(2), w - Responsive.scale(12), g.getFont().getHeight() * 2 + Responsive.scale(10), 6, 6);
+            g.setColor(Colors.PETROL_BLUE);
+            int th = TextWrap.draw(g, txt, Responsive.scale(10), y, w - Responsive.scale(20));
+            y += th + Responsive.scale(8);
         }
         maxScroll = Math.max(0, y + scrollY - (h - navH));
         if (scrollY > maxScroll) scrollY = maxScroll;

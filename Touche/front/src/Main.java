@@ -1,12 +1,12 @@
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.lcdui.Display;
 import utils.ScreenManager;
-import screens.ChatScreen;
+import screens.LoginScreen;
 
 public class Main extends MIDlet {
     public void startApp() {
         ScreenManager.init(Display.getDisplay(this));
-        ScreenManager.show(new ChatScreen());
+        ScreenManager.show(new LoginScreen());
     }
 
     public void pauseApp() {

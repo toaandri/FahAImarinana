@@ -58,6 +58,10 @@ public class MessageBubble {
         int bx = m.fromUser ? (x + maxW - bubbleW) : x;
         g.setColor(m.fromUser ? Colors.TURQUOISE : Colors.LIGHT_GRAY);
         g.fillRoundRect(bx, y, bubbleW, bubbleH, Responsive.scale(8), Responsive.scale(8));
+        if (!m.fromUser) {
+            g.setColor(Colors.SECONDARY_GRAY);
+            g.drawRoundRect(bx, y, bubbleW, bubbleH, Responsive.scale(8), Responsive.scale(8));
+        }
         g.setColor(m.fromUser ? Colors.WHITE : Colors.BLACK);
         int ty = y + pad;
         for (int i = 0; i < lines.size(); i++) {
