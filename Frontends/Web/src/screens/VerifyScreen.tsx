@@ -41,9 +41,7 @@ export default function VerifyScreen() {
       setStatus('Ajoutez un message ou une photo/vidéo avant l’envoi.');
       return;
     }
-    setStatus('Votre demande est prête. Le service de vérification n’est pas encore connecté.');
-    setMessage('');
-    setAttachments([]);
+    setStatus('Votre demande n’a pas été envoyée : le service de vérification n’est pas encore connecté.');
   };
 
   return (
@@ -92,7 +90,10 @@ export default function VerifyScreen() {
                   <InteractivePressable
                     accessibilityRole="button"
                     accessibilityLabel={`Supprimer ${item.name}`}
-                    onPress={() => setAttachments((current) => current.filter((_, i) => i !== index))}
+                    onPress={() => {
+                      setAttachments((current) => current.filter((_, i) => i !== index));
+                      setStatus('');
+                    }}
                     style={styles.removeAttachment}
                   >
                     <Icon name="close" size={18} />
@@ -121,7 +122,10 @@ export default function VerifyScreen() {
             <TextInput
               accessibilityLabel="Écrire un message"
               value={message}
-              onChangeText={setMessage}
+              onChangeText={(value) => {
+                setMessage(value);
+                setStatus('');
+              }}
               placeholder="Écrire un message..."
               placeholderTextColor={colors.muted}
               style={styles.composerInput}

@@ -23,7 +23,7 @@ export default function ProfileScreen() {
 
   const saveProfile = () => {
     setEditing(false);
-    setNotice('Modifications enregistrées sur cet appareil. La synchronisation du profil n’est pas connectée.');
+    setNotice('Modifications conservées dans cette session. La sauvegarde du profil n’est pas encore connectée.');
   };
 
   return (

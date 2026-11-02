@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -67,17 +67,30 @@ export function InteractivePressable({
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [scale] = useState(() => new Animated.Value(1));
+  const [opacity] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
-    if (reduceMotion) scale.setValue(1);
-  }, [reduceMotion, scale]);
+    if (reduceMotion || disabled) {
+      scale.setValue(1);
+      opacity.setValue(disabled ? 0.5 : 1);
+    } else {
+      opacity.setValue(1);
+    }
+  }, [disabled, opacity, reduceMotion, scale]);
 
-  const animateScale = (toValue: number) => {
-    Animated.timing(scale, {
-      toValue: reduceMotion ? 1 : toValue,
-      duration: reduceMotion ? 0 : 180,
-      useNativeDriver: false,
-    }).start();
+  const animateInteraction = (toScale: number, toOpacity: number) => {
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: reduceMotion || disabled ? 1 : toScale,
+        duration: reduceMotion ? 0 : 180,
+        useNativeDriver: false,
+      }),
+      Animated.timing(opacity, {
+        toValue: disabled ? 0.5 : reduceMotion ? 1 : toOpacity,
+        duration: reduceMotion ? 0 : 180,
+        useNativeDriver: false,
+      }),
+    ]).start();
   };
 
   return (
@@ -94,29 +107,28 @@ export function InteractivePressable({
       }}
       onPressIn={(event) => {
         setPressed(true);
-        if (!disabled) animateScale(0.98);
+        if (!disabled) animateInteraction(0.98, 0.84);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
         setPressed(false);
-        animateScale(hovered ? 1.015 : 1);
+        animateInteraction(hovered ? 1.015 : 1, hovered ? 0.94 : 1);
         onPressOut?.(event);
       }}
       onHoverIn={(event) => {
         setHovered(true);
-        if (!disabled) animateScale(1.015);
+        if (!disabled) animateInteraction(1.015, 0.94);
         onHoverIn?.(event);
       }}
       onHoverOut={(event) => {
         setHovered(false);
-        animateScale(1);
+        animateInteraction(1, 1);
         onHoverOut?.(event);
       }}
       style={[
         typeof style === 'function' ? style({ pressed }) : style,
         focused && styles.focusVisible,
-        hovered && !disabled && styles.interactionHovered,
-        pressed && !disabled && styles.interactionPressed,
+        { opacity },
         { transform: [{ scale }] },
       ]}
     />
@@ -135,9 +147,9 @@ export function Icon({
   return <MaterialCommunityIcons name={name} size={size} color={color} accessible={false} />;
 }
 
-export function Brand({ large = false }: { large?: boolean }) {
+export function Brand({ large = false, compact = false }: { large?: boolean; compact?: boolean }) {
   return (
-    <Text style={[styles.brand, large && styles.brandLarge]}>
+    <Text style={[styles.brand, large && styles.brandLarge, compact && styles.brandCompact]}>
       <Text style={[styles.brandText, large && styles.brandTextLarge]}>FAH </Text>
       <Text style={styles.brandAccent}>AI</Text>
       <Text style={[styles.brandText, large && styles.brandTextLarge]}> MARINANA</Text>
@@ -211,29 +223,36 @@ export function TopNav({ active, onNavigate }: { active?: string; onNavigate?: (
 function MobileNavigation({
   active,
   horizontalPadding,
+  open,
   onNavigate,
+  onCloseComplete,
 }: {
   active: string;
   horizontalPadding: number;
+  open: boolean;
   onNavigate: () => void;
+  onCloseComplete: () => void;
 }) {
   const reduceMotion = useContext(ReduceMotionContext);
-  const [progress] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  const [progress] = useState(() => new Animated.Value(open && reduceMotion ? 1 : 0));
 
   useEffect(() => {
     if (reduceMotion) {
-      progress.setValue(1);
+      progress.setValue(open ? 1 : 0);
+      if (!open) onCloseComplete();
       return;
     }
 
     const animation = Animated.timing(progress, {
-      toValue: 1,
+      toValue: open ? 1 : 0,
       duration: 180,
       useNativeDriver: false,
     });
-    animation.start();
+    animation.start(({ finished }) => {
+      if (finished && !open) onCloseComplete();
+    });
     return () => animation.stop();
-  }, [progress, reduceMotion]);
+  }, [onCloseComplete, open, progress, reduceMotion]);
 
   return (
     <Animated.View
@@ -259,9 +278,20 @@ export function AppShell({
 }) {
   const { width } = useWindowDimensions();
   const desktop = width >= 1200;
-  const horizontalPadding = width >= 1200 ? 48 : width >= 768 ? 32 : 20;
+  const horizontalPadding = width >= 1200 ? 48 : width >= 768 ? 32 : width < 360 ? 16 : 20;
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [navigationMounted, setNavigationMounted] = useState(false);
   const activeLabel = navigation.find((item) => item.href === active)?.label ?? 'Menu';
+  const closeMobileNavigation = useCallback(() => setNavigationOpen(false), []);
+  const completeMobileNavigationExit = useCallback(() => setNavigationMounted(false), []);
+  const toggleNavigation = () => {
+    if (navigationOpen) {
+      setNavigationOpen(false);
+      return;
+    }
+    setNavigationMounted(true);
+    setNavigationOpen(true);
+  };
 
   return (
     <View style={[styles.app, desktop && styles.appDesktop]}>
@@ -283,29 +313,31 @@ export function AppShell({
       ) : (
         <View style={styles.header}>
           <View style={[styles.headerInner, { paddingHorizontal: horizontalPadding }]}>
-            <Brand />
-            <View style={styles.headerActions}>
-              <View style={styles.currentPage}>
+            <Brand compact={width < 360} />
+            <View style={[styles.headerActions, width < 360 && styles.headerActionsCompact]}>
+              <View style={[styles.currentPage, width < 360 && styles.currentPageCompact]}>
                 <View style={styles.onlineDot} />
-                <Text style={styles.currentPageText}>{activeLabel}</Text>
+                <Text style={[styles.currentPageText, width < 360 && styles.currentPageTextCompact]}>{activeLabel}</Text>
               </View>
               <InteractivePressable
                 accessibilityRole="button"
                 accessibilityLabel={navigationOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
                 accessibilityState={{ expanded: navigationOpen }}
                 aria-expanded={navigationOpen}
-                onPress={() => setNavigationOpen((open) => !open)}
+                onPress={toggleNavigation}
                 style={styles.menuToggle}
               >
                 <Icon name={navigationOpen ? 'close' : 'menu'} color={colors.deep} />
               </InteractivePressable>
             </View>
           </View>
-          {navigationOpen ? (
+          {navigationMounted ? (
             <MobileNavigation
               active={active}
               horizontalPadding={horizontalPadding}
-              onNavigate={() => setNavigationOpen(false)}
+              open={navigationOpen}
+              onNavigate={closeMobileNavigation}
+              onCloseComplete={completeMobileNavigationExit}
             />
           ) : null}
         </View>
@@ -369,14 +401,14 @@ export function PrimaryButton({
         pressed && !disabled && styles.pressed,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={outline ? colors.accent : colors.deep} />
-      ) : (
-        <View style={styles.buttonContent}>
-          {icon ? <Icon name={icon} color={outline ? colors.accent : colors.deep} /> : null}
-          <Text style={[styles.buttonText, outline && styles.buttonOutlineText]}>{label}</Text>
-        </View>
-      )}
+      <View style={styles.buttonContent}>
+        {loading ? (
+          <ActivityIndicator color={outline ? colors.accent : colors.deep} />
+        ) : icon ? (
+          <Icon name={icon} color={outline ? colors.accent : colors.deep} />
+        ) : null}
+        <Text style={[styles.buttonText, outline && styles.buttonOutlineText]}>{label}</Text>
+      </View>
     </InteractivePressable>
   );
 }
@@ -466,7 +498,7 @@ export function MediaPreview({
   compact?: boolean;
 }) {
   const { width } = useWindowDimensions();
-  const compactWidth = width < 768 ? (width < 360 ? 64 : 76) : 164;
+  const compactWidth = width < 768 ? 112 : 204;
   return (
     <View style={[styles.mediaPreview, compact && [styles.mediaPreviewCompact, { width: compactWidth }]]}>
       {uri ? <Image source={{ uri }} style={styles.mediaImage} resizeMode="cover" /> : null}
@@ -540,11 +572,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerActionsCompact: { gap: 6 },
   currentPage: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#EEF4F5' },
+  currentPageCompact: { paddingHorizontal: 6 },
+  currentPageTextCompact: { fontSize: 13, lineHeight: 18 },
   currentPageText: { color: colors.deep, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   menuToggle: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   mobileNavigation: { paddingTop: 12, paddingBottom: 20, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: '#E4EBED' },
   brand: { fontSize: 19, lineHeight: 26, fontWeight: '800', letterSpacing: 0.1 },
+  brandCompact: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
   brandText: { color: colors.background },
   brandTextLarge: { color: colors.accent },
   brandAccent: { color: colors.accent },
@@ -575,8 +611,6 @@ const styles = StyleSheet.create({
   navLabel: { flex: 1, fontSize: 15, lineHeight: 22, fontWeight: '500' },
   navLabelSelected: { fontWeight: '700' },
   focusVisible: { borderWidth: 2, borderColor: colors.accent, borderRadius: 12 },
-  interactionHovered: { opacity: 0.92 },
-  interactionPressed: { opacity: 0.82 },
   page: {
     flex: 1,
     width: '100%',
@@ -646,7 +680,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
-  mediaPreviewCompact: { minHeight: 72, width: 164, paddingVertical: 12 },
+  mediaPreviewCompact: { minHeight: 96, width: 204, paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
   mediaAccent: { width: 4, alignSelf: 'stretch', backgroundColor: colors.accent },
   mediaText: { flex: 1, color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
   mediaImage: { width: 64, height: 64, borderRadius: 6 },

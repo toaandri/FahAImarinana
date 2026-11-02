@@ -58,7 +58,10 @@ export default function PublishScreen() {
           <Field
             label="Titre"
             value={title}
-            onChangeText={(value) => { setTitle(value); setErrors((current) => ({ ...current, title: undefined })); }}
+            onChangeText={(value) => {
+              setTitle(value);
+              setErrors((current) => ({ ...current, title: undefined, status: undefined }));
+            }}
             placeholder="Le titre de votre article"
             error={errors.title}
           />
@@ -71,9 +74,13 @@ export default function PublishScreen() {
                   <InteractivePressable
                     key={item}
                     accessibilityRole="radio"
+                    accessibilityLabel={`Catégorie : ${item}`}
                     accessibilityState={{ checked: selected }}
                     aria-checked={selected}
-                    onPress={() => setCategory(item)}
+                    onPress={() => {
+                      setCategory(item);
+                      setErrors((current) => ({ ...current, status: undefined }));
+                    }}
                     style={[styles.category, width < 480 && styles.categorySmall, selected && styles.categorySelected]}
                   >
                     <Text style={[styles.categoryText, selected && styles.categoryTextSelected]}>{item}</Text>
@@ -82,17 +89,32 @@ export default function PublishScreen() {
               })}
             </View>
           </View>
-          {!desktop ? <MediaCard media={media} onPick={pickMedia} onRemove={() => setMedia(null)} /> : null}
+          {!desktop ? (
+            <MediaCard
+              media={media}
+              onPick={pickMedia}
+              onRemove={() => {
+                setMedia(null);
+                setErrors((current) => ({ ...current, status: undefined }));
+              }}
+            />
+          ) : null}
           <Field
             label="Source (facultatif)"
             value={source}
-            onChangeText={setSource}
+            onChangeText={(value) => {
+              setSource(value);
+              setErrors((current) => ({ ...current, status: undefined }));
+            }}
             placeholder="Adresse ou nom de la source"
           />
           <Field
             label="Votre article"
             value={article}
-            onChangeText={(value) => { setArticle(value); setErrors((current) => ({ ...current, article: undefined })); }}
+            onChangeText={(value) => {
+              setArticle(value);
+              setErrors((current) => ({ ...current, article: undefined, status: undefined }));
+            }}
             placeholder="Écrivez ou collez votre article..."
             error={errors.article}
             multiline
@@ -101,7 +123,16 @@ export default function PublishScreen() {
           <PrimaryButton label="PUBLIER" icon="send" onPress={publish} />
           {errors.status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="polite">{errors.status}</Text> : null}
         </View>
-        {desktop ? <MediaCard media={media} onPick={pickMedia} onRemove={() => setMedia(null)} /> : null}
+        {desktop ? (
+          <MediaCard
+            media={media}
+            onPick={pickMedia}
+            onRemove={() => {
+              setMedia(null);
+              setErrors((current) => ({ ...current, status: undefined }));
+            }}
+          />
+        ) : null}
       </View>
     </AppShell>
   );
@@ -161,10 +192,10 @@ const styles = StyleSheet.create({
   categoryText: { color: colors.white, fontSize: 14, fontWeight: '700' },
   categoryTextSelected: { color: colors.deep },
   mediaCard: { flex: 1, minWidth: 0, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, backgroundColor: colors.surface, marginBottom: 20 },
-  mediaPlaceholder: { minHeight: 140, padding: 14, backgroundColor: colors.deep, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12 },
+  mediaPlaceholder: { minHeight: 240, padding: 20, backgroundColor: colors.deep, flexDirection: 'row', alignItems: 'center', gap: 16, borderRadius: 12 },
   mediaAccent: { width: 4, alignSelf: 'stretch', backgroundColor: colors.accent },
   mediaPrompt: { flex: 1, color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
-  mediaImage: { width: 64, height: 64 },
+  mediaImage: { width: 96, height: 96, borderRadius: 10 },
   removeButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
   mediaActions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   mediaAction: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
