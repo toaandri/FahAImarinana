@@ -12,9 +12,11 @@ class PublicPublicationRepository:
         name = 'demo_publications' if settings.public_dataset == 'demo' else 'public_publications'
         self.view = table(name, *(column(field) for field in FIELDS))
 
-    def published(self):
+    def published(self, limit=None, offset=0):
         statement = select(self.view).where(self.view.c.newsroom_id == self.newsroom_id).order_by(
             self.view.c.horodatage_validation.desc(), self.view.c.id.desc())
+        if limit is not None:
+            statement=statement.limit(limit).offset(offset)
         return list(self.db.execute(statement).mappings())
 
     def matching(self, terms, limit=1):
@@ -23,6 +25,7 @@ class PublicPublicationRepository:
             return []
         statement = select(self.view).where(
             self.view.c.newsroom_id == self.newsroom_id,
-            or_(*(func.lower(self.view.c.corps_article).contains(term.lower(), autoescape=True) for term in terms))
+            or_(*(or_(func.lower(self.view.c.corps_article).contains(term.lower(), autoescape=True),
+                      func.lower(self.view.c.titre_final).contains(term.lower(), autoescape=True)) for term in terms))
         ).order_by(self.view.c.horodatage_validation.desc(), self.view.c.id.desc()).limit(limit)
         return list(self.db.execute(statement).mappings())

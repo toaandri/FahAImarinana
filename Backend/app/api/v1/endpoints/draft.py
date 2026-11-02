@@ -22,6 +22,18 @@ def get_draft(draft_id: int, db: Session = Depends(get_db),
 
 from ....schemas.editorial import DraftUpdate,DraftVersionRead
 from ....services.draft_workflow import edit_draft
+from fastapi import Query
+from sqlalchemy import select
+from ....models import DraftRevision
+from ....schemas.investigations import RevisionRead
+
+
+@router.get('/{draft_id}/history',response_model=list[RevisionRead])
+def history(draft_id: int,db: Session=Depends(get_db),user: Utilisateur=Depends(require_permission(P.DRAFT_READ)),
+            limit: int=Query(default=50,ge=1,le=200),offset: int=Query(default=0,ge=0)):
+    get_draft(draft_id,db,user)
+    return list(db.scalars(select(DraftRevision).where(DraftRevision.draft_id==draft_id)
+        .order_by(DraftRevision.id).limit(limit).offset(offset)))
 
 
 @router.get('/{draft_id}/version',response_model=DraftVersionRead)

@@ -20,3 +20,4 @@ HistoriqueSms = SmsExchange
 
 from .authentication import AuthSession, RefreshToken, Invitation
 from .administration import Contribution, TechnicalSetting
+from .revisions import DraftRevision

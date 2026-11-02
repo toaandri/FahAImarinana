@@ -13,7 +13,8 @@ def answer_citizen_sms(db: Session, payload, *, public_db: Session | None = None
     settings = get_settings()
     set_scope(db, settings.public_newsroom_id, settings.public_dataset)
     query = normalize_text(payload.message)
-    words = [word for word in query.casefold().split() if len(word) >= 4][:8]
+    import re
+    words = re.findall(r'\w{2,}',query.casefold())[:8]
     articles = PublicPublicationRepository(public_db or db).matching(words, 1)
     if articles:
         response, status = articles[0]["contenu_optimise_sms"], "Trouve"

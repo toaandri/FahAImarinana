@@ -22,6 +22,7 @@ class DraftVersionRead(DraftRead):
     validated_version: int|None
     validated_by_id: int|None
     review_notes: str
+    approved_payload: dict|None
 
 
 class ValidateDraftRequest(PublishRequest):

@@ -8,6 +8,7 @@ from . import models  # register metadata before startup
 from .api.v1.router import api_router
 from .middleware.authorization import AuthorizationMiddleware
 from .middleware.errors import register_error_handlers
+from .middleware.rate_limit import RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -41,6 +42,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     application.add_middleware(AuthorizationMiddleware)
+    application.add_middleware(RateLimitMiddleware,auth_limit=settings.auth_requests_per_minute,
+                               public_limit=settings.public_requests_per_minute)
     application.add_middleware(
         CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["*"],

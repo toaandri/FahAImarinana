@@ -47,7 +47,7 @@ def make_account(role='JOURNALISTE',email=None,newsroom_id=1,dataset='real',serv
 
 def tokens_for(user):
     from ..services.auth import issue_tokens
-    with system_session() as db:
-        from ..models import User
-        current=db.get(User,user.id)
+    with SessionLocal() as db:
+        from ..repositories.identity import UserRepository
+        current=UserRepository(db).get_for_auth(user.id)
         return issue_tokens(db,current)
