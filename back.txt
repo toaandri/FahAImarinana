@@ -44,7 +44,7 @@ base de publication publique.
   * Stockage du résultat exclusivement dans la table `Drafts_IA` avec le statut 
     "En attente de relecture".
 
-2.3 Module 3 : Copilot IA d'Investigation (Back-Office Chat Engine)
+Eric ///  2.3 Module 3 : Copilot IA d'Investigation (Back-Office Chat Engine)
 - Architecture RAG (Retrieval-Augmented Generation) :
   * Conversion des articles validés, des rapports de veille et des bases d'archives 
     en vecteurs (Embeddings) stockés dans une base de données vectorielle.
@@ -56,7 +56,7 @@ base de publication publique.
 - Gestion des Sessions de Chat : Sauvegarde de l'historique des échanges par 
   journaliste pour permettre de reprendre une investigation à tout moment.
 
-2.4 Module 4 : Moteur de Secours et Passerelle SMS (Off-Grid Engine)
+Eric ///  2.4 Module 4 : Moteur de Secours et Passerelle SMS (Off-Grid Engine)
 - Gestionnaire des Alertes SMS aux Journalistes :
   * Envoi automatique d'un SMS via passerelle (API SMS ou Modem GSM) aux 
     numéros des journalistes configurés en cas d'urgence absolue détectée.
@@ -94,7 +94,7 @@ base de publication publique.
 - ID, Numero_Expediteur, Message_Recu, Message_Envoye, Horodatage, Statut_Reponse.
 
 
-4. WORKFLOW TECHNIQUE D'UNE ALERTE (ÉTAPES APIS)
+Eric /// 4. WORKFLOW TECHNIQUE D'UNE ALERTE (ÉTAPES APIS)
 --------------------------------------------------------------------------------
 1. Ingestion : Le scraper enregistre un post dans `Signaux_Bruts`.
 2. Traitement IA : Le worker de fond détecte une urgence, interroge le LLM et 
@@ -107,7 +107,7 @@ base de publication publique.
    et l'indexe dans la base vectorielle pour le service SMS et le public.
 
 
-5. SÉCURITÉ ET GARDE-FOUS (GUARDRAILS)
+Eric /// 5. SÉCURITÉ ET GARDE-FOUS (GUARDRAILS)
 --------------------------------------------------------------------------------
 - Contrôle d'accès (RBAC) : Seuls les utilisateurs authentifiés avec un rôle 
   "Journaliste/Éditeur" peuvent appeler les endpoints de validation et de publication.
