@@ -1,5 +1,9 @@
 import { useState } from 'react';
+<<<<<<< Updated upstream
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
+=======
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+>>>>>>> Stashed changes
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar, CredibilityRing } from '@/components/ui';
@@ -15,7 +19,7 @@ export default function DiscussionScreen() {
       <HeaderBar showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.messageRow}>
-          <View style={styles.avatar}>AI</View>
+          <Text style={styles.avatar}>AI</Text>
           <View style={styles.aiBubble}><Text style={styles.bubbleText}>Bonjour ! Envoyez-moi un texte, une photo ou une vidéo : je vérifie l’information.</Text></View>
         </View>
 

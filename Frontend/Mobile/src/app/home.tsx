@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { HeaderBar, GlassCard, BottomTabs, StoryCard, TagChip } from '@/components/ui';
+import { HeaderBar, GlassCard, BottomTabs, StoryCard } from '@/components/ui';
 import { getLatestNews } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 
@@ -28,7 +28,7 @@ export default function HomeScreen() {
         <GlassCard style={styles.talkCard}>
           <View style={styles.talkRow}>
             <Text style={styles.bigText}>Discuter{"\n"}et vérifier vos informations</Text>
-            <View style={styles.logoMiniWrap}><Text style={styles.logoMini}>FAH</Text><View style={styles.aiMini}>AI</View><Text style={styles.logoMini}>MARINANA</Text></View>
+            <View style={styles.logoMiniWrap}><Text style={styles.logoMini}>FAH</Text><Text style={styles.aiMini}>AI</Text><Text style={styles.logoMini}>MARINANA</Text></View>
           </View>
           <Pressable style={styles.parlerButton} onPress={() => router.push('/discussion' as any)}>
             <Text style={styles.parlerText}>Parler</Text>

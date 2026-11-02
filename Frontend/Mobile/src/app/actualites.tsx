@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { HeaderBar, BottomTabs, TagChip, GlassCard } from '@/components/ui';
+import { HeaderBar, BottomTabs, TagChip } from '@/components/ui';
 import { getNewsList } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 

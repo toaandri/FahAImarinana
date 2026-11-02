@@ -21,9 +21,15 @@ export default function ProfilScreen() {
       <HeaderBar />
       <ScrollView contentContainerStyle={styles.content}>
         <GlassCard style={styles.profileCard}>
+<<<<<<< Updated upstream
           <View style={styles.avatar}>N</View>
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.email}>{profile.email}</Text>
+=======
+          <Text style={styles.avatar}>N</Text>
+          <Text style={styles.name}>Nom de l’utilisateur</Text>
+          <Text style={styles.email}>adresse@email.mg</Text>
+>>>>>>> Stashed changes
           <Pressable style={styles.outlineButton}><Text style={styles.outlineText}>Modifier le profil</Text></Pressable>
           <View style={styles.statsRow}>
             <View style={styles.stat}><Text style={styles.statNumber}>{profile.publications}</Text><Text style={styles.statLabel}>Publications</Text></View>

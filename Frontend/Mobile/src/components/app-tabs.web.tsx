@@ -3,7 +3,6 @@ import {
   TabList,
   TabTrigger,
   TabSlot,
-  TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
 import { SymbolView } from 'expo-symbols';
