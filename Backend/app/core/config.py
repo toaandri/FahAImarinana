@@ -33,7 +33,6 @@ class Settings(BaseModel):
     jwt_audience: str = 'fa-ai-marinana-api'
     refresh_expire_days: int = Field(default=30,ge=1,le=90)
     invitation_expire_hours: int = Field(default=48,ge=1,le=168)
-    allow_public_registration: bool = False
     frontend_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082,http://localhost:19006,http://127.0.0.1:19006"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.8-flash"
@@ -67,8 +66,6 @@ class Settings(BaseModel):
                 raise ValueError("Utiliser un compte PostgreSQL public distinct du compte applicatif.")
             if self.public_dataset != "real":
                 raise ValueError("Le flux public de production doit servir les données réelles.")
-            if self.allow_public_registration:
-                raise ValueError("Désactiver ALLOW_PUBLIC_REGISTRATION en production.")
         elif not secret or secret == "change-me-in-production":
             self.jwt_secret = SecretStr(secrets.token_urlsafe(48))
             logging.getLogger(__name__).warning(
@@ -96,6 +93,4 @@ def get_settings() -> Settings:
     # Environment variables always take precedence over the local .env file.
     load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
     values = {name: os.environ[name.upper()] for name in Settings.model_fields if name.upper() in os.environ}
-    if values.get("environment") == "production" and "allow_public_registration" not in values:
-        values["allow_public_registration"] = False
     return Settings.model_validate(values)

@@ -19,7 +19,7 @@ def main():
         scratch=Path(directory); classes=scratch/'classes'; classes.mkdir()
         env={**os.environ,'DATABASE_URL':'sqlite:///'+str(scratch/'backend.sqlite3'),
              'ENVIRONMENT':'test','JWT_SECRET':secrets.token_urlsafe(48),'GEMINI_API_KEY':'',
-             'PUBLIC_DATABASE_URL':'','AUTO_CREATE_TABLES':'false','ALLOW_PUBLIC_REGISTRATION':'false'}
+             'PUBLIC_DATABASE_URL':'','AUTO_CREATE_TABLES':'false'}
         backend=root/'Backend'
         subprocess.run([sys.executable,'-m','alembic','upgrade','head'],cwd=backend,env=env,check=True)
         seed="""
@@ -31,7 +31,7 @@ with SessionLocal() as db:
     set_scope(db,1,'real')
     hashed=password_hash('mobile-test-password-only')
     db.add(User(email='mobile-journalist@example.invalid',mot_de_passe_hash=hashed,role='JOURNALISTE'))
-    db.add(User(email='mobile-editor@example.invalid',mot_de_passe_hash=hashed,role='EDITEUR'))
+    db.add(User(email='mobile-editor@example.invalid',mot_de_passe_hash=hashed,role='JOURNALISTE'))
     db.add(Source(nom='Explicit mobile test fixture',type='Web',url='https://mobile-source.example.invalid'))
     db.commit()
 """

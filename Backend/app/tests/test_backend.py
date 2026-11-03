@@ -7,7 +7,6 @@ os.environ['JWT_SECRET'] = 'isolated-test-secret-at-least-thirty-two-bytes'
 os.environ['GEMINI_API_KEY'] = ''
 os.environ['OPENROUTER_API_KEY'] = ''
 os.environ['AUTO_CREATE_TABLES'] = 'false'
-os.environ['ALLOW_PUBLIC_REGISTRATION'] = 'true'
 
 import json
 import unittest
@@ -33,9 +32,9 @@ class BackendTests(unittest.TestCase):
         self.app = create_app()
         self.client = TestClient(self.app)
         self.client.__enter__()
-        self.journalist=make_account('JOURNALISTE',email='editor@example.invalid')
-        self.editor=make_account('EDITEUR')
-        self.admin=make_account('ADMINISTRATEUR')
+        self.journalist=make_account('JOURNALISTE',email='journalist@example.invalid')
+        self.editor=make_account('JOURNALISTE',email='editor@example.invalid')
+        self.admin=make_account('JOURNALISTE',email='admin@example.invalid')
         self.ia=make_account('SERVICE_IA')
         def headers(user): return {'Authorization':'Bearer '+tokens_for(user).access_token}
         self.headers=headers(self.journalist)
@@ -123,13 +122,12 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(bad.status_code, 422)
         duplicate = self.client.post('/api/auth/register', json={
             'email': ' EDITOR@EXAMPLE.INVALID ', 'mot_de_passe': 'password123'})
-        self.assertEqual(duplicate.status_code, 403)
+        self.assertEqual(duplicate.status_code, 409)
         invalid = self.client.get('/api/drafts/1', headers={'Authorization': 'Bearer invalid'})
         self.assertEqual(invalid.status_code, 401)
-        with patch('app.services.auth.get_settings', return_value=Settings(allow_public_registration=False)):
-            result = self.client.post('/api/auth/register', json={
-                'email': 'new@example.invalid', 'mot_de_passe': 'password123'})
-            self.assertEqual(result.status_code, 403)
+        result = self.client.post('/api/auth/register', json={
+            'email': 'new@example.invalid', 'mot_de_passe': 'password123'})
+        self.assertEqual(result.status_code, 201)
 
     def test_chat_sessions_are_private_and_messages_persist(self):
         session = self.client.post('/api/copilot/sessions', headers=self.headers, json={'titre': 'Enquête'}).json()
@@ -202,7 +200,7 @@ class BackendTests(unittest.TestCase):
         def publish_in_session():
             with SessionLocal() as db:
                 draft = db.get(DraftIA, draft_id)
-                user = db.scalar(select(Utilisateur).where(Utilisateur.role=='EDITEUR'))
+                user = db.scalar(select(Utilisateur).where(Utilisateur.role=='JOURNALISTE'))
                 barrier.wait(timeout=10)
                 try:
                     publish_draft(db, draft, user, PublishRequest(
@@ -222,10 +220,10 @@ class BackendTests(unittest.TestCase):
     def test_production_configuration_rejects_unsafe_settings(self):
         from pydantic import ValidationError
         with self.assertRaises(ValidationError):
-            Settings(environment='production', allow_public_registration=False)
+            Settings(environment='production')
         with self.assertRaises(ValidationError):
-            Settings(environment='production', jwt_secret='a' * 48, allow_public_registration=True)
-        settings = Settings(environment='production', jwt_secret='a' * 48, allow_public_registration=False, public_database_url='postgresql+psycopg://public_reader@localhost/fanilo')
+            Settings(environment='production', jwt_secret='a' * 48, public_database_url='postgresql+psycopg://fanilo@localhost/fanilo')
+        settings = Settings(environment='production', jwt_secret='a' * 48, public_database_url='postgresql+psycopg://public_reader@localhost/fanilo')
         self.assertFalse(settings.auto_create_tables)
 
 

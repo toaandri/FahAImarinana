@@ -7,7 +7,7 @@ from .common import ScopedRecord, scope_args, scoped_fk
 class User(ScopedRecord, Base):
     __tablename__ = 'users'
     __table_args__ = (*scope_args('users', public=False),
-        CheckConstraint("role IN ('JOURNALISTE','EDITEUR','ADMINISTRATEUR','CONTRIBUTEUR','LECTEUR','SERVICE_IA')", name="ck_users_role"),
+        CheckConstraint("role IN ('JOURNALISTE','SERVICE_IA')", name="ck_users_role"),
         CheckConstraint("(account_type='service' AND role='SERVICE_IA') OR (account_type='human' AND role!='SERVICE_IA')",name='ck_users_identity_role'),
         CheckConstraint("auth_version >= 1",name='ck_users_auth_version'),
         CheckConstraint("status IN ('active','suspended','archived')", name="ck_users_status"),
@@ -17,7 +17,7 @@ class User(ScopedRecord, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120), default='', server_default='')
     mot_de_passe_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(30), default="LECTEUR")
+    role: Mapped[str] = mapped_column(String(30), default="JOURNALISTE")
     actif: Mapped[bool] = mapped_column(Boolean, default=True)
     profile_photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
     response_language: Mapped[str] = mapped_column(String(4), default='auto', server_default='auto')

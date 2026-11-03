@@ -40,7 +40,7 @@ class VideoVisionTests(unittest.TestCase):
     def setUp(self):
         reset_schema()
         self.journalist = make_account('JOURNALISTE')
-        self.reader = make_account('LECTEUR')
+        self.reader = make_account('JOURNALISTE', email='another-journalist@example.invalid')
         self.ai = make_account('SERVICE_IA')
         self.headers = {'Authorization': 'Bearer ' + tokens_for(self.journalist).access_token}
         self.app = create_app(); self.client = TestClient(self.app); self.client.__enter__()
@@ -81,7 +81,7 @@ class VideoVisionTests(unittest.TestCase):
     def test_authentication_roles_and_ownership(self):
         self.assertEqual(self.client.post('/api/v1/vision/video', json={}).status_code, 401)
         headers = {'Authorization': 'Bearer ' + tokens_for(self.reader).access_token}
-        self.assertEqual(self.client.post('/api/v1/vision/video', json={}, headers=headers).status_code, 403)
+        self.assertEqual(self.client.post('/api/v1/vision/video', json={}, headers=headers).status_code, 422)
         body = clip_body()
         with patch('app.integrations.ai.gemini._request', return_value={'status': 'completed', 'output_text': json.dumps(VALID)}):
             response = self.submit(body)

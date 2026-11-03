@@ -55,8 +55,12 @@ class MigrationTests(unittest.TestCase):
             connection.execute(text("INSERT INTO utilisateurs (id,email,mot_de_passe_hash,role,actif) VALUES (1,'legacy@example.invalid','hash','Journaliste',true)"))
             with self.assertRaises(RuntimeError):
                 command.upgrade(config(connection), 'head')
-            command.upgrade(config(connection, adopt_legacy='true'), 'head')
+            command.upgrade(config(connection, adopt_legacy='true'), '0008_profile_name')
+            connection.execute(text("UPDATE users SET role='EDITEUR' WHERE email='legacy@example.invalid'"))
+            command.upgrade(config(connection), 'head')
             self.assertEqual(connection.scalar(text('SELECT count(*) FROM users')), 1)
+            self.assertEqual(connection.scalar(text("SELECT role FROM users WHERE email='legacy@example.invalid'")), 'JOURNALISTE')
+            self.assertEqual(connection.scalar(text("SELECT auth_version FROM users WHERE email='legacy@example.invalid'")), 2)
             self.assertIn('messages_chat', inspect(connection).get_table_names())
 
     def test_incompatible_legacy_schema_is_rejected_before_changes(self):

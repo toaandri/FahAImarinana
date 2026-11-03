@@ -50,21 +50,11 @@ class RefreshRequest(BaseModel):
 class InvitationCreate(BaseModel):
     model_config=ConfigDict(extra='forbid')
     email: str=Field(min_length=3,max_length=255)
-    role: Role=Role.LECTEUR
     _email=field_validator('email')(Credentials.normalize_email.__func__)
-
-    @field_validator('role')
-    @classmethod
-    def human_role(cls,value):
-        if value==Role.SERVICE_IA:
-            raise ValueError('Utiliser la création de compte de service.')
-        return value
-
 
 class AccountUpdate(BaseModel):
     model_config=ConfigDict(extra='forbid')
-    role: Role|None=None
-    status: Literal['active','suspended','archived']|None=None
+    status: Literal['active','suspended','archived']
 
 
 class ServiceAccountCreate(BaseModel):

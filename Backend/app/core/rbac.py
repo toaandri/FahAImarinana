@@ -1,14 +1,10 @@
-"""Explicit grants; roles are not hierarchical and no role is a wildcard."""
+"""Explicit grants for human journalists and scoped technical identities."""
 from enum import StrEnum
 from .errors import ForbiddenError
 
 
 class Role(StrEnum):
     JOURNALISTE = 'JOURNALISTE'
-    EDITEUR = 'EDITEUR'
-    ADMINISTRATEUR = 'ADMINISTRATEUR'
-    CONTRIBUTEUR = 'CONTRIBUTEUR'
-    LECTEUR = 'LECTEUR'
     SERVICE_IA = 'SERVICE_IA'
 
 
@@ -40,20 +36,27 @@ class Permission(StrEnum):
 
 P = Permission
 ROLE_PERMISSIONS = {
-    Role.JOURNALISTE: frozenset({P.CASE_READ,P.CASE_CREATE,P.CASE_EDIT,P.CLAIM_ADD,P.EVIDENCE_ADD,P.SIGNAL_INGEST,P.CONTRIBUTION_ADD,
-        P.RESEARCH_RUN,P.ANALYSIS_WRITE,P.DRAFT_READ,P.DRAFT_CREATE,P.DRAFT_EDIT,P.ALERTS_READ}),
-    Role.EDITEUR: frozenset({P.CASE_READ,P.DRAFT_READ,P.DRAFT_REVIEW,P.VERSION_VALIDATE,
-        P.PUBLISH,P.CORRECT,P.ALERTS_READ,P.ALERTS_SEND}),
-    Role.ADMINISTRATEUR: frozenset({P.USERS_MANAGE,P.CONNECTORS_MANAGE,P.SETTINGS_MANAGE,P.INDEX_WRITE}),
-    Role.CONTRIBUTEUR: frozenset({P.CONTRIBUTION_ADD}),
-    Role.LECTEUR: frozenset(),
+    Role.JOURNALISTE: frozenset({
+        P.CASE_READ, P.CASE_CREATE, P.CASE_EDIT, P.CLAIM_ADD, P.EVIDENCE_ADD,
+        P.SIGNAL_INGEST, P.CONTRIBUTION_ADD, P.RESEARCH_RUN, P.ANALYSIS_WRITE,
+        P.DRAFT_READ, P.DRAFT_CREATE, P.DRAFT_EDIT, P.DRAFT_REVIEW,
+        P.VERSION_VALIDATE, P.PUBLISH, P.CORRECT, P.USERS_MANAGE,
+        P.CONNECTORS_MANAGE, P.SETTINGS_MANAGE, P.ALERTS_READ, P.ALERTS_SEND,
+        P.INDEX_WRITE,
+    }),
     Role.SERVICE_IA: frozenset({P.RESEARCH_RUN,P.ANALYSIS_WRITE,P.DRAFT_CREATE,P.TASKS_RUN}),
 }
 
 
 def canonical_role(value: str) -> str:
-    # Only a storage compatibility alias; never an additional grant.
-    value = {'Journaliste':'JOURNALISTE','Editeur':'EDITEUR'}.get(value,value)
+    value = {
+        'Journaliste': 'JOURNALISTE',
+        'Editeur': 'JOURNALISTE',
+        'EDITEUR': 'JOURNALISTE',
+        'ADMINISTRATEUR': 'JOURNALISTE',
+        'CONTRIBUTEUR': 'JOURNALISTE',
+        'LECTEUR': 'JOURNALISTE',
+    }.get(value, value)
     return Role(value).value
 
 

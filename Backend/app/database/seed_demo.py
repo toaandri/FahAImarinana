@@ -25,7 +25,7 @@ def seed_demo(db):
     journalist = User(email=os.environ.get('DEMO_JOURNALIST_EMAIL', 'journaliste.demo@example.invalid'),
                       mot_de_passe_hash=password_hash(password), role='Journaliste', **scope)
     contributor = User(email=os.environ.get('DEMO_CONTRIBUTOR_EMAIL', 'contributeur.demo@example.invalid'),
-                      mot_de_passe_hash=password_hash(password), role='CONTRIBUTEUR', **scope)
+                      mot_de_passe_hash=password_hash(password), role='JOURNALISTE', **scope)
     source = Source(nom='Bulletin fictif', type='Web', url='https://bulletin.example.invalid', **scope)
     db.add_all([journalist, contributor, source]); db.flush()
     case = Case(title='EXERCICE FICTIF — interruption imaginaire', created_by_id=journalist.id, **scope)

@@ -33,10 +33,7 @@ def main():
     subprocess.run([sys.executable,'-m','alembic','upgrade','head'],cwd=root,check=True)
     if args.create_account:
         email=input('Email du compte : ').strip()
-        role=input('Rôle (ADMINISTRATEUR/JOURNALISTE/EDITEUR) : ').strip().upper()
-        if role not in {'ADMINISTRATEUR','JOURNALISTE','EDITEUR'}:
-            parser.error('Rôle invalide.')
-        subprocess.run([sys.executable,'-m','app.core.manage_users','--email',email,'--role',role],cwd=root,check=True)
+        subprocess.run([sys.executable,'-m','app.core.manage_users','--email',email],cwd=root,check=True)
         return
     print(f'Backend local : http://127.0.0.1:{args.port}/docs',flush=True)
     os.chdir(root)

@@ -61,7 +61,7 @@ def register_user(db,payload,*,user_agent=''):
     ))
     if newsroom is None:
         raise ForbiddenError('La rédaction par défaut est indisponible.')
-    user=User(email=payload.email,mot_de_passe_hash=password_hash(payload.mot_de_passe),role='LECTEUR')
+    user=User(email=payload.email,mot_de_passe_hash=password_hash(payload.mot_de_passe),role='JOURNALISTE')
     db.add(user); db.flush()
     return issue_tokens(db,user,user_agent=user_agent)
 

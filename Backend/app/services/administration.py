@@ -16,7 +16,7 @@ def create_invitation(db,actor,payload):
     if UserRepository(db).by_email(payload.email):
         raise ConflictError('Email déjà utilisé.')
     token=new_secret()
-    invitation=Invitation(id=secret_id(token),email=payload.email,role=payload.role.value,
+    invitation=Invitation(id=secret_id(token),email=payload.email,role=Role.JOURNALISTE.value,
         invited_by_id=actor.id,token_hash=secret_hash(token),
         expires_at=now()+timedelta(hours=get_settings().invitation_expire_hours))
     db.add(invitation); db.commit()
@@ -40,13 +40,8 @@ def update_account(db,actor,identifier,payload):
     if user is None:
         raise NotFoundError('Compte introuvable.')
     if actor.id==user.id:
-        raise ForbiddenError('Un administrateur ne peut pas modifier ses propres droits ou désactiver son compte.')
-    if payload.role is not None:
-        if user.account_type=='service' or payload.role==Role.SERVICE_IA:
-            raise ForbiddenError('Le type d’identité IA ne peut pas être converti en rôle humain.')
-        user.role=payload.role.value
-    if payload.status is not None:
-        user.status=payload.status; user.actif=payload.status=='active'
+        raise ForbiddenError('Un compte ne peut pas modifier son propre statut.')
+    user.status=payload.status; user.actif=payload.status=='active'
     user.auth_version+=1
     for session in db.scalars(select(AuthSession).where(AuthSession.user_id==user.id,AuthSession.revoked_at.is_(None))):
         session.revoked_at=now(); session.revocation_reason='account_changed'

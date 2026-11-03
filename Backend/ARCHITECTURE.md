@@ -49,7 +49,7 @@ Le moteur SQLAlchemy reste synchrone. FastAPI exécute les endpoints synchrones 
 - Une ressemblance lexicale produit une piste non confirmée (`concorde=false`, `officielle=false`). Ce changement corrige une fausse affirmation de vérification.
 - Les mots de passe dépassant 72 octets UTF-8 sont rejetés avec 422. L'email est normalisé avant la recherche de doublon. Les emails restent des chaînes pour préserver les clients existants.
 - Les alertes WebSocket exigent désormais un JWT : correction nécessaire de l'accès public aux alertes privées. Les clients utilisent `Authorization: Bearer <jeton>` ou les sous-protocoles `['bearer', jeton]` ; le serveur sélectionne `bearer`. Aucun jeton dans l'URL. Les diffusions donnent `sent_count`, sans numéro de téléphone. La réponse HTTP autorisée conserve son champ historique `sent`.
-- L’inscription publique crée un compte LECTEUR avec email et mot de passe. La CLI opérateur permet de créer les rôles éditoriaux.
+- Toute inscription publique ou création par CLI crée un compte humain JOURNALISTE avec les permissions éditoriales et administratives.
 
 ## Configuration
 
@@ -60,7 +60,7 @@ local utilise `Backend/.env`, qui est exclu de l'image par `.dockerignore`.
 
 Développement : renseigner un secret JWT stable pour conserver les sessions entre redémarrages et partager les jetons entre processus. Sans secret, un secret aléatoire temporaire est généré et un avertissement est émis. Aucun secret fixe connu n'est utilisé.
 
-Production : `ENVIRONMENT=production`, `JWT_SECRET` aléatoire d'au moins 32 octets, `ALLOW_PUBLIC_REGISTRATION=false`, `AUTO_CREATE_TABLES=false`. La configuration refuse un secret insuffisant, les inscriptions publiques ou la création implicite de tables. Les identifiants PostgreSQL, origines CORS, HTTPS et sauvegardes doivent être configurés dans l'environnement de déploiement.
+Production : `ENVIRONMENT=production`, `JWT_SECRET` aléatoire d'au moins 32 octets, `AUTO_CREATE_TABLES=false`. L'inscription publique crée un compte `JOURNALISTE` doté des permissions humaines complètes ; configurer la limitation de débit et l'origine CORS dans l'environnement de déploiement. La configuration refuse un secret insuffisant ou la création implicite de tables. Les identifiants PostgreSQL, HTTPS et sauvegardes doivent aussi être configurés dans l'environnement de déploiement.
 
 ## Installation et migrations
 
@@ -105,7 +105,7 @@ Le retour arrière initial supprime les tables : il est volontairement réservé
 Créer un compte approuvé, inscription publique désactivée :
 
 ```sh
-python -m app.core.manage_users --email redacteur@example.org --role EDITEUR
+python -m app.core.manage_users --email redacteur@example.org
 ```
 
 Le mot de passe est demandé au terminal, jamais dans la ligne de commande.

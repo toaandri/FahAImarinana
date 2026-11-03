@@ -33,7 +33,7 @@ def repository(db, model):
 
 def graph(db, label, *, audit=True):
     now = datetime.now(timezone.utc)
-    user = User(email=f'{label}@example.invalid', mot_de_passe_hash='fixture-not-a-usable-password', role='EDITEUR')
+    user = User(email=f'{label}@example.invalid', mot_de_passe_hash='fixture-not-a-usable-password', role='JOURNALISTE')
     source = Source(nom=label, type='Web', url='https://source.example.invalid')
     db.add_all([user, source]); db.flush()
     from app.database.scope import scope_for_user
@@ -80,7 +80,7 @@ class PersistenceTests(unittest.TestCase):
     def session(self, newsroom_id=1, dataset='real'):
         db = SessionLocal()
         set_scope(db, newsroom_id, dataset)
-        actor=db.scalar(select(User.id).where(User.role=='EDITEUR').limit(1))
+        actor=db.scalar(select(User.id).where(User.role=='JOURNALISTE').limit(1))
         if actor is not None: db.info['actor_id']=actor
         self.addCleanup(db.close)
         return db
@@ -249,7 +249,7 @@ class PersistenceTests(unittest.TestCase):
         from app.schemas import PublishRequest
         from app.repositories.publications import PublicPublicationRepository
         with self.session() as db:
-            records=graph(db,'correction'); records[User].role='EDITEUR'; db.commit()
+            records=graph(db,'correction'); records[User].role='JOURNALISTE'; db.commit()
             publication=records[Publication]
             payload=PublishRequest(titre_final='Corrected title',corps_article='Corrected approved body',
                 categorie='Fixture',statut_verification='Faux',contenu_optimise_sms='Corrected SMS')

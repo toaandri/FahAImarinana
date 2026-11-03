@@ -48,7 +48,7 @@ class Invitation(ScopedRecord,Base):
     __tablename__='invitations'
     __table_args__=(*scope_args('invitations'),
         scoped_fk('invited_by_id','users',name='fk_invitation_actor'),
-        CheckConstraint("role IN ('JOURNALISTE','EDITEUR','ADMINISTRATEUR','CONTRIBUTEUR','LECTEUR')",name='ck_invitation_role'),
+        CheckConstraint("role = 'JOURNALISTE'",name='ck_invitation_role'),
         Index('ix_invitation_email','email'),
     )
     id: Mapped[str]=mapped_column(String(32),primary_key=True,default=identifier)

@@ -51,14 +51,12 @@ class CredibilityTests(unittest.TestCase):
     def test_route_requires_permission_and_valid_payload(self):
         reset_schema()
         journalist = make_account('JOURNALISTE', email='creditest@example.invalid')
-        reader = make_account('LECTEUR', email='readercred@example.invalid')
+        journalist = make_account('JOURNALISTE', email='journalistcred@example.invalid')
         with TestClient(create_app()) as client:
             body = {'claim': 'Une affirmation', 'sources': [
                 {'url': 'https://example.org/a', 'assessment': 'supports'},
                 {'url': 'https://example.net/b', 'assessment': 'contradicts'}]}
             self.assertEqual(client.post('/api/v1/copilot/credibility', json=body).status_code, 401)
-            headers = {'Authorization': 'Bearer ' + tokens_for(reader).access_token}
-            self.assertEqual(client.post('/api/v1/copilot/credibility', headers=headers, json=body).status_code, 403)
             headers = {'Authorization': 'Bearer ' + tokens_for(journalist).access_token}
             response = client.post('/api/v1/copilot/credibility', headers=headers, json=body)
             self.assertEqual(response.status_code, 200, response.text)

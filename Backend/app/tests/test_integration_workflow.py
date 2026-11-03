@@ -21,7 +21,10 @@ FINAL = {'titre_final':'Vérification eau', 'corps_article':'Résultat validé c
 class IntegrationWorkflowTests(unittest.TestCase):
     def setUp(self):
         reset_schema()
-        self.users={role:make_account(role) for role in ('JOURNALISTE','EDITEUR','ADMINISTRATEUR','SERVICE_IA','CONTRIBUTEUR','LECTEUR')}
+        self.users={
+            'JOURNALISTE':make_account('JOURNALISTE',email='workflow-journalist@example.invalid'),
+            'SERVICE_IA':make_account('SERVICE_IA'),
+        }
         self.headers={role:{'Authorization':'Bearer '+tokens_for(user).access_token} for role,user in self.users.items()}
         self.app=create_app(); self.client=TestClient(self.app); self.client.__enter__()
 
@@ -39,7 +42,7 @@ class IntegrationWorkflowTests(unittest.TestCase):
     def prepare(self):
         case=self.case(); cid=case['id']
         claim=self.req('POST',f'/cases/{cid}/claims',{'statement':'Une affirmation eau'},status=201)
-        source=self.req('POST','/sources',{'nom':'Document original','type':'Web','url':'https://source.example.invalid'},role='ADMINISTRATEUR',status=201)
+        source=self.req('POST','/sources',{'nom':'Document original','type':'Web','url':'https://source.example.invalid'},status=201)
         evidence=self.req('POST',f'/cases/{cid}/evidence',{'title':'Document eau','kind':'document','content':'PRIVATE_PIECE eau',
             'source_id':source['id'],'original_url':'https://source.example.invalid/document'},status=201)
         self.req('POST',f"/cases/{cid}/claims/{claim['id']}/evidence",{'evidence_id':evidence['id'],'stance':'context'},status=201)
@@ -52,19 +55,19 @@ class IntegrationWorkflowTests(unittest.TestCase):
     def test_complete_local_editorial_path(self):
         cid,claim,evidence,draft=self.prepare(); did=draft['id']
         self.assertEqual(self.req('GET',f'/cases/{cid}/claims')[0]['verdict'],'unknown')
-        self.assertEqual(len(self.req('GET',f'/cases/{cid}/evidence',role='EDITEUR')),1)
+        self.assertEqual(len(self.req('GET',f'/cases/{cid}/evidence')),1)
         job=self.req('POST',f'/cases/{cid}/research',{'question':'eau'},status=201)
         self.assertEqual(job['modele'],'local-document-search-v1')
         self.assertEqual(job['citations'][0]['evidence_id'],evidence['id'])
         self.assertEqual(len(self.req('GET',f'/cases/{cid}/research')),1)
         self.assertEqual(self.client.get('/api/public/articles').json(),[])
-        self.req('POST',f'/workflow/drafts/{did}/review',{'expected_version':1,'decision':'reviewed','notes':'Pièces relues'},role='EDITEUR')
-        self.req('POST',f'/workflow/drafts/{did}/validate',{**FINAL,'expected_version':1},role='EDITEUR')
-        article=self.req('POST',f'/workflow/drafts/{did}/publish',FINAL,role='EDITEUR')
+        self.req('POST',f'/workflow/drafts/{did}/review',{'expected_version':1,'decision':'reviewed','notes':'Pièces relues'})
+        self.req('POST',f'/workflow/drafts/{did}/validate',{**FINAL,'expected_version':1})
+        article=self.req('POST',f'/workflow/drafts/{did}/publish',FINAL)
         self.assertEqual(self.client.get('/api/public/articles').json()[0]['id'],article['id'])
         sms=self.client.post('/api/sms/citizen',json={'numero_expediteur':'+261000000','message':'eau'}).json()
         self.assertEqual(sms['message'],FINAL['contenu_optimise_sms'])
-        history=self.req('GET',f'/drafts/{did}/history',role='EDITEUR')
+        history=self.req('GET',f'/drafts/{did}/history')
         self.assertEqual([row['event'] for row in history],['created','reviewed','validated','published'])
         self.assertTrue(all(row['actor_id'] for row in history))
 
@@ -73,7 +76,7 @@ class IntegrationWorkflowTests(unittest.TestCase):
         other_claim=self.req('POST',f'/cases/{other}/claims',{'statement':'Autre'},status=201)
         self.req('POST',f"/cases/{other}/claims/{other_claim['id']}/evidence",{'evidence_id':evidence['id']},status=404)
         self.req('POST',f"/cases/{cid}/claims/{claim['id']}/evidence",{'evidence_id':evidence['id']},status=409)
-        for role in ('SERVICE_IA','CONTRIBUTEUR','LECTEUR','ADMINISTRATEUR'):
+        for role in ('SERVICE_IA',):
             self.req('GET',f'/cases/{cid}/evidence',role=role,status=403)
         self.req('POST',f'/cases/{cid}/claims',{'statement':'Non','verdict':'confirmed'},status=422)
         self.req('POST',f'/workflow/drafts/{draft["id"]}/validate',{**FINAL,'expected_version':1},role='SERVICE_IA',status=403)
@@ -97,10 +100,10 @@ class IntegrationWorkflowTests(unittest.TestCase):
 
     def test_history_is_immutable_and_edit_requires_revalidation(self):
         cid,claim,evidence,draft=self.prepare(); did=draft['id']
-        self.req('POST',f'/workflow/drafts/{did}/validate',{**FINAL,'expected_version':1},role='EDITEUR')
+        self.req('POST',f'/workflow/drafts/{did}/validate',{**FINAL,'expected_version':1})
         changed=self.req('PATCH',f'/drafts/{did}',{'expected_version':1,'synthese_ia':'New text'})
         self.assertIsNone(changed['validated_version'])
-        self.req('POST',f'/workflow/drafts/{did}/publish',FINAL,role='EDITEUR',status=409)
+        self.req('POST',f'/workflow/drafts/{did}/publish',FINAL,status=409)
         history=self.req('GET',f'/drafts/{did}/history')
         self.assertEqual(history[-2]['snapshot']['synthese_ia'],'PRIVATE_DRAFT')
         self.assertEqual(history[-1]['snapshot']['synthese_ia'],'New text')
@@ -124,18 +127,18 @@ class IntegrationWorkflowTests(unittest.TestCase):
         self.assertTrue(empty['complete']); self.assertEqual(empty['items'],[])
         cid,claim,evidence,draft=self.prepare(); did=draft['id']
         self.assertEqual(self.client.get('/api/v1/public/sync').json()['items'],[])
-        self.req('POST',f'/workflow/drafts/{did}/validate',{**FINAL,'expected_version':1},role='EDITEUR')
-        article=self.req('POST',f'/workflow/drafts/{did}/publish',FINAL,role='EDITEUR'); aid=article['id']
+        self.req('POST',f'/workflow/drafts/{did}/validate',{**FINAL,'expected_version':1})
+        article=self.req('POST',f'/workflow/drafts/{did}/publish',FINAL); aid=article['id']
         response=self.client.get('/api/v1/public/sync'); first=response.json()
         self.assertEqual(first['strategy'],'replace'); self.assertEqual(first['items'][0]['id'],aid)
         self.assertNotIn('PRIVATE_',response.text)
         self.assertNotIn('draft_id',response.text)
         unchanged=self.client.get('/api/v1/public/sync',headers={'If-None-Match':response.headers['etag']})
         self.assertEqual(unchanged.status_code,304)
-        self.req('POST',f'/workflow/publications/{aid}/correct',{**FINAL,'corps_article':'Texte corrigé eau','reason':'Nouvelle pièce examinée'},role='EDITEUR')
+        self.req('POST',f'/workflow/publications/{aid}/correct',{**FINAL,'corps_article':'Texte corrigé eau','reason':'Nouvelle pièce examinée'})
         corrected=self.client.get('/api/v1/public/sync').json()
         self.assertNotEqual(first['items'][0]['content_version'],corrected['items'][0]['content_version'])
-        self.req('POST',f'/workflow/publications/{aid}/withdraw',{'reason':'Réexamen nécessaire'},role='EDITEUR')
+        self.req('POST',f'/workflow/publications/{aid}/withdraw',{'reason':'Réexamen nécessaire'})
         self.assertEqual(self.client.get('/api/v1/public/sync').json()['items'],[])
         sms=self.client.post('/api/sms/citizen',json={'numero_expediteur':'+261000000','message':'eau'}).json()
         self.assertEqual(sms['message'],'Aucune vérification publiée trouvée pour cette demande.')

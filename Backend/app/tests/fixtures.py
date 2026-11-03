@@ -32,10 +32,10 @@ def make_account(role='JOURNALISTE',email=None,newsroom_id=1,dataset='real',serv
     global _TEST_HASH
     from ..models import User
     from ..core.security import password_hash
-    from ..core.rbac import Role,ROLE_PERMISSIONS
+    from ..core.rbac import Role,ROLE_PERMISSIONS,canonical_role
     if _TEST_HASH is None:
         _TEST_HASH=password_hash('password123')
-    role=Role(role)
+    role=Role(canonical_role(str(role)))
     with system_session() as db:
         user=User(email=email or role.value.lower()+'@example.invalid',role=role.value,
             account_type='service' if role==Role.SERVICE_IA else 'human',

@@ -1,52 +1,44 @@
 # Authentification, sessions et RBAC
 
-Le contrôle est explicite, sans hiérarchie implicite entre rôles. Les anciennes valeurs `Journaliste` et `Editeur` sont migrées vers `JOURNALISTE` et `EDITEUR`. Aucun compte existant n'est promu administrateur. Les anciennes routes `/api/...` et leurs alias `/api/v1/...` restent disponibles.
+Tous les comptes humains, existants et nouveaux, utilisent le rôle unique `JOURNALISTE`. Ce rôle regroupe les permissions éditoriales et administratives. Les comptes techniques restent des identités `SERVICE_IA` limitées à leurs scopes. La migration 0010 convertit les rôles humains existants, invalide leurs sessions actives et supprime les choix de rôle à l'inscription, à l'invitation et à la modification d'un compte. Les anciennes routes `/api/...` et leurs alias `/api/v1/...` restent disponibles.
 
 ## Matrice métier
 
-| Fonction | JOURNALISTE | EDITEUR | ADMINISTRATEUR | CONTRIBUTEUR | LECTEUR | SERVICE_IA |
-|---|---|---|---|---|---|---|
-| Lire les articles publics | Oui | Oui | Oui | Oui | Oui | Oui |
-| Créer un dossier | Oui | Non | Non | Non | Non | Non |
-| Consulter les dossiers privés | Oui | Oui | Non | Non | Non | Non |
-| Ajouter une preuve | Oui | Non | Non | Non | Non | Non |
-| Recherche | Oui | Non | Non | Non | Non | Selon scopes |
-| Enregistrer une analyse | Oui | Non | Non | Non | Non | Selon scopes |
-| Créer un brouillon | Oui | Non | Non | Non | Non | Selon scopes |
-| Lire les brouillons | Oui | Oui | Non | Non | Non | Réponse de sa création uniquement |
-| Modifier un brouillon | Oui | Non | Non | Non | Non | Non |
-| Relire / valider une version | Non | Oui | Non | Non | Non | Jamais |
-| Publier / corriger / retirer | Non | Oui | Non | Non | Non | Jamais |
-| Gérer les comptes | Non | Non | Oui | Non | Non | Non |
-| Gérer les connecteurs | Non | Non | Oui | Non | Non | Non |
-| Paramètres techniques | Non | Non | Oui | Non | Non | Non |
-| Soumettre et compléter ses signalements | Non | Non | Non | Oui | Non | Non |
-| Traitement supervisé des signaux | Non | Non | Non | Non | Non | Scopes tasks.run et drafts.create |
+| Fonction | JOURNALISTE | SERVICE_IA |
+|---|---|---|
+| Lire les articles publics | Oui | Oui |
+| Dossiers, preuves, recherche et analyses | Oui | Selon scopes |
+| Créer et modifier des brouillons | Oui | Selon scopes |
+| Relire, valider, publier, corriger et retirer | Oui | Jamais |
+| Gérer les comptes, invitations et comptes techniques | Oui | Non |
+| Gérer les connecteurs et paramètres techniques | Oui | Non |
+| Alertes, contributions et indexation | Oui | Selon scopes |
+| Traitement supervisé des tâches | Non | Scope `tasks.run` |
 
-Chaque compte authentifié peut consulter son profil et gérer ses propres sessions. Le lecteur ne peut consulter aucun contenu éditorial privé. Les articles et le simulateur de consultation SMS restent accessibles sans compte.
+Chaque compte humain authentifié peut consulter son profil et gérer ses propres sessions. Les articles et le simulateur de consultation SMS restent accessibles sans compte.
 
-Les permissions additionnelles restent explicites : alertes de lecture pour journalistes/éditeurs, déclenchement d'alertes pour éditeurs, réindexation pour administrateurs. Les autorisations sont définies dans [rbac.py](app/core/rbac.py), sans wildcard administrateur.
+Les autorisations du rôle humain unique sont définies explicitement dans [rbac.py](app/core/rbac.py). Les comptes techniques conservent uniquement les scopes autorisés et ne peuvent jamais valider ni publier.
 
-Un administrateur ne peut pas changer son propre rôle via l'API. Il peut nommer d'autres personnes par invitation, conformément à sa fonction de gestion des comptes. Son compte administrateur reste interdit de publication. Une identité de service a un type `service` immuable et un rôle fixé à `SERVICE_IA`, protégés aussi par la base ; elle ne peut pas être transformée en éditeur.
+Un journaliste peut gérer les autres comptes humains, mais ne peut pas se suspendre lui-même. Le rôle humain ne peut pas être modifié via l'API. Une identité de service a un type `service` immuable et un rôle fixé à `SERVICE_IA`, protégés aussi par la base.
 
-## Inscription contrôlée et premier administrateur
+## Inscription et provisionnement des journalistes
 
 Appliquer les migrations, puis créer le premier compte via la CLI opérateur depuis `Backend/` :
 
 ```sh
 alembic upgrade head
-python -m app.core.manage_users --email administrateur@example.org --role ADMINISTRATEUR
+python -m app.core.manage_users --email redacteur@example.org
 ```
 
-Le mot de passe est saisi au terminal. La CLI est une opération de confiance de l'administrateur système, distincte d'une inscription publique.
+Le mot de passe est saisi au terminal. La CLI est une opération de confiance de l'administrateur système.
 
 Parcours normal :
 
-1. Le visiteur utilise `POST /api/auth/register` avec `email` et `mot_de_passe`.
-2. Le backend crée le compte dans la rédaction par défaut avec le rôle `LECTEUR`.
+1. Une personne utilise `POST /api/auth/register` avec `email` et `mot_de_passe`.
+2. Le backend crée le compte dans la rédaction par défaut avec le rôle `JOURNALISTE`.
 3. Le compte peut ensuite se connecter avec `POST /api/auth/login`.
 
-Les rôles éditoriaux restent provisionnés par la CLI opérateur. Les endpoints d'invitation restent disponibles pour les outils d'administration historiques, mais ne sont plus requis pour une inscription publique. Les réponses contenant des secrets portent `Cache-Control: no-store`.
+Tous les comptes humains reçoivent les mêmes permissions par inscription ou invitation. Les réponses contenant des secrets portent `Cache-Control: no-store`.
 
 ## Sessions et jetons
 
@@ -56,7 +48,7 @@ Les rôles éditoriaux restent provisionnés par la CLI opérateur. Les endpoint
 - La réutilisation d'un refresh déjà consommé révoque toute sa session, y compris les nouveaux access tokens de cette session.
 - Un refresh dont le secret est faux ne peut pas révoquer une session légitime.
 - Chaque appel authentifié consulte le compte et la session dans PostgreSQL. Le rôle dans le JWT n'accorde aucun droit : la base reste l'autorité.
-- Déconnexion, suspension, changement de rôle et changement de mot de passe invalident immédiatement les sessions concernées pour les requêtes suivantes.
+- Déconnexion, suspension, changement de mot de passe et migration de rôle invalident les sessions concernées pour les requêtes suivantes.
 - Les diffusions WebSocket revérifient la session et les permissions avant chaque envoi. Une connexion révoquée est fermée avant de recevoir la prochaine alerte.
 
 Le frontend doit sérialiser ses demandes de refresh : deux utilisations concurrentes du même refresh déclenchent volontairement la protection contre la réutilisation. Un ancien access token reste utilisable jusqu'à son expiration tant que sa session n'est pas révoquée ; la rotation du refresh ne remplace pas la révocation de session.
@@ -112,26 +104,26 @@ Un test parcourt OpenAPI pour vérifier que chaque opération privée a une poli
 <OPENROUTER_API_KEY>
 
 1. Le journaliste crée le dossier et le brouillon, éventuellement avec l'aide d'un compte IA.
-2. `GET /api/drafts/{id}/version` retourne la version du brouillon aux journalistes et éditeurs.
+2. `GET /api/drafts/{id}/version` retourne la version du brouillon aux journalistes.
 3. `PATCH /api/drafts/{id}` exige `expected_version`. Toute modification incrémente la version et annule sa validation.
-4. L'éditeur peut relire avec `POST /api/workflow/drafts/{id}/review`.
+4. Le journaliste peut relire avec `POST /api/workflow/drafts/{id}/review`.
 5. Il valide avec `POST /api/workflow/drafts/{id}/validate`, en fournissant `expected_version` et les champs finaux de publication.
 6. Il publie avec `/publish`. Le contenu doit correspondre exactement au contenu approuvé et la version doit toujours être courante, sinon 409.
 7. Les corrections et retraits passent par `/api/workflow/publications/{id}/correct` et `/withdraw`, avec une justification et un audit transactionnel.
 
-L'ancienne route `/publish` conserve son URL et son corps, mais une validation préalable par un éditeur est désormais obligatoire. Les autorisations anciennes donnant la publication aux journalistes sont volontairement retirées.
+La validation préalable est obligatoire, mais le rôle `JOURNALISTE` peut relire, valider et publier.
 
 ## Dossiers, contributions et administration
 
 - Dossiers : GET/POST `/api/cases`, GET `/api/cases/{id}`, POST `/api/cases/{id}/evidence`.
-- Contributions : POST `/api/contributions/signals`, GET `/api/contributions/{id}`, POST `/api/contributions/{id}/information`. Un contributeur ne complète que ses propres signalements et ne peut pas choisir un dossier privé arbitraire.
+- Contributions : POST `/api/contributions/signals`, GET `/api/contributions/{id}`, POST `/api/contributions/{id}/information`. Chaque journaliste ne complète que ses propres signalements et ne peut pas choisir un dossier privé arbitraire.
 - Comptes : GET `/api/admin/users`, PATCH `/api/admin/users/{id}`, POST `/api/admin/invitations` et `/api/admin/service-accounts`.
 - Connecteurs : GET/POST `/api/sources`, PATCH `/api/sources/{id}` pour activer/désactiver ou modifier la fréquence.
 - Paramètres : GET `/api/admin/settings`, PUT `/api/admin/settings/{key}`. La liste est limitée à `ingestion_batch_size` (1–100) et `research_result_limit` (1–20), utilisés par les services. Aucun réglage de rôle, secret JWT ou identifiant de base n'est exposé par ces endpoints.
 
 ## Migration et configuration
 
-[0003_auth_rbac.py](alembic/versions/0003_auth_rbac.py) ajoute les sessions, refresh tokens, invitations, contributions et paramètres techniques, ainsi que les métadonnées de validation des brouillons. Les deux premières migrations restent inchangées. Les jetons historiques sans session sont refusés après déploiement ; les utilisateurs doivent se reconnecter. Les comptes et mots de passe existants sont conservés.
+[0003_auth_rbac.py](alembic/versions/0003_auth_rbac.py) ajoute les sessions, refresh tokens, invitations, contributions et paramètres techniques, ainsi que les métadonnées de validation des brouillons. [0010_unify_human_roles.py](alembic/versions/0010_unify_human_roles.py) convertit les rôles humains existants en `JOURNALISTE`, invalide leurs sessions et verrouille les rôles d'invitation et de compte. Les comptes et mots de passe existants sont conservés. Les anciennes permissions par rôle humain ne sont pas conservées.
 
 ```sh
 alembic upgrade head
