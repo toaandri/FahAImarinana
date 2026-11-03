@@ -29,11 +29,26 @@ class LanguagePolicyTests(unittest.TestCase):
                                    ('Salama, afaka manampy ahy ve ianao?', 'mg'),
                                    ('Comment vérifier une information ?', 'fr'),
                                    ('Explique la méthode en malagasy', 'mg'),
-                                   ('Antananarivo', 'fr')]:
+                                   ('Antananarivo', 'fr'), ('Hello', 'en'), ('Is this news true?', 'en'),
+                                   ('How can I verify this claim?', 'en'), ('Bonjour', 'fr'), ('Salama', 'mg')]:
             self.assertEqual(resolve_language('auto', question), language)
         self.assertEqual(resolve_language('mg', 'Bonjour'), 'mg')
         self.assertEqual(resolve_language('fr', 'Salama'), 'fr')
         self.assertIn('preuve', expand_research_question('Inona ny porofo?'))
+
+    def test_english_reaches_both_providers(self):
+        settings = Settings(openrouter_api_key='test', jwt_secret='test')
+        response = httpx.Response(200, json={'choices': [{'message': {'content': 'Hello'}}]},
+                                  request=httpx.Request('POST', 'https://openrouter.ai'))
+        with patch('app.integrations.ai.openrouter.get_settings', return_value=settings), \
+             patch('app.integrations.ai.openrouter.httpx.Client') as client:
+            post = client.return_value.__enter__.return_value.post
+            post.return_value = response
+            answer_question('Hello', [], language=resolve_language('auto', 'Hello'))
+            self.assertIn('English', post.call_args.kwargs['json']['messages'][0]['content'])
+        with patch('app.integrations.ai.gemini._request', return_value={'output_text': 'Hello'}) as request:
+            research_web('Hello', language=resolve_language('auto', 'Hello'))
+            self.assertIn('English', request.call_args.args[0]['input'])
 
     def test_both_providers_receive_malagasy_and_glossary(self):
         settings = Settings(openrouter_api_key='test', jwt_secret='test')
@@ -128,6 +143,10 @@ class LanguageEndpointTests(unittest.TestCase):
             self.assertEqual(answer.call_args.kwargs, {'use_openrouter': True, 'language': 'mg'})
             self.client.post('/api/copilot/research', headers=self.headers, json={'question': 'Bonjour', 'language': 'fr'})
             self.assertEqual(answer.call_args.kwargs['language'], 'fr')
+            for question, expected in [('Hello, is this true?', 'en'), ('Bonjour, est-ce vrai?', 'fr'), ('Salama, marina ve izany?', 'mg')]:
+                response = self.client.post('/api/copilot/research', headers=self.headers, json={'question': question, 'language': 'auto'})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(answer.call_args.kwargs['language'], expected)
             self.client.post('/api/copilot/research', headers=self.headers, json={'question': 'Inona ny vaovao?', 'language': 'auto'})
             self.assertEqual(answer.call_args.kwargs['language'], 'mg')
         session = self.client.post('/api/copilot/sessions', headers=self.headers, json={'titre': 'Malagasy'}).json()

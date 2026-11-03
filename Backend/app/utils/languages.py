@@ -1,10 +1,10 @@
-"""French/Malagasy language policy and an editable seed newsroom glossary."""
+"""French/Malagasy/English language policy and an editable seed newsroom glossary."""
 import json
 import re
 from pathlib import Path
 from typing import Literal
 
-Language = Literal['auto', 'fr', 'mg']
+Language = Literal['auto', 'fr', 'mg', 'en']
 GLOSSARY = json.loads((Path(__file__).with_name('journalism_glossary.json')).read_text())
 
 
@@ -22,11 +22,16 @@ def resolve_language(language: Language, question: str) -> str:
                   'afaka', 'mba', 'izany', 'ity', 'izay', 'amin', 'momba', 've', 'ny', 'sy'}
     fr = words & {'bonjour', 'merci', 'comment', 'pourquoi', 'quelle', 'quelles', 'est', 'les',
                   'des', 'une', 'pour', 'avec', 'dans', 'information', 'vérifier', 'sources'}
-    return 'mg' if len(mg) > len(fr) else 'fr'
+    en = words & {'hello', 'hi', 'thanks', 'please', 'what', 'why', 'how', 'when', 'where',
+                  'which', 'who', 'is', 'are', 'the', 'this', 'that', 'these', 'those', 'can',
+                  'could', 'would', 'should', 'does', 'do', 'you', 'your', 'we', 'our',
+                  'verify', 'check', 'fact', 'news', 'claim', 'evidence', 'reliable', 'true'}
+    scores = {'fr': len(fr), 'mg': len(mg), 'en': len(en)}
+    return max(scores, key=scores.get)
 
 
 def language_instruction(language: str) -> str:
-    name = 'malagasy (teny malagasy)' if language == 'mg' else 'français'
+    name = {'mg': 'malagasy (teny malagasy)', 'en': 'English', 'fr': 'français'}[language]
     glossary = '; '.join(f"{item['fr']} = {item['mg']}" for item in GLOSSARY)
     return (f'Langue de réponse imposée : {name}. Réponds entièrement dans cette langue, '
             'avec des phrases claires et naturelles. Conserve les noms propres, chiffres, dates et liens. '

@@ -1,12 +1,11 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppShell, Card, Icon, InteractivePressable, PageTitle } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { LanguageSelector } from '../components/LanguageSelector';
 import { CredibilityForm } from '../components/CredibilityForm';
-import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, startPrecompute, type ResponseLanguage, type Corroboration } from '../services/api';
+import { sendMessageToAI, translateAnswer, type ResearchResult, startPrecompute, type Corroboration } from '../services/api';
 import { useI18n } from '../components/i18n';
 
 type Attachment = { uri: string; name: string; type: 'image' | 'video' };
@@ -17,8 +16,8 @@ export default function VerifyScreen() {
   const [message, setMessage] = useState(typeof params.question === 'string' ? params.question.slice(0, 2000) : '');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [status, setStatus] = useState('');
-  const [language, setLanguage] = useState<ResponseLanguage>('auto');
-  const [loadingLanguage, setLoadingLanguage] = useState(true);
+  const [focused, setFocused] = useState(false);
+  const conversationRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ResearchResult | null>(null);
   const [question, setQuestion] = useState('');
@@ -33,18 +32,9 @@ export default function VerifyScreen() {
     }
   }, [params.analyze, params.article_url]);
 
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    setLoadingLanguage(true);
-    getResponseLanguage().then((value) => { if (active) setLanguage(value); })
-      .catch((error) => { if (active) setStatus(error instanceof Error ? error.message : t('verify.aiLanguageUnavailable')); })
-      .finally(() => { if (active) setLoadingLanguage(false); });
-    return () => { active = false; };
-  }, [t]));
-
   useEffect(() => {
     const submitted = typeof params.question === 'string' ? params.question.slice(0, 2000) : '';
-    if (loadingLanguage || params.analyze !== '1' || !submitted || analyzedQuestion.current === submitted) return;
+    if (params.analyze !== '1' || !submitted || analyzedQuestion.current === submitted) return;
     let active = true;
     Promise.resolve().then(async () => {
       if (!active) return;
@@ -52,7 +42,7 @@ export default function VerifyScreen() {
       setBusy(true);
       setStatus('');
       try {
-        const answer = await sendMessageToAI(submitted, language);
+        const answer = await sendMessageToAI(submitted, 'auto');
         if (!active) return;
         setResult(answer);
         setStatistics(null);
@@ -67,7 +57,7 @@ export default function VerifyScreen() {
       }
     });
     return () => { active = false; };
-  }, [params.question, params.analyze, loadingLanguage, language, t]);
+  }, [params.question, params.analyze, t]);
 
   const pickMedia = async (type: 'image' | 'video') => {
     try {
@@ -95,7 +85,7 @@ export default function VerifyScreen() {
   };
 
   const sendMessage = async () => {
-    if (busy || loadingLanguage) return;
+    if (busy) return;
     if (attachments.length) {
       setStatus(t('verify.attachmentsUnsupported'));
       return;
@@ -108,7 +98,7 @@ export default function VerifyScreen() {
     setBusy(true);
     setStatus('');
     try {
-      const answer = await sendMessageToAI(submitted, language);
+      const answer = await sendMessageToAI(submitted, 'auto');
       setResult(answer);
       setStatistics(null);
       setAnalysisVersion((value) => value + 1);
@@ -138,20 +128,19 @@ export default function VerifyScreen() {
   }
 
   return (
-    <AppShell active="/verifier">
-      <View style={styles.content}>
-        <PageTitle>{t('verify.title')}</PageTitle>
-        <LanguageSelector value={language} onChange={setLanguage} disabled={busy || loadingLanguage} />
-        <View style={styles.conversation}>
-          <View style={styles.aiMessage}>
-            <Text style={styles.messageText}>
-              {t('verify.greeting')}
-            </Text>
-          </View>
+    <AppShell active="/verifier" fixedContent>
+      <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
+        <PageTitle>{t('navigation.discuss')}</PageTitle>
+        <ScrollView ref={conversationRef} style={styles.conversationScroll} contentContainerStyle={styles.conversation} keyboardShouldPersistTaps="handled" onContentSizeChange={() => { if (result || busy) conversationRef.current?.scrollToEnd({ animated: false }); }}>
+          {!result && !busy ? <View style={styles.emptyState}>
+            <View style={styles.emptyIcon}><Icon name="message-processing-outline" color={colors.accent} size={32} /></View>
+            <Text style={styles.emptyTitle}>{t('verify.emptyTitle')}</Text>
+            <Text style={styles.emptyHint}>{t('verify.autoLanguage')}</Text>
+          </View> : null}
           {question ? <View style={styles.userMessage}>
             <Text style={styles.userMessageText}>{question}</Text>
           </View> : null}
-          <Card style={styles.resultCard}>
+          {result ? <Card style={styles.resultCard}>
             <Text style={styles.resultTitle}>{t('verify.preAnalysis')}</Text>
             {result ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
               <Text style={styles.resultTitle}>{t(statisticsProvisional ? 'verify.provisional' : 'verify.corroboration')}</Text>
@@ -179,9 +168,10 @@ export default function VerifyScreen() {
             <Text style={styles.disclaimer}>
               {busy ? t('verify.working') : t('verify.disclaimer')}
             </Text>
-          </Card>
+          </Card> : null}
           {result ? <CredibilityForm key={`${analysisVersion}-${question}`} articleUrl={params.analyze === '1' && question === params.question ? params.article_url : undefined} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
-        </View>
+          {busy ? <View style={styles.busyState} accessibilityLiveRegion="polite"><ActivityIndicator color={colors.accent} /><Text style={styles.disclaimer}>{t('verify.working')}</Text></View> : null}
+        </ScrollView>
 
         <View style={styles.composerArea}>
           {attachments.length ? (
@@ -209,7 +199,27 @@ export default function VerifyScreen() {
               ))}
             </View>
           ) : null}
-          <View style={styles.composer}>
+          <View style={[styles.composer, focused && styles.composerFocused]}>
+            <TextInput
+              accessibilityLabel={t('verify.writeMessage')}
+              value={message}
+              editable={!busy}
+              maxLength={2000}
+              onChangeText={(value) => {
+                setMessage(value);
+                setStatus('');
+              }}
+              placeholder={t('verify.placeholder')}
+              placeholderTextColor={colors.muted}
+              style={styles.composerInput}
+              multiline
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              textAlignVertical="top"
+              underlineColorAndroid="transparent"
+            />
+            <View style={styles.composerToolbar}>
+              <View style={styles.mediaActions}>
             <InteractivePressable
               accessibilityRole="button"
               accessibilityLabel={t('verify.attachPhoto')}
@@ -226,65 +236,41 @@ export default function VerifyScreen() {
             >
               <Icon name="video-outline" />
             </InteractivePressable>
-            <TextInput
-              accessibilityLabel={t('verify.writeMessage')}
-              value={message}
-              editable={!busy}
-              maxLength={2000}
-              onChangeText={(value) => {
-                setMessage(value);
-                setStatus('');
-              }}
-              placeholder={t('verify.placeholder')}
-              placeholderTextColor={colors.muted}
-              style={styles.composerInput}
-              returnKeyType="send"
-              onSubmitEditing={sendMessage}
-            />
+              </View>
+              <Text style={styles.characterCount}>{message.length}/2000</Text>
             <InteractivePressable
               accessibilityRole="button"
               accessibilityLabel={t('verify.sendMessage')}
               onPress={sendMessage}
-              disabled={busy || loadingLanguage}
+              disabled={busy || message.trim().length < 3}
+              accessibilityState={{ disabled: busy || message.trim().length < 3, busy }}
               style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}
             >
-              <Icon name="send" color={colors.deep} />
+              {busy ? <ActivityIndicator color={colors.deep} /> : <Icon name="arrow-up" color={colors.deep} />}
             </InteractivePressable>
+            </View>
           </View>
           {status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="polite">{status}</Text> : null}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </AppShell>
   );
 }
 
 const styles = StyleSheet.create({
   content: { width: '100%', maxWidth: 880, alignSelf: 'center', flex: 1 },
-  conversation: { gap: 20 },
-  aiMessage: {
-    minHeight: 100,
-    padding: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-  },
-  messageText: { color: colors.white, fontSize: 16, lineHeight: 24 },
-  sampleMedia: {
-    alignSelf: 'flex-end',
-    width: 300,
-    maxWidth: '100%',
-    minHeight: 88,
-    backgroundColor: colors.deep,
-    justifyContent: 'center',
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.accent,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-  },
-  sampleText: { color: colors.muted, fontWeight: '700' },
-  userMessage: { alignSelf: 'flex-end', width: '96%', minHeight: 60, justifyContent: 'center', padding: 16, backgroundColor: colors.accent, borderRadius: 12 },
+  conversationScroll: { flex: 1, minHeight: 0 },
+  conversation: { flexGrow: 1, gap: 20, paddingBottom: 24 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 32, gap: 16 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 24, backgroundColor: colors.deep, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { color: colors.white, fontSize: 22, lineHeight: 30, fontWeight: '700', textAlign: 'center' },
+  emptyHint: { color: colors.muted, fontSize: 15, lineHeight: 24, textAlign: 'center', maxWidth: 360 },
+  busyState: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  composerFocused: { borderColor: colors.accent },
+  composerToolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mediaActions: { flexDirection: 'row', flex: 1 },
+  characterCount: { color: colors.muted, fontSize: 12 },
+  userMessage: { alignSelf: 'flex-end', maxWidth: '90%', minHeight: 60, justifyContent: 'center', padding: 16, backgroundColor: colors.accent, borderRadius: 12 },
   userMessageText: { color: colors.deep, fontSize: 16, lineHeight: 24 },
   resultCard: { gap: 18 },
   resultTitle: { color: colors.white, fontSize: 17, lineHeight: 24, fontWeight: '700' },
@@ -295,15 +281,15 @@ const styles = StyleSheet.create({
   translationButton: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, padding: 12, justifyContent: 'center' },
   source: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   disclaimer: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  composerArea: { marginTop: 32, paddingBottom: spacing.md },
+  composerArea: { paddingTop: 12, paddingBottom: spacing.md },
   attachments: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   attachment: { maxWidth: '100%', minHeight: 48, padding: 12, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, backgroundColor: colors.deep },
   attachmentImage: { width: 96, height: 72, borderRadius: 8 },
   attachmentName: { maxWidth: 180, color: colors.muted, fontSize: 14 },
   removeAttachment: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  composer: { minHeight: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, backgroundColor: colors.deep, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
+  composer: { minHeight: 116, padding: 10, gap: 4, backgroundColor: colors.deep, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
   composerIcon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  composerInput: { flex: 1, minWidth: 40, minHeight: 48, color: colors.white, fontSize: 16, lineHeight: 24, paddingHorizontal: 8 },
+  composerInput: { minWidth: 0, minHeight: 48, maxHeight: 144, color: colors.white, fontSize: 16, lineHeight: 24, paddingHorizontal: 8, paddingVertical: 10 },
   sendButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.75 },
   status: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 8 },

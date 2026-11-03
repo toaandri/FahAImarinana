@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
   type PressableProps,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 import { authTypography } from './AuthBrand';
 import { useI18n } from './i18n';
@@ -278,13 +279,16 @@ export function AppShell({
   active,
   children,
   fillHeight = false,
+  fixedContent = false,
 }: {
   active: string;
   children: ReactNode;
   fillHeight?: boolean;
+  fixedContent?: boolean;
 }) {
   const { t } = useI18n();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const desktop = width >= 1200;
   const horizontalPadding = width >= 1200 ? 48 : width >= 768 ? 32 : width < 360 ? 16 : 20;
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -304,7 +308,7 @@ export function AppShell({
   return (
     <View style={[styles.app, desktop && styles.appDesktop]}>
       {desktop ? (
-        <View role="complementary" accessibilityLabel={t('navigation.sidebar')} style={styles.sidebar}>
+        <View role="complementary" accessibilityLabel={t('navigation.sidebar')} style={[styles.sidebar, { paddingTop: 28 + insets.top, paddingBottom: 28 + insets.bottom }]}>
           <Link href="/" asChild accessibilityRole="link" accessibilityLabel={t('navigation.homeBrand')}>
             <InteractivePressable style={styles.sidebarBrand}>
               <Text style={styles.sidebarBrandText}>
@@ -312,18 +316,18 @@ export function AppShell({
               </Text>
             </InteractivePressable>
           </Link>
-          <TopNav active={active} />
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}><TopNav active={active} /></ScrollView>
           <View style={styles.sidebarStatus}>
             <View style={styles.onlineDot} />
             <Text style={styles.sidebarStatusText}>{t('navigation.online')}</Text>
           </View>
         </View>
       ) : (
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={[styles.headerInner, { paddingHorizontal: horizontalPadding }]}>
             <Link href="/" asChild accessibilityLabel={t('navigation.homeBrand')}><InteractivePressable style={{ flexShrink: 1, minHeight: 44, justifyContent: 'center' }}><Brand compact={width < 480} /></InteractivePressable></Link>
             <View style={[styles.headerActions, width < 360 && styles.headerActionsCompact]}>
-              <View style={[styles.currentPage, width < 360 && styles.currentPageCompact]}>
+              <View style={[styles.currentPage, width < 360 && styles.currentPageCompact, width < 480 && { display: 'none' }]}>
                 <View style={styles.onlineDot} />
                 <Text style={[styles.currentPageText, width < 360 && styles.currentPageTextCompact]}>{activeLabel}</Text>
               </View>
@@ -350,7 +354,7 @@ export function AppShell({
           ) : null}
         </View>
       )}
-      <ScrollView
+      {fixedContent ? <View role="main" style={[styles.page, desktop && styles.pageDesktop, styles.fixedPage, { paddingHorizontal: horizontalPadding, paddingBottom: 8 + insets.bottom }]}>{children}</View> : <ScrollView
         role="main"
         style={[styles.page, desktop && styles.pageDesktop]}
         contentContainerStyle={[
@@ -361,7 +365,7 @@ export function AppShell({
         keyboardShouldPersistTaps="handled"
       >
         {children}
-      </ScrollView>
+      </ScrollView>}
     </View>
   );
 }
@@ -560,9 +564,11 @@ export function ProfileRow({
 }
 
 const styles = StyleSheet.create({
-  app: { flex: 1, backgroundColor: colors.white },
+  fixedPage: { minHeight: 0, paddingTop: 24, paddingBottom: 8 },
+  app: { flex: 1, minHeight: 0, backgroundColor: colors.white },
   appDesktop: { flexDirection: 'row', backgroundColor: colors.background },
   sidebar: {
+    alignSelf: 'stretch',
     width: 272,
     flexShrink: 0,
     paddingHorizontal: 24,
@@ -575,7 +581,7 @@ const styles = StyleSheet.create({
   sidebarBrand: { minHeight: 56, justifyContent: 'center', marginBottom: 36, paddingHorizontal: 8 },
   sidebarBrandText: { color: colors.white, fontSize: 18, lineHeight: 26, fontWeight: '800', letterSpacing: 0.2 },
   sidebarBrandAccent: { color: colors.accent },
-  sidebarStatus: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 'auto', paddingHorizontal: 12, paddingTop: 24 },
+  sidebarStatus: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 'auto', paddingHorizontal: 12, paddingTop: 24 },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   sidebarStatusText: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   header: { backgroundColor: colors.white },

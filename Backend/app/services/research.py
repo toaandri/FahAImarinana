@@ -87,6 +87,14 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
         [{"date": item["date"], "titre": item["titre"], "extrait": item["extrait"]} for item in results],
         key=lambda item: item["date"] or "",
     )
+    if language == 'en':
+        if not results:
+            return ('No certified document matches this question. '
+                    'Our journalists are still verifying this topic.'), citations, chronology
+        context = "\n".join(f"- {item['titre']}: {item['extrait']}" for item in results)
+        return (f"Found {len(results)} certified source(s).\nQuestion: {question}\n"
+                f"Sources (original language):\n{context}\n"
+                "This preliminary analysis must be reviewed by a journalist."), citations, chronology
     if not results:
         answer = ('Tsy misy antontan-taratasy voamarina mifanaraka amin’ity fanontaniana ity. '
                   'Mbola eo am-panamarinana izany ny mpanao gazety.' if language == 'mg' else (
