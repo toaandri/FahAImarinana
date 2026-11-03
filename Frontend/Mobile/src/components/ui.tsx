@@ -11,11 +11,11 @@ export { CredibilityRingCore as CredibilityRing };
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <View style={styles.logoRow}>
-      <Text style={[styles.logoText, compact && styles.logoTextCompact]}>FAH</Text>
+      <Text numberOfLines={1} style={[styles.logoText, compact && styles.logoTextCompact]}>FAH</Text>
       <View style={[styles.aiPill, compact && styles.aiPillCompact]}>
         <Text style={[styles.aiPillText, compact && styles.aiPillTextCompact]}>AI</Text>
       </View>
-      <Text style={[styles.logoText, compact && styles.logoTextCompact]}>MARINANA</Text>
+      <Text numberOfLines={1} style={[styles.logoText, compact && styles.logoTextCompact]}>MARINANA</Text>
     </View>
   );
 }
@@ -151,20 +151,20 @@ export function SimpleListRow({ label, value }: { label: string; value?: string 
 }
 
 const styles = StyleSheet.create({
-  logoRow: { flexDirection: 'row', alignItems: 'center' },
-  logoText: { color: '#fff', fontSize: 20, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Montserrat_800ExtraBold' },
-  logoTextCompact: { fontSize: 16 },
-  aiPill: { backgroundColor: palette.mint, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginHorizontal: 4 },
-  aiPillCompact: { paddingHorizontal: 5, paddingVertical: 2 },
-  aiPillText: { color: palette.ink, fontSize: 17, fontWeight: '800', fontFamily: 'Montserrat_800ExtraBold' },
-  aiPillTextCompact: { fontSize: 12 },
-  headerShell: { backgroundColor: palette.headerTint, borderBottomLeftRadius: 18, borderBottomRightRadius: 18, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerCenter: { flex: 1, alignItems: 'flex-start' },
+  logoRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
+  logoText: { color: palette.backgroundDeep, fontSize: 20, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Montserrat_800ExtraBold_Italic', flexShrink: 1 },
+  logoTextCompact: { fontSize: 20 },
+  aiPill: { backgroundColor: palette.backgroundDeep, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginHorizontal: 4 },
+  aiPillCompact: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9 },
+  aiPillText: { color: palette.mint, fontSize: 17, fontWeight: '800', fontStyle: 'italic', fontFamily: 'Montserrat_800ExtraBold_Italic' },
+  aiPillTextCompact: { fontSize: 21 },
+  headerShell: { minHeight: 64, backgroundColor: palette.headerTint, borderBottomWidth: 2, borderBottomColor: '#1688E8', borderBottomLeftRadius: 18, borderBottomRightRadius: 18, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  headerCenter: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
   headerTitle: { color: '#1b2d30', fontWeight: '700', fontFamily: 'Montserrat_700Bold_Italic' },
   backButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#263a40', alignItems: 'center', justifyContent: 'center' },
-  onlineWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.mint },
-  onlineText: { color: '#1c2b2e', fontSize: 11, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  onlineWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
+  onlineDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: palette.mint, borderWidth: 2, borderColor: palette.backgroundDeep },
+  onlineText: { color: palette.backgroundDeep, fontSize: 14, fontFamily: 'Montserrat_700Bold_Italic' },
   glassCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', overflow: 'hidden' },
   primaryButton: { backgroundColor: palette.mint, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   primaryButtonText: { color: palette.ink, fontSize: 16, fontFamily: 'Montserrat_700Bold_Italic' },
