@@ -16,6 +16,7 @@ import {
   type PressableProps,
 } from 'react-native';
 import { colors, spacing } from '../theme';
+import { authTypography } from './AuthBrand';
 import { useI18n } from './i18n';
 
 export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -462,7 +463,7 @@ export function Field({
     <View style={[styles.fieldGroup, style]}>
       {!underline ? <Text style={styles.fieldLabel}>{label}</Text> : null}
       <View style={[styles.inputWrap, multiline && styles.textAreaWrap, error && styles.inputError, focused && styles.inputFocused, underline && styles.underlineWrap]}>
-        {leadingIcon ? <Icon name={leadingIcon} color={colors.white} size={26} /> : null}
+        {leadingIcon ? <View style={styles.fieldIcon}><Icon name={leadingIcon} color={colors.white} size={24} /></View> : null}
         <TextInput
           accessibilityLabel={label}
           accessibilityHint={error}
@@ -481,7 +482,7 @@ export function Field({
         />
         {right}
       </View>
-      {error ? <Text style={styles.errorText} accessibilityLiveRegion="polite">{error}</Text> : null}
+      {error ? <Text style={[styles.errorText, underline && authTypography]} accessibilityLiveRegion="polite">{error}</Text> : null}
     </View>
   );
 }
@@ -683,7 +684,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   underlineWrap: { minHeight: 68, borderWidth: 0, borderBottomWidth: 2, borderRadius: 0, backgroundColor: 'transparent', paddingHorizontal: 0, gap: 16 },
-  underlineInput: { minHeight: 66, fontSize: 20, lineHeight: 28, fontWeight: '700', fontStyle: 'italic' },
+  fieldIcon: { width: 32, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  underlineInput: { ...authTypography, minHeight: 66, fontWeight: '700', paddingVertical: 20, includeFontPadding: false },
   inputError: { borderColor: '#FF8B8B' },
   inputFocused: { borderColor: colors.accent, borderWidth: 2 },
   input: { flex: 1, minHeight: 48, color: colors.white, fontSize: 16, lineHeight: 24, minWidth: 0, paddingVertical: 12 },

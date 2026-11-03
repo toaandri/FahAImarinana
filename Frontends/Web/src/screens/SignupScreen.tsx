@@ -3,6 +3,7 @@ import { Link, useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Field, Icon, InteractivePressable } from '../components/ui';
 import { colors } from '../theme';
+import { AuthBrand, authTypography } from '../components/AuthBrand';
 import { register } from '../services/api';
 import { useI18n } from '../components/i18n';
 
@@ -18,7 +19,6 @@ export default function SignupScreen() {
   const { t } = useI18n();
   const { width, height } = useWindowDimensions();
   const narrow = width < 360;
-  const wordSize = narrow ? 19 : width < 480 ? 26 : 34;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -63,11 +63,7 @@ export default function SignupScreen() {
         <View style={styles.form}>
           <Link href="/connexion" asChild>
             <InteractivePressable accessibilityRole="link" style={styles.brandLink}>
-              <View style={styles.logo} accessible accessibilityLabel="FAH AI MARINANA">
-                <Text style={[styles.logoWord, { fontSize: wordSize }]}>FAH</Text>
-                <Text style={[styles.logoWord, styles.logoAccent, { fontSize: wordSize * 1.54 }]}>AI</Text>
-                <Text style={[styles.logoWord, { fontSize: wordSize }]}>MARINANA</Text>
-              </View>
+              <AuthBrand />
             </InteractivePressable>
           </Link>
           <Text style={styles.heading} accessibilityRole="header">
@@ -147,19 +143,16 @@ const styles = StyleSheet.create({
   pageNarrow: { paddingHorizontal: 20, paddingTop: 16 },
   formCard: { width: '100%', maxWidth: 520 },
   form: { width: '100%' },
-  brandLink: { minHeight: 60, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  logo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  logoWord: { color: colors.white, fontWeight: '800', fontStyle: 'italic', letterSpacing: -1 },
-  logoAccent: { color: colors.accent },
-  heading: { color: colors.white, fontSize: 24, lineHeight: 32, fontWeight: '700', fontStyle: 'italic', marginBottom: 12 },
+  brandLink: { alignSelf: 'center', minHeight: 72, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  heading: { color: colors.white, ...authTypography, fontWeight: '700', fontStyle: 'italic', marginBottom: 12 },
   fields: { gap: 14 },
   field: { marginBottom: 0 },
   showPassword: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
   primaryButton: { minHeight: 56, flexDirection: 'row', gap: 10, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, marginTop: 10, borderRadius: 16, backgroundColor: colors.accent },
-  primaryButtonText: { flexShrink: 1, color: colors.deep, fontSize: 17, lineHeight: 25, fontWeight: '800', fontStyle: 'italic', textAlign: 'center' },
-  status: { color: '#FFD1D1', fontSize: 14, lineHeight: 21, marginTop: 10, textAlign: 'center' },
+  primaryButtonText: { flexShrink: 1, color: colors.deep, ...authTypography, fontWeight: '800', fontStyle: 'italic', textAlign: 'center' },
+  status: { color: '#FFD1D1', ...authTypography, marginTop: 10, textAlign: 'center' },
   account: { width: '100%', maxWidth: 520, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 4, marginTop: 'auto', paddingTop: 32 },
-  accountText: { color: colors.white, fontSize: 14, lineHeight: 22, fontWeight: '600', fontStyle: 'italic', textAlign: 'center' },
+  accountText: { color: colors.white, ...authTypography, fontWeight: '600', fontStyle: 'italic', textAlign: 'center' },
   textLinkHitbox: { minHeight: 44, justifyContent: 'center' },
-  link: { color: colors.accent, fontSize: 14, lineHeight: 22, fontWeight: '800', fontStyle: 'italic', textAlign: 'center' },
+  link: { color: colors.accent, ...authTypography, fontWeight: '800', fontStyle: 'italic', textAlign: 'center' },
 });
