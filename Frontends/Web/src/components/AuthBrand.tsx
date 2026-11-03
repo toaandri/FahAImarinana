@@ -3,14 +3,14 @@ import { colors } from '../theme';
 
 export const authTypography = { fontSize: 16, lineHeight: 24, fontStyle: 'italic' as const };
 
-export function AuthBrand() {
+export function AuthBrand({ size, textColor = colors.white }: { size?: number; textColor?: string } = {}) {
   const { width } = useWindowDimensions();
-  const wordSize = width < 360 ? 19 : width < 480 ? 26 : 34;
+  const wordSize = size ?? (width < 360 ? 19 : width < 480 ? 26 : 34);
   return (
-    <View accessible accessibilityLabel="FAH AI MARINANA" style={styles.logo}>
-      <Text style={[styles.word, { fontSize: wordSize, lineHeight: wordSize * 1.25 }]}>FAH</Text>
+    <View accessible accessibilityLabel="FAH AI MARINANA" style={[styles.logo, size !== undefined && { gap: 4 }]}>
+      <Text style={[styles.word, { color: textColor, fontSize: wordSize, lineHeight: wordSize * 1.25 }]}>FAH</Text>
       <Text style={[styles.word, styles.accent, { fontSize: wordSize * 1.54, lineHeight: wordSize * 1.54 * 1.25 }]}>AI</Text>
-      <Text style={[styles.word, { fontSize: wordSize, lineHeight: wordSize * 1.25 }]}>MARINANA</Text>
+      <Text style={[styles.word, { color: textColor, fontSize: wordSize, lineHeight: wordSize * 1.25 }]}>MARINANA</Text>
     </View>
   );
 }

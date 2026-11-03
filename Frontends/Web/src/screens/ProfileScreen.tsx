@@ -115,11 +115,11 @@ export default function ProfileScreen() {
               accessibilityState={{ disabled: loadingProfile || savingPhoto, busy: savingPhoto }}
               disabled={loadingProfile || savingPhoto}
               onPress={choosePhoto}
-              style={styles.avatar}
+              style={[styles.avatar, width >= 768 && styles.avatarLarge]}
             >
-              {photo ? <Image source={{ uri: photo }} accessibilityLabel={name} style={styles.avatarImage} resizeMode="cover" /> : <Icon name="account-outline" size={32} color={colors.deep} />}
+              {photo ? <Image source={{ uri: photo }} accessibilityLabel={name} style={styles.avatarImage} resizeMode="cover" /> : <Icon name="account-outline" size={48} color={colors.deep} />}
               <View style={styles.avatarCamera}>
-                {savingPhoto ? <ActivityIndicator size="small" color={colors.deep} /> : <Icon name="camera" size={12} color={colors.deep} />}
+                {savingPhoto ? <ActivityIndicator size="small" color={colors.deep} /> : <Icon name="camera" size={18} color={colors.deep} />}
               </View>
             </InteractivePressable>
             <Text style={styles.name}>{name}</Text>
@@ -225,10 +225,11 @@ const styles = StyleSheet.create({
   columns: { gap: spacing.xl },
   columnsDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
   profileCard: { flex: 1, minWidth: 0 },
-  identity: { alignItems: 'flex-start', gap: 20 },
-  avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
-  avatarImage: { width: 104, height: 104, borderRadius: 52 },
-  avatarCamera: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  identity: { alignItems: 'flex-start', gap: 24, paddingTop: 8, paddingBottom: 8 },
+  avatar: { alignSelf: 'center', width: 136, height: 136, borderRadius: 68, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
+  avatarLarge: { width: 160, height: 160, borderRadius: 80 },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 80 },
+  avatarCamera: { position: 'absolute', bottom: 2, right: 2, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   photoError: { color: '#ffd0d0', marginTop: 8, fontSize: 14 },
   name: { color: colors.white, fontSize: 20, lineHeight: 28, fontWeight: '700', flexShrink: 1 },
   emailRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 16 },

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
-import { authTypography } from './AuthBrand';
+import { AuthBrand, authTypography } from './AuthBrand';
 import { useI18n } from './i18n';
 
 export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -151,13 +151,7 @@ export function Icon({
 }
 
 export function Brand({ large = false, compact = false }: { large?: boolean; compact?: boolean }) {
-  return (
-    <Text style={[styles.brand, large && styles.brandLarge, compact && styles.brandCompact]}>
-      <Text style={[styles.brandText, large && styles.brandTextLarge]}>FAH </Text>
-      <Text style={styles.brandAccent}>AI</Text>
-      <Text style={[styles.brandText, large && styles.brandTextLarge]}> MARINANA</Text>
-    </Text>
-  );
+  return <AuthBrand size={large ? 28 : compact ? 15 : 19} textColor={large ? colors.white : colors.deep} />;
 }
 
 const navigation = [
@@ -311,9 +305,7 @@ export function AppShell({
         <View role="complementary" accessibilityLabel={t('navigation.sidebar')} style={[styles.sidebar, { paddingTop: 28 + insets.top, paddingBottom: 28 + insets.bottom }]}>
           <Link href="/" asChild accessibilityRole="link" accessibilityLabel={t('navigation.homeBrand')}>
             <InteractivePressable style={styles.sidebarBrand}>
-              <Text style={styles.sidebarBrandText}>
-                FAH <Text style={styles.sidebarBrandAccent}>AI</Text> MARINANA
-              </Text>
+              <AuthBrand size={18} />
             </InteractivePressable>
           </Link>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}><TopNav active={active} /></ScrollView>
@@ -579,8 +571,6 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255,255,255,0.08)',
   },
   sidebarBrand: { minHeight: 56, justifyContent: 'center', marginBottom: 36, paddingHorizontal: 8 },
-  sidebarBrandText: { color: colors.white, fontSize: 18, lineHeight: 26, fontWeight: '800', letterSpacing: 0.2 },
-  sidebarBrandAccent: { color: colors.accent },
   sidebarStatus: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 'auto', paddingHorizontal: 12, paddingTop: 24 },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   sidebarStatusText: { color: colors.muted, fontSize: 14, lineHeight: 20 },
@@ -602,12 +592,6 @@ const styles = StyleSheet.create({
   currentPageText: { color: colors.deep, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   menuToggle: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   mobileNavigation: { paddingTop: 12, paddingBottom: 20, backgroundColor: colors.deep, borderTopWidth: 1, borderTopColor: colors.border },
-  brand: { fontSize: 19, lineHeight: 26, fontWeight: '800', letterSpacing: 0.1 },
-  brandCompact: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
-  brandText: { color: colors.background },
-  brandTextLarge: { color: colors.accent },
-  brandAccent: { color: colors.accent },
-  brandLarge: { fontSize: 28, lineHeight: 36, marginBottom: 24 },
   nav: { gap: 28 },
   navSection: { gap: 10 },
   navSectionLabel: { color: '#A8BBC1', fontSize: 11, lineHeight: 16, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase', paddingHorizontal: 12, marginBottom: 2 },
