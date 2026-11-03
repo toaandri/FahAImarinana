@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { palette } from '@/theme/theme';
+import { LanguageProvider } from '@/i18n/LanguageProvider';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -17,9 +18,9 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <LanguageProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
-    </>
+    </LanguageProvider>
   );
 }

@@ -6,8 +6,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { HeaderBar, BottomTabs, GlassCard, TagChip } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { publishArticle } from '@/services/mockData';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 export default function PublierScreen() {
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('Politique');
@@ -22,7 +24,7 @@ export default function PublierScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes, quality: 0.9 });
       if (!result.canceled) setMedia(result.assets[0]);
     } catch (error) {
-      setMediaError(error instanceof Error ? error.message : 'Impossible d’ouvrir la galerie.');
+      setMediaError(error instanceof Error ? error.message : t('galleryError'));
     } finally {
       if (Platform.OS !== 'web') setMediaLoading(false);
     }
@@ -35,7 +37,7 @@ export default function PublierScreen() {
       if (Platform.OS !== 'web') {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
-          setMediaError('Autorisez l’accès à la caméra pour filmer une vidéo.');
+          setMediaError(t('cameraPermission'));
           return;
         }
       }
@@ -43,7 +45,7 @@ export default function PublierScreen() {
       const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'] });
       if (!result.canceled) setMedia(result.assets[0]);
     } catch (error) {
-      setMediaError(error instanceof Error ? error.message : 'Impossible d’ouvrir la caméra.');
+      setMediaError(error instanceof Error ? error.message : t('cameraError'));
     } finally {
       if (Platform.OS !== 'web') setMediaLoading(false);
     }
@@ -54,14 +56,19 @@ export default function PublierScreen() {
       <HeaderBar />
       <ScrollView contentContainerStyle={styles.content}>
         <GlassCard style={styles.titleCard}>
-          <Text style={styles.titleLabel}>Publier votre article</Text>
-          <Text style={styles.fieldLabel}>TITRE :</Text>
-          <TextInput value={title} onChangeText={setTitle} placeholder="Le titre de votre article" placeholderTextColor="rgba(255,255,255,0.5)" style={styles.titleInput} />
+          <Text style={styles.titleLabel}>{t('publishArticle')}</Text>
+          <Text style={styles.fieldLabel}>{t('titleLabel')}</Text>
+          <TextInput value={title} onChangeText={setTitle} placeholder={t('articleTitle')} placeholderTextColor="rgba(255,255,255,0.5)" style={styles.titleInput} />
 
           <View style={styles.chipRow}>
-            {['Politique', 'Société', 'Sport', 'Économie'].map((item) => (
-              <Pressable key={item} onPress={() => setCategory(item)}>
-                <TagChip label={item} active={category === item} small />
+            {([
+              { value: 'Politique', key: 'politics' },
+              { value: 'Société', key: 'society' },
+              { value: 'Sport', key: 'sport' },
+              { value: 'Économie', key: 'economy' },
+            ] as const).map((item) => (
+              <Pressable key={item.value} accessibilityRole="button" accessibilityState={{ selected: category === item.value }} onPress={() => setCategory(item.value)}>
+                <TagChip label={t(item.key)} active={category === item.value} small />
               </Pressable>
             ))}
           </View>
@@ -74,23 +81,25 @@ export default function PublierScreen() {
             ) : media?.type === 'video' ? (
               <View style={styles.videoPreview}>
                 <Ionicons name="videocam" size={28} color={palette.mint} />
-                <Text numberOfLines={1} style={styles.videoName}>{media.fileName || 'Vidéo sélectionnée'}</Text>
+                <Text numberOfLines={1} style={styles.videoName}>{media.fileName || t('selectedVideo')}</Text>
               </View>
             ) : null}
             {media ? <View pointerEvents="none" style={styles.mediaScrim} /> : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={media ? 'Remplacer le média' : 'Ajouter une photo ou une vidéo'}
-              disabled={mediaLoading}
-              style={styles.mediaButton}
-              onPress={() => pickMedia(['images', 'videos'])}
-            >
-              <Text style={styles.mediaPlus}>{mediaLoading ? '…' : '+'}</Text>
-            </Pressable>
+            <View pointerEvents="box-none" style={styles.mediaCenter}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={media ? t('replaceMedia') : t('addMedia')}
+                disabled={mediaLoading}
+                style={styles.mediaButton}
+                onPress={() => pickMedia(['images', 'videos'])}
+              >
+                <Text style={styles.mediaPlus}>{mediaLoading ? '…' : '+'}</Text>
+              </Pressable>
+            </View>
             {media ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Supprimer le média sélectionné"
+                accessibilityLabel={t('removeMedia')}
                 style={styles.removeMediaButton}
                 onPress={() => setMedia(null)}
               >
@@ -100,54 +109,54 @@ export default function PublierScreen() {
             <View style={styles.mediaActions}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Choisir une photo"
+                accessibilityLabel={t('choosePhoto')}
                 disabled={mediaLoading}
                 style={styles.mediaAction}
                 onPress={() => pickMedia(['images'])}
               >
                 <Ionicons name="image-outline" size={11} color="#fff" />
-                <Text style={styles.mediaActionText}>Photo</Text>
+                <Text style={styles.mediaActionText}>{t('photo')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Filmer une vidéo"
+                accessibilityLabel={t('recordVideo')}
                 disabled={mediaLoading}
                 style={styles.mediaAction}
                 onPress={recordVideo}
               >
                 <Ionicons name="videocam-outline" size={11} color="#fff" />
-                <Text style={styles.mediaActionText}>Filmer une vidéo</Text>
+                <Text style={styles.mediaActionText}>{t('recordVideo')}</Text>
               </Pressable>
             </View>
           </View>
           <View style={styles.mediaDetails}>
             <Text style={styles.credibility}>—%</Text>
-            <Text style={styles.credibilityLabel}>Crédibilité</Text>
-            <Text style={styles.source}>Source</Text>
+            <Text style={styles.credibilityLabel}>{t('credibility')}</Text>
+            <Text style={styles.source}>{t('source')}</Text>
           </View>
         </GlassCard>
         {mediaError ? <Text accessibilityRole="alert" style={styles.mediaError}>{mediaError}</Text> : null}
 
-        <Text style={styles.bodyLabel}>Votre article</Text>
-        <TextInput value={body} onChangeText={setBody} multiline placeholder="Écrivez ou collez votre article..." placeholderTextColor="rgba(255,255,255,0.5)" style={styles.bodyInput} />
+        <Text style={styles.bodyLabel}>{t('articleBody')}</Text>
+        <TextInput value={body} onChangeText={setBody} multiline placeholder={t('articlePlaceholder')} placeholderTextColor="rgba(255,255,255,0.5)" style={styles.bodyInput} />
 
         <Pressable
           style={styles.publishButton}
           onPress={async () => {
             if (!title.trim() || !body.trim()) {
-              Alert.alert('Article incomplet', 'Ajoutez un titre et un contenu.');
+              Alert.alert(t('incompleteArticle'), t('completeArticleHint'));
               return;
             }
             try {
               await publishArticle({ title: title.trim(), body: body.trim(), category });
-              Alert.alert('Article envoyé', 'Votre contribution a été transmise pour traitement éditorial.');
+              Alert.alert(t('articleSent'), t('articleSentMessage'));
               setTitle('');
               setBody('');
             } catch (error) {
-              Alert.alert('Envoi impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+              Alert.alert(t('sendFailed'), error instanceof Error ? error.message : t('unexpectedError'));
             }
           }}
-        ><Text style={styles.publishText}>PUBLIER</Text></Pressable>
+        ><Text style={styles.publishText}>{t('submitArticle')}</Text></Pressable>
       </ScrollView>
       <BottomTabs active="publier" />
     </SafeAreaView>
@@ -162,9 +171,10 @@ const styles = StyleSheet.create({
   fieldLabel: { color: palette.mint, fontSize: 10, fontFamily: 'Montserrat_700Bold_Italic' },
   titleInput: { borderBottomWidth: 1, borderBottomColor: palette.mint, color: '#fff', paddingBottom: 6, fontSize: 14, fontFamily: 'Montserrat_700Bold_Italic' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  mediaCard: { padding: 8, minHeight: 132, flexDirection: 'row', alignItems: 'stretch', gap: 10, marginTop: 10 },
+  mediaCard: { padding: 8, minHeight: 200, flexDirection: 'row', alignItems: 'stretch', gap: 10, marginTop: 10 },
   mediaPreview: { flex: 1, minWidth: 0, borderRadius: 12, backgroundColor: 'rgba(14,24,31,0.32)', justifyContent: 'space-between', padding: 8 },
-  mediaButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: palette.mint, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+  mediaCenter: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' },
+  mediaButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center' },
   mediaPlus: { color: '#0b2b2b', fontSize: 28, fontWeight: '800' },
   mediaImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 12 },
   mediaScrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 12, backgroundColor: 'rgba(14,24,31,0.28)' },

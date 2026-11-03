@@ -5,8 +5,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar, CredibilityRing } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { sendMessageToAI } from '@/services/mockData';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 export default function DiscussionScreen() {
+  const { t } = useLanguage();
   const { bottom } = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [answer, setAnswer] = useState('');
@@ -17,7 +19,7 @@ export default function DiscussionScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.messageRow}>
           <Text style={styles.avatar}>AI</Text>
-          <View style={styles.aiBubble}><Text style={styles.bubbleText}>Bonjour ! Envoyez-moi un texte, une photo ou une vidéo : je vérifie l’information.</Text></View>
+          <View style={styles.aiBubble}><Text style={styles.bubbleText}>{t('helloAI')}</Text></View>
         </View>
 
         <View style={styles.mediaRow}>
@@ -25,14 +27,14 @@ export default function DiscussionScreen() {
           <View style={styles.mediaThumb}><Ionicons name="play" size={20} color="#fff" /><Text style={styles.time}>0:24</Text></View>
         </View>
 
-        <View style={styles.userRow}><View style={styles.userBubble}><Text style={styles.userText}>Message de l’utilisateur</Text></View></View>
+        <View style={styles.userRow}><View style={styles.userBubble}><Text style={styles.userText}>{t('userMessage')}</Text></View></View>
 
         <View style={styles.resultCard}>
           <View style={styles.resultTop}>
             <CredibilityRing value={72} size={62} />
             <View style={styles.resultTextWrap}>
-              <Text style={styles.resultTitle}>Crédibilité moyenne</Text>
-              <Text style={styles.resultSummary}>{answer || 'Envoyez un message pour lancer la vérification.'}</Text>
+              <Text style={styles.resultTitle}>{t('averageCredibility')}</Text>
+              <Text style={styles.resultSummary}>{answer || t('sendMessageToVerify')}</Text>
             </View>
           </View>
           <View style={styles.tagRow}><Text style={styles.tag}>Source 1</Text><Text style={styles.tag}>Source 2</Text></View>
@@ -41,7 +43,7 @@ export default function DiscussionScreen() {
 
       <View style={[styles.inputBar, { bottom: Math.max(bottom, 12) + 8 }]}>
         <View style={styles.inputActions}><Ionicons name="image-outline" size={18} color="#fff" /><Ionicons name="videocam-outline" size={18} color="#fff" /></View>
-        <TextInput value={text} onChangeText={setText} placeholder="Écrire un message..." placeholderTextColor="rgba(255,255,255,0.55)" style={styles.input} />
+        <TextInput value={text} onChangeText={setText} placeholder={t('writeMessage')} placeholderTextColor="rgba(255,255,255,0.55)" style={styles.input} />
         <Pressable
           style={styles.sendButton}
           onPress={async () => {
@@ -51,7 +53,7 @@ export default function DiscussionScreen() {
               setAnswer(result.summary);
               setText('');
             } catch (error) {
-              Alert.alert('Vérification impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+              Alert.alert(t('verificationFailed'), error instanceof Error ? error.message : t('unexpectedError'));
             }
           }}
         ><Ionicons name="send" size={16} color="#0B2B2B" /></Pressable>

@@ -6,8 +6,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Logo } from '@/components/ui';
 import { palette, radius } from '@/theme/theme';
 import { login } from '@/services/mockData';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 export default function LoginScreen() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,11 +22,11 @@ export default function LoginScreen() {
     setPasswordError('');
 
     if (!email.includes('@')) {
-      setEmailError('Adresse email invalide');
+      setEmailError(t('invalidEmail'));
       valid = false;
     }
     if (password.length < 6) {
-      setPasswordError('Mot de passe invalide');
+      setPasswordError(t('invalidPassword'));
       valid = false;
     }
 
@@ -38,7 +40,7 @@ export default function LoginScreen() {
       await login(email, password);
       router.replace('/home' as any);
     } catch (error) {
-      Alert.alert('Connexion impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+      Alert.alert(t('loginFailed'), error instanceof Error ? error.message : t('unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -56,7 +58,7 @@ export default function LoginScreen() {
               value={email}
               onChangeText={setEmail}
               style={styles.input}
-              placeholder="Adresse email"
+              placeholder={t('email')}
               placeholderTextColor="rgba(255,255,255,0.5)"
               autoCapitalize="none"
               keyboardType="email-address"
@@ -72,7 +74,7 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               style={styles.input}
-              placeholder="Mot de passe"
+              placeholder={t('password')}
               secureTextEntry
               placeholderTextColor="rgba(255,255,255,0.5)"
             />
@@ -80,15 +82,15 @@ export default function LoginScreen() {
           {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
         </View>
 
-        <Text style={styles.link}>Mot de passe oublié ?</Text>
+        <Text style={styles.link}>{t('forgotPassword')}</Text>
 
         <Pressable style={[styles.primaryButton, loading && styles.primaryButtonDisabled]} onPress={handleLogin}>
-          <Text style={styles.primaryButtonText}>{loading ? 'CONNEXION...' : 'SE CONNECTER'}</Text>
+          <Text style={styles.primaryButtonText}>{loading ? t('loginLoading') : t('loginTitle')}</Text>
         </Pressable>
 
         <View style={styles.separatorWrap}>
           <View style={styles.separator} />
-          <Text style={styles.separatorText}>ou se connecter avec</Text>
+          <Text style={styles.separatorText}>{t('orLoginWith')}</Text>
           <View style={styles.separator} />
         </View>
 
@@ -98,7 +100,7 @@ export default function LoginScreen() {
           <Pressable style={styles.socialButton}><Ionicons name="logo-facebook" size={18} color="#fff" /><Text style={styles.socialText}>Facebook</Text></Pressable>
         </View>
 
-        <Text style={styles.footerText}>Vous n&apos;avez pas de compte ? <Text style={styles.footerLink}>Inscrivez-vous ici</Text></Text>
+        <Text style={styles.footerText}>{t('noAccount')} <Text style={styles.footerLink}>{t('signUp')}</Text></Text>
       </View>
     </SafeAreaView>
   );

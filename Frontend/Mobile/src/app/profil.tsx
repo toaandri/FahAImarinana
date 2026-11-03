@@ -1,31 +1,52 @@
 import { useEffect, useState } from 'react';
+<<<<<<< Updated upstream
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal, ActivityIndicator } from 'react-native';
+=======
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal } from 'react-native';
+>>>>>>> Stashed changes
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
+<<<<<<< Updated upstream
 import { getProfile, logout, saveProfilePhoto } from '@/services/mockData';
+=======
+import { getProfile, logout } from '@/services/mockData';
+import { useLanguage } from '@/i18n/LanguageProvider';
+>>>>>>> Stashed changes
 
 export default function ProfilScreen() {
-  const [profile, setProfile] = useState({ name: 'Nom de l’utilisateur', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: 0 });
+  const { language, persistenceFailed, setLanguage, t } = useLanguage();
+  const selectedLanguageName = t(language === 'fr' ? 'languageFrench' : language === 'en' ? 'languageEnglish' : 'languageMalagasy');
+  const languageLabel = t('languageSetting', { language: selectedLanguageName });
+  const [profile, setProfile] = useState({ name: '', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: 0 });
+  const displayName = profile.name || t('profileName');
+  const [profileError, setProfileError] = useState('');
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [photoNotice, setPhotoNotice] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
+<<<<<<< Updated upstream
     getProfile().then((saved) => {
       setProfile(saved);
       setProfilePhoto(saved.photo);
     }).catch((error) => {
       Alert.alert('Profil indisponible', error instanceof Error ? error.message : 'Une erreur est survenue.');
     }).finally(() => setLoadingProfile(false));
+=======
+    getProfile().then(setProfile).catch((error) => {
+      setProfileError(error instanceof Error ? error.message : '');
+    });
+>>>>>>> Stashed changes
   }, []);
 
   async function chooseProfilePhoto() {
@@ -51,9 +72,13 @@ export default function ProfilScreen() {
       setProfilePhoto(saved.photo);
       setPhotoNotice('Photo de profil enregistrée.');
     } catch (error) {
+<<<<<<< Updated upstream
       setPhotoError(error instanceof Error ? error.message : 'Impossible de sélectionner cette photo.');
     } finally {
       setSavingPhoto(false);
+=======
+      setPhotoError(error instanceof Error ? error.message : t('photoSelectFailed'));
+>>>>>>> Stashed changes
     }
   }
 
@@ -65,8 +90,8 @@ export default function ProfilScreen() {
       router.replace('/');
     } catch (error) {
       setLogoutError(error instanceof Error
-        ? `La session locale a été fermée, mais le serveur n’a pas confirmé la déconnexion : ${error.message}`
-        : 'La session locale a été fermée, mais le serveur n’a pas confirmé la déconnexion.');
+        ? t('logoutServerError', { error: error.message })
+        : t('logoutServerErrorGeneric'));
     } finally {
       setLoggingOut(false);
     }
@@ -80,7 +105,7 @@ export default function ProfilScreen() {
           <View style={styles.profileHeader}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={profilePhoto ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
+              accessibilityLabel={profilePhoto ? t('changeProfilePhoto') : t('addProfilePhoto')}
               onPress={chooseProfilePhoto}
               disabled={loadingProfile || savingPhoto}
               accessibilityState={{ disabled: loadingProfile || savingPhoto, busy: savingPhoto }}
@@ -89,44 +114,59 @@ export default function ProfilScreen() {
               {profilePhoto ? (
                 <Image source={{ uri: profilePhoto }} style={styles.avatarImage} />
               ) : (
-                <Text style={styles.avatar}>{profile.name.slice(0, 1).toUpperCase()}</Text>
+                <Text style={styles.avatar}>{displayName.slice(0, 1).toUpperCase()}</Text>
               )}
               <View style={styles.avatarCamera}>
                 {savingPhoto ? <ActivityIndicator size="small" color={palette.ink} /> : <Ionicons name="camera" size={12} color={palette.ink} />}
               </View>
             </Pressable>
             <View style={styles.identity}>
-              <Text style={styles.name}>{profile.name}</Text>
+              <Text style={styles.name}>{displayName}</Text>
               <Text style={styles.email}>{profile.email}</Text>
               <Pressable style={styles.outlineButton}>
                 <Ionicons name="create-outline" size={12} color="#fff" />
-                <Text style={styles.outlineText}>Modifier le profil</Text>
+                <Text style={styles.outlineText}>{t('editProfile')}</Text>
               </Pressable>
             </View>
           </View>
           <View style={styles.statsRow}>
-            <View style={styles.stat}><Text style={styles.statNumber}>{profile.publications}</Text><Text style={styles.statLabel}>Publications</Text></View>
-            <View style={styles.stat}><Text style={styles.statNumber}>{profile.verifications}</Text><Text style={styles.statLabel}>Vérifications</Text></View>
-            <View style={styles.stat}><Text style={styles.statNumber}>{profile.credibility}%</Text><Text style={styles.statLabel}>Crédibilité</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.publications}</Text><Text style={styles.statLabel}>{t('publications')}</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.verifications}</Text><Text style={styles.statLabel}>{t('verifications')}</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.credibility}%</Text><Text style={styles.statLabel}>{t('credibility')}</Text></View>
           </View>
         </GlassCard>
+        {profileError ? <Text accessibilityRole="alert" style={styles.photoError}>{t('profileUnavailable')}: {profileError}</Text> : null}
         {photoError ? <Text accessibilityRole="alert" style={styles.photoError}>{photoError}</Text> : null}
         {photoNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{photoNotice}</Text> : null}
 
         <GlassCard style={styles.menuCard}>
-          {[
-            ['Mes publications', 'document-text-outline'],
-            ['Historique des vérifications', 'time-outline'],
-            ['Notifications', 'notifications-outline'],
-            ['Langue : Français', 'language-outline'],
-            ['Paramètres', 'settings-outline'],
-          ].map(([label, icon]) => (
-            <Pressable key={label} style={styles.menuRow}>
-              <View style={styles.menuLeft}><Ionicons name={icon as any} size={18} color={palette.mint} /><Text style={styles.menuLabel}>{label}</Text></View>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
-            </Pressable>
-          ))}
+          <View style={styles.menuRow}>
+            <View style={styles.menuLeft}><Ionicons name="document-text-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('myPublications')}</Text></View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </View>
+          <View style={styles.menuRow}>
+            <View style={styles.menuLeft}><Ionicons name="time-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('verificationHistory')}</Text></View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </View>
+          <View style={styles.menuRow}>
+            <View style={styles.menuLeft}><Ionicons name="notifications-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('notifications')}</Text></View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={languageLabel}
+            onPress={() => setLanguagePickerOpen(true)}
+            style={styles.menuRow}
+          >
+            <View style={styles.menuLeft}><Ionicons name="language-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{languageLabel}</Text></View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </Pressable>
+          <View style={[styles.menuRow, styles.menuRowLast]}>
+            <View style={styles.menuLeft}><Ionicons name="settings-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('settings')}</Text></View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </View>
         </GlassCard>
+        {persistenceFailed ? <Text accessibilityRole="alert" style={styles.photoError}>{t('languageSaveFailed')}</Text> : null}
 
         <Pressable
           accessibilityRole="button"
@@ -137,7 +177,7 @@ export default function ProfilScreen() {
           }}
         >
           <Ionicons name="log-out-outline" size={18} color="#fff" />
-          <Text style={styles.disconnectText}>Se déconnecter</Text>
+          <Text style={styles.disconnectText}>{t('logout')}</Text>
         </Pressable>
       </ScrollView>
       <BottomTabs active="profil" />
@@ -153,16 +193,16 @@ export default function ProfilScreen() {
         <View style={styles.modalBackdrop}>
           <View
             accessibilityViewIsModal
-            accessibilityLabel={logoutError ? 'Déconnexion non confirmée' : 'Confirmer la déconnexion'}
+            accessibilityLabel={logoutError ? t('logoutNotConfirmed') : t('logoutTitle')}
             style={styles.confirmCard}
           >
-            <Text style={styles.confirmTitle}>{logoutError ? 'Déconnexion non confirmée' : 'Se déconnecter ?'}</Text>
+            <Text style={styles.confirmTitle}>{logoutError ? t('logoutNotConfirmed') : t('logoutTitle')}</Text>
             <Text style={styles.confirmMessage}>
-              {logoutError || 'Voulez-vous vraiment fermer votre session ?'}
+              {logoutError || t('logoutPrompt')}
             </Text>
             {logoutError ? (
               <Pressable style={[styles.confirmButton, styles.confirmButtonStandalone]} onPress={() => router.replace('/')}>
-                <Text style={styles.confirmButtonText}>Continuer</Text>
+                <Text style={styles.confirmButtonText}>{t('continue')}</Text>
               </Pressable>
             ) : (
               <View style={styles.confirmActions}>
@@ -172,7 +212,7 @@ export default function ProfilScreen() {
                   style={styles.cancelButton}
                   onPress={() => setConfirmLogout(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Annuler</Text>
+                  <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -180,10 +220,44 @@ export default function ProfilScreen() {
                   style={styles.confirmButton}
                   onPress={confirmAndLogout}
                 >
-                  <Text style={styles.confirmButtonText}>{loggingOut ? 'Déconnexion…' : 'Se déconnecter'}</Text>
+                  <Text style={styles.confirmButtonText}>{loggingOut ? t('loggingOut') : t('logout')}</Text>
                 </Pressable>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        transparent
+        visible={languagePickerOpen}
+        animationType="fade"
+        onRequestClose={() => setLanguagePickerOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View accessibilityViewIsModal accessibilityLabel={t('languageTitle')} style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>{t('languageTitle')}</Text>
+            {([
+              ['fr', 'languageFrench'],
+              ['en', 'languageEnglish'],
+              ['mg', 'languageMalagasy'],
+            ] as const).map(([code, labelKey]) => (
+              <Pressable
+                key={code}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: language === code }}
+                onPress={() => {
+                  setLanguagePickerOpen(false);
+                  void setLanguage(code);
+                }}
+                style={styles.languageOption}
+              >
+                <Text style={styles.languageOptionText}>{t(labelKey)}</Text>
+                {language === code ? <Ionicons name="checkmark" size={20} color={palette.mint} /> : null}
+              </Pressable>
+            ))}
+            <Pressable style={[styles.cancelButton, styles.languageCancel]} onPress={() => setLanguagePickerOpen(false)}>
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -213,6 +287,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 4, fontFamily: 'Montserrat_600SemiBold_Italic' },
   menuCard: { marginTop: 18, paddingHorizontal: 12 },
   menuRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.12)' },
+  menuRowLast: { borderBottomWidth: 0 },
   menuLeft: { flexDirection: 'row', alignItems: 'center' },
   menuLabel: { color: '#fff', marginLeft: 10, fontSize: 13, fontFamily: 'Montserrat_600SemiBold_Italic' },
   disconnectButton: { marginTop: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: palette.mint, borderRadius: 12, paddingVertical: 14 },
@@ -227,4 +302,7 @@ const styles = StyleSheet.create({
   confirmButton: { minHeight: 42, borderRadius: 12, backgroundColor: palette.mint, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   confirmButtonStandalone: { marginTop: 20 },
   confirmButtonText: { color: palette.ink, fontFamily: 'Montserrat_700Bold_Italic' },
+  languageOption: { minHeight: 48, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.12)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  languageOptionText: { color: '#fff', fontFamily: 'Montserrat_600SemiBold_Italic' },
+  languageCancel: { marginTop: 16, alignSelf: 'flex-end' },
 });

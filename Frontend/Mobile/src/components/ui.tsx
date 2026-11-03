@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { palette } from '@/theme/theme';
 import { CredibilityRing as CredibilityRingCore } from '@/components/CredibilityRing';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 export { CredibilityRingCore as CredibilityRing };
 
@@ -21,17 +22,18 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 }
 
 export function HeaderBar({ title, showBack = false }: { title?: string; showBack?: boolean }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.headerShell}>
       {showBack ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Retour" onPress={() => router.back()} style={styles.backButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('back')} onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={18} color="#fff" />
         </Pressable>
       ) : null}
       <View style={styles.headerCenter}>{title ? <Text style={styles.headerTitle}>{title}</Text> : <Logo compact />}</View>
       <View style={styles.onlineWrap}>
         <View style={styles.onlineDot} />
-        <Text style={styles.onlineText}>En ligne</Text>
+        <Text style={styles.onlineText}>{t('online')}</Text>
       </View>
     </View>
   );
@@ -59,11 +61,12 @@ export function TagChip({ label, active = false, small = false }: { label: strin
 
 export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'discussion' | 'publier' | 'profil' }) {
   const { bottom } = useSafeAreaInsets();
+  const { t } = useLanguage();
   const items = [
-    { key: 'home', label: 'Accueil', icon: 'home-outline', route: '/home' },
-    { key: 'actus', label: 'Actus', icon: 'newspaper-outline', route: '/actualites' },
-    { key: 'publier', label: 'Publier', icon: 'add-outline', route: '/publier' },
-    { key: 'profil', label: 'Profil', icon: 'person-outline', route: '/profil' },
+    { key: 'home', label: t('home'), icon: 'home-outline', route: '/home' },
+    { key: 'actus', label: t('news'), icon: 'newspaper-outline', route: '/actualites' },
+    { key: 'publier', label: t('publish'), icon: 'add-outline', route: '/publier' },
+    { key: 'profil', label: t('profile'), icon: 'person-outline', route: '/profil' },
   ] as const;
 
   return (
@@ -87,8 +90,8 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
       })}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Discuter avec l’IA"
-        accessibilityHint={active === 'discussion' ? 'Écran de discussion ouvert' : 'Ouvre la vérification avec l’IA'}
+        accessibilityLabel={t('discussWithAI')}
+        accessibilityHint={active === 'discussion' ? t('discussionOpen') : t('openVerification')}
         accessibilityState={{ selected: active === 'discussion' }}
         onPress={() => router.push('/discussion')}
         style={styles.centerTab}
@@ -117,6 +120,7 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
 }
 
 export function StoryCard({ title, source, credibility, image, label = 'Dernière information', onPress }: { title: string; source: string; credibility: number; image?: string; label?: string; onPress?: () => void }) {
+  const { t } = useLanguage();
   return (
     <Pressable onPress={onPress} style={styles.storyCard}>
       <View style={styles.storyContentRow}>
@@ -125,14 +129,14 @@ export function StoryCard({ title, source, credibility, image, label = 'Dernièr
           <View style={styles.storyImageScrim} />
           <View style={styles.storyBadge}><Text numberOfLines={1} style={styles.storyBadgeText}>{label}</Text></View>
           <Text numberOfLines={4} style={styles.storyImageTitle}>
-            <Text style={styles.storyTitleLabel}>TITRE :</Text>
+            <Text style={styles.storyTitleLabel}>{t('titleLabel')}</Text>
             {'\n'}{title}
           </Text>
         </View>
         <View style={styles.storyDetails}>
           <View style={styles.ringWrap}>
           <CredibilityRingCore value={credibility} size={40} />
-          <Text style={styles.credibilityCaption}>Crédibilité</Text>
+          <Text style={styles.credibilityCaption}>{t('credibility')}</Text>
           </View>
           <Text numberOfLines={2} style={styles.storySource}>{source}</Text>
         </View>

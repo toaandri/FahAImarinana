@@ -5,8 +5,10 @@ import { router } from 'expo-router';
 import { HeaderBar, GlassCard, BottomTabs, StoryCard } from '@/components/ui';
 import { getLatestNews, latestNews, type NewsItem } from '@/services/mockData';
 import { palette } from '@/theme/theme';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 export default function HomeScreen() {
+  const { t } = useLanguage();
   const [items, setItems] = useState<NewsItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDemo, setIsDemo] = useState(false);
@@ -44,7 +46,7 @@ export default function HomeScreen() {
           source={activeItem?.source ?? '2424.mg'}
           credibility={activeItem?.credibility ?? 85}
           image={activeItem?.image}
-          label={isDemo ? 'Exemples de démonstration' : 'Dernière information'}
+          label={isDemo ? t('demoExamples') : t('latestInformation')}
           onPress={() => router.push('/discussion' as any)}
         />
         {items.length > 1 ? (
@@ -53,7 +55,7 @@ export default function HomeScreen() {
               <Pressable
                 key={item.id}
                 accessibilityRole="tab"
-                accessibilityLabel={`Information ${index + 1} sur ${items.length}`}
+                accessibilityLabel={t('informationIndex', { current: index + 1, total: items.length })}
                 accessibilityState={{ selected: index === activeIndex }}
                 onPress={() => setActiveIndex(index)}
                 style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
@@ -64,16 +66,16 @@ export default function HomeScreen() {
 
         <GlassCard style={styles.talkCard}>
           <View style={styles.talkRow}>
-            <Text style={styles.bigText}>Discuter{"\n"}et vérifier vos informations</Text>
+            <Text style={styles.bigText}>{t('homeTalk')}</Text>
             <View style={styles.logoMiniWrap}><Text style={styles.logoMini}>FAH</Text><Text style={styles.aiMini}>AI</Text><Text style={styles.logoMini}>MARINANA</Text></View>
           </View>
           <Pressable style={styles.parlerButton} onPress={() => router.push('/discussion' as any)}>
-            <Text style={styles.parlerText}>Parler</Text>
+            <Text style={styles.parlerText}>{t('talk')}</Text>
           </Pressable>
         </GlassCard>
 
         <GlassCard style={styles.reportCard}>
-          <Text style={styles.reportTitle}>Reportage</Text>
+          <Text style={styles.reportTitle}>{t('report')}</Text>
           <Pressable style={styles.cameraButton} onPress={() => router.push('/direct' as any)}>
             <Text style={styles.cameraIcon}>◉</Text>
           </Pressable>
