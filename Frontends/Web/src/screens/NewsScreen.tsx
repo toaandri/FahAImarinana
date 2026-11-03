@@ -151,11 +151,7 @@ const styles = StyleSheet.create({
   storyText: { minWidth: 0 },
   source: { color: colors.background, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 8 },
   title: { color: colors.background, fontSize: 18, lineHeight: 26, fontWeight: '700' },
-<<<<<<< Updated upstream
   titleMobile: { fontSize: 18, lineHeight: 27 },
-=======
   excerpt: { color: colors.background, fontSize: 15, lineHeight: 22, marginTop: 8 },
-  titleMobile: { fontSize: 16, lineHeight: 24 },
->>>>>>> Stashed changes
   empty: { color: colors.muted, fontSize: 16, lineHeight: 24 },
 });
