@@ -146,6 +146,19 @@ export async function login(email: string, password: string) {
   return { ok: true };
 }
 
+export async function register(email: string, password: string, invitationToken: string) {
+  const tokens = await apiRequest<{ access_token: string; refresh_token: string }>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      mot_de_passe: password,
+      invitation_token: invitationToken,
+    }),
+  });
+  setTokens(tokens);
+  return { ok: true };
+}
+
 export async function sendMessageToAI(message: string, language?: ResponseLanguage) {
   const answer = await apiRequest<{
     reponse: string;

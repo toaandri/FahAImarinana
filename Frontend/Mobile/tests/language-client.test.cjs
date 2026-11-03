@@ -18,6 +18,29 @@ function load(filename, modules, globals = {}) {
   return module.exports;
 }
 
+test('mobile registers with the invitation token and stores the returned session', async () => {
+  const calls = [];
+  const tokens = [];
+  const service = load(path.join(__dirname, '../src/services/mockData.ts'), {
+    './api': {
+      apiRequest: async (route, init) => {
+        calls.push({ route, body: JSON.parse(init.body) });
+        return { access_token: 'access-session', refresh_token: 'refresh-session' };
+      },
+      clearTokens() {},
+      setTokens: (value) => tokens.push(value),
+    },
+  });
+
+  await service.register('user@example.test', 'password123', 'invite-code');
+
+  assert.deepEqual(calls, [{
+    route: '/auth/register',
+    body: { email: 'user@example.test', mot_de_passe: 'password123', invitation_token: 'invite-code' },
+  }]);
+  assert.deepEqual(tokens, [{ access_token: 'access-session', refresh_token: 'refresh-session' }]);
+});
+
 test('mobile forwards the chosen language and keeps source references without inventing a confidence score', async () => {
   const calls = [];
   const service = load(path.join(__dirname, '../src/services/mockData.ts'), {

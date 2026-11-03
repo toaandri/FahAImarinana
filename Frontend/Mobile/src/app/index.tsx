@@ -1,46 +1,45 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Logo } from '@/components/ui';
-import { palette, radius } from '@/theme/theme';
+import { Logo } from '@/components/Logo';
+import { palette } from '@/theme/theme';
 import { login } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
 
+const socialProviders = [
+  { label: 'Google', icon: 'logo-google' },
+  { label: 'Apple', icon: 'logo-apple' },
+  { label: 'Facebook', icon: 'logo-facebook' },
+] as const;
+
 export default function LoginScreen() {
   const { t } = useLanguage();
+  const { width, height } = useWindowDimensions();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-
-  const validate = () => {
-    let valid = true;
-    setEmailError('');
-    setPasswordError('');
-
-    if (!email.includes('@')) {
-      setEmailError(t('invalidEmail'));
-      valid = false;
-    }
-    if (password.length < 6) {
-      setPasswordError(t('invalidPassword'));
-      valid = false;
-    }
-
-    return valid;
-  };
+  const [status, setStatus] = useState('');
 
   const handleLogin = async () => {
-    if (!validate()) return;
+    const normalizedEmail = email.trim();
+    const nextEmailError = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ? '' : t('invalidEmail');
+    const nextPasswordError = password.length >= 8 ? '' : t('invalidPassword');
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+    setStatus('');
+    if (nextEmailError || nextPasswordError || loading) return;
+
     setLoading(true);
     try {
-      await login(email, password);
-      router.replace('/home' as any);
+      await login(normalizedEmail, password);
+      router.replace('/home');
     } catch (error) {
-      Alert.alert(t('loginFailed'), error instanceof Error ? error.message : t('unexpectedError'));
+      setStatus(error instanceof Error ? error.message : t('loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -48,173 +47,159 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.container}>
-        <View style={styles.logoWrap}><Logo /></View>
+      <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: Math.min(140, height * 0.17) },
+            width < 360 && styles.contentNarrow,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.main}>
+            <View style={styles.logoWrap}>
+              <Logo compact={width < 340} />
+            </View>
 
-        <View style={styles.fieldWrap}>
-          <View style={styles.inputRow}>
-            <Ionicons name="mail-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              style={styles.input}
-              placeholder={t('email')}
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
+            <View style={styles.form}>
+              <View style={styles.fieldWrap}>
+                <View style={[styles.inputRow, emailError ? styles.inputRowError : null]}>
+                  <Ionicons name="mail-outline" size={24} color={palette.text} accessibilityElementsHidden importantForAccessibility="no" />
+                  <TextInput
+                    value={email}
+                    onChangeText={(value) => { setEmail(value); setEmailError(''); setStatus(''); }}
+                    style={styles.input}
+                    placeholder={t('email')}
+                    placeholderTextColor={palette.textMuted}
+                    accessibilityLabel={t('email')}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    textContentType="emailAddress"
+                    autoComplete="email"
+                    returnKeyType="next"
+                    underlineColorAndroid="transparent"
+                  />
+                </View>
+                {emailError ? <Text style={styles.error} accessibilityRole="alert">{emailError}</Text> : null}
+              </View>
+
+              <View style={styles.fieldWrap}>
+                <View style={[styles.inputRow, passwordError ? styles.inputRowError : null]}>
+                  <Ionicons name="lock-closed-outline" size={24} color={palette.text} accessibilityElementsHidden importantForAccessibility="no" />
+                  <TextInput
+                    value={password}
+                    onChangeText={(value) => { setPassword(value); setPasswordError(''); setStatus(''); }}
+                    style={styles.input}
+                    placeholder={t('password')}
+                    placeholderTextColor={palette.textMuted}
+                    accessibilityLabel={t('password')}
+                    secureTextEntry={!showPassword}
+                    textContentType="password"
+                    autoComplete="current-password"
+                    returnKeyType="go"
+                    onSubmitEditing={() => { void handleLogin(); }}
+                    underlineColorAndroid="transparent"
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t(showPassword ? 'hidePassword' : 'showPassword')}
+                    onPress={() => setShowPassword((shown) => !shown)}
+                    hitSlop={8}
+                    style={styles.passwordToggle}
+                  >
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={palette.textMuted} />
+                  </Pressable>
+                </View>
+                {passwordError ? <Text style={styles.error} accessibilityRole="alert">{passwordError}</Text> : null}
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => Alert.alert(t('forgotPassword'), t('recoveryUnavailable'))}
+                style={styles.forgotButton}
+              >
+                <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading, busy: loading }}
+                disabled={loading}
+                onPress={() => { void handleLogin(); }}
+                style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed, loading && styles.primaryButtonDisabled]}
+              >
+                <Text style={styles.primaryButtonText}>{loading ? t('loginLoading') : t('loginTitle')}</Text>
+              </Pressable>
+              {status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="assertive">{status}</Text> : null}
+
+              <View style={styles.separatorWrap}>
+                <View style={styles.separator} />
+                <Text style={styles.separatorText}>{t('orLoginWith')}</Text>
+                <View style={styles.separator} />
+              </View>
+
+              <View style={styles.socialRow}>
+                {socialProviders.map((provider) => (
+                  <Pressable
+                    key={provider.label}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t('continueWith')} ${provider.label}`}
+                    onPress={() => Alert.alert(provider.label, t('socialNotConfigured', { provider: provider.label }))}
+                    style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed, width < 360 && styles.socialButtonNarrow]}
+                  >
+                    <Ionicons name={provider.icon} size={22} color={palette.text} />
+                    <Text style={[styles.socialText, width < 360 && styles.socialTextNarrow]}>{provider.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
           </View>
-          {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
-        </View>
 
-        <View style={styles.fieldWrap}>
-          <View style={styles.inputRow}>
-            <Ionicons name="lock-closed-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              style={styles.input}
-              placeholder={t('password')}
-              secureTextEntry
-              placeholderTextColor="rgba(255,255,255,0.5)"
-            />
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{t('noAccount')}</Text>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/inscription')} hitSlop={8}>
+              <Text style={styles.footerLink}>{t('signUp')}</Text>
+            </Pressable>
           </View>
-          {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
-        </View>
-
-        <Text style={styles.link}>{t('forgotPassword')}</Text>
-
-        <Pressable style={[styles.primaryButton, loading && styles.primaryButtonDisabled]} onPress={handleLogin}>
-          <Text style={styles.primaryButtonText}>{loading ? t('loginLoading') : t('loginTitle')}</Text>
-        </Pressable>
-
-        <View style={styles.separatorWrap}>
-          <View style={styles.separator} />
-          <Text style={styles.separatorText}>{t('orLoginWith')}</Text>
-          <View style={styles.separator} />
-        </View>
-
-        <View style={styles.socialRow}>
-          <Pressable style={styles.socialButton}><Ionicons name="logo-google" size={18} color="#fff" /><Text style={styles.socialText}>Google</Text></Pressable>
-          <Pressable style={styles.socialButton}><Ionicons name="logo-apple" size={18} color="#fff" /><Text style={styles.socialText}>Apple</Text></Pressable>
-          <Pressable style={styles.socialButton}><Ionicons name="logo-facebook" size={18} color="#fff" /><Text style={styles.socialText}>Facebook</Text></Pressable>
-        </View>
-
-        <Text style={styles.footerText}>{t('noAccount')} <Text style={styles.footerLink}>{t('signUp')}</Text></Text>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: palette.background,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-  },
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  fieldWrap: {
-    marginBottom: 10,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.5)',
-    paddingBottom: 10,
-  },
-  input: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 14,
-    marginLeft: 10,
-    fontStyle: 'italic',
-    fontFamily: 'Montserrat_600SemiBold_Italic',
-  },
-  link: {
-    alignSelf: 'flex-end',
-    color: palette.mint,
-    fontSize: 12,
-    marginTop: 8,
-    marginBottom: 18,
-    fontFamily: 'Montserrat_600SemiBold_Italic',
-  },
-  primaryButton: {
-    backgroundColor: palette.mint,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.8,
-  },
-  primaryButtonText: {
-    color: palette.ink,
-    fontSize: 16,
-    fontWeight: '800',
-    fontFamily: 'Montserrat_700Bold_Italic',
-    letterSpacing: 0.5,
-  },
-  separatorWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  separator: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  separatorText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    marginHorizontal: 12,
-    fontFamily: 'Montserrat_600SemiBold_Italic',
-  },
-  socialRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  socialButton: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  socialText: {
-    color: '#fff',
-    fontSize: 12,
-    marginLeft: 6,
-    fontFamily: 'Montserrat_600SemiBold_Italic',
-  },
-  footerText: {
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'Montserrat_600SemiBold_Italic',
-  },
-  footerLink: {
-    color: palette.mint,
-  },
-  error: {
-    color: '#ff8b8b',
-    fontSize: 10,
-    marginTop: 6,
-    marginLeft: 26,
-  },
+  screen: { flex: 1, backgroundColor: '#37515E' },
+  keyboard: { flex: 1 },
+  content: { flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 32, paddingBottom: 12 },
+  contentNarrow: { paddingHorizontal: 20 },
+  main: { width: '100%', maxWidth: 520, alignSelf: 'center' },
+  logoWrap: { minHeight: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 48 },
+  form: { width: '100%' },
+  fieldWrap: { marginBottom: 20 },
+  inputRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 16, borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.55)' },
+  inputRowError: { borderBottomColor: '#FF8B8B' },
+  input: { flex: 1, minWidth: 0, color: palette.text, fontSize: 17, paddingVertical: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  passwordToggle: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  error: { color: '#FFD1D1', fontSize: 12, lineHeight: 18, marginTop: 6 },
+  forgotButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', marginTop: -12, marginBottom: 16 },
+  forgotText: { color: palette.mint, fontSize: 14, fontFamily: 'Montserrat_700Bold_Italic' },
+  primaryButton: { minHeight: 58, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, borderRadius: 16, backgroundColor: palette.mint, shadowColor: palette.mint, shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
+  primaryButtonPressed: { opacity: 0.84 },
+  primaryButtonDisabled: { opacity: 0.65 },
+  primaryButtonText: { color: palette.ink, fontSize: 18, fontWeight: '800', fontFamily: 'Montserrat_700Bold_Italic' },
+  status: { color: '#FFD1D1', fontSize: 13, lineHeight: 20, marginTop: 10, textAlign: 'center' },
+  separatorWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 16 },
+  separator: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.45)' },
+  separatorText: { color: palette.text, fontSize: 13, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  socialRow: { flexDirection: 'row', gap: 10 },
+  socialButton: { flex: 1, minWidth: 0, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 6, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.42)', backgroundColor: 'rgba(255,255,255,0.08)' },
+  socialButtonPressed: { backgroundColor: 'rgba(255,255,255,0.16)' },
+  socialButtonNarrow: { gap: 4, paddingHorizontal: 3 },
+  socialText: { color: palette.text, fontSize: 13, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  socialTextNarrow: { fontSize: 11 },
+  footer: { width: '100%', maxWidth: 520, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingTop: 28 },
+  footerText: { color: palette.text, fontSize: 14, fontFamily: 'Montserrat_600SemiBold_Italic', textAlign: 'center' },
+  footerLink: { color: palette.mint, fontSize: 14, fontFamily: 'Montserrat_700Bold_Italic', textAlign: 'center' },
 });
