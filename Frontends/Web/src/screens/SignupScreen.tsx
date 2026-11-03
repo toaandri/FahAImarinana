@@ -84,6 +84,7 @@ export default function SignupScreen() {
               placeholder="Votre code d’invitation"
               error={errors.invitationToken}
               autoCapitalize="none"
+              style={styles.field}
             />
             <Field
               label="Adresse email"
@@ -93,6 +94,7 @@ export default function SignupScreen() {
               error={errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
+              style={styles.field}
             />
             <Field
               label="Mot de passe"
@@ -102,6 +104,7 @@ export default function SignupScreen() {
               error={errors.password}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              style={styles.field}
               right={
                 <InteractivePressable
                   accessibilityRole="button"
@@ -122,6 +125,7 @@ export default function SignupScreen() {
               error={errors.passwordConfirmation}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              style={styles.field}
             />
             <PrimaryButton
               label="S’INSCRIRE"
@@ -156,7 +160,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 36,
+    paddingVertical: 8,
   },
   formCard: {
     width: '100%',
@@ -168,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   cardAccent: { height: 4, backgroundColor: colors.accent },
-  form: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 },
+  form: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
   formNarrow: { paddingHorizontal: 16 },
   brandLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   heading: {
@@ -176,23 +180,24 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 34,
     fontWeight: '700',
-    marginTop: 12,
-    marginBottom: 20,
+    marginTop: 6,
+    marginBottom: 8,
   },
-  headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 16 },
+  headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 8 },
   invitationNotice: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    padding: 12,
-    marginBottom: 20,
+    padding: 8,
+    marginBottom: 8,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.deep,
   },
   noticeText: { flex: 1, color: colors.muted, fontSize: 14, lineHeight: 20 },
-  fields: { gap: 8 },
+  fields: { gap: 2 },
+  field: { marginBottom: 2 },
   showPassword: {
     minHeight: 44,
     minWidth: 80,
@@ -213,7 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.deep,
   },
-  account: { marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
+  account: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
   accountText: { color: colors.white, fontSize: 15, lineHeight: 22 },
   textLinkHitbox: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   link: { color: colors.accent, fontSize: 15, lineHeight: 21, fontWeight: '700' },

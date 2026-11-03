@@ -272,9 +272,11 @@ function MobileNavigation({
 export function AppShell({
   active,
   children,
+  fillHeight = false,
 }: {
   active: string;
   children: ReactNode;
+  fillHeight?: boolean;
 }) {
   const { width } = useWindowDimensions();
   const desktop = width >= 1200;
@@ -345,7 +347,11 @@ export function AppShell({
       <ScrollView
         role="main"
         style={[styles.page, desktop && styles.pageDesktop]}
-        contentContainerStyle={[styles.pageInner, { paddingHorizontal: horizontalPadding }]}
+        contentContainerStyle={[
+          styles.pageInner,
+          fillHeight && styles.pageInnerFill,
+          { paddingHorizontal: horizontalPadding },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {children}
@@ -624,6 +630,7 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 48,
   },
+  pageInnerFill: { flexGrow: 1, paddingBottom: 92 },
   pageTitle: { color: colors.white, fontSize: 32, lineHeight: 40, fontWeight: '700', marginBottom: 24 },
   pageTitleTablet: { fontSize: 28, lineHeight: 36 },
   pageTitleMobile: { fontSize: 26, lineHeight: 34 },

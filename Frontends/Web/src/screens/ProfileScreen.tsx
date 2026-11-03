@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [photoNotice, setPhotoNotice] = useState('');
   const [language, setLanguage] = useState<ResponseLanguage>('auto');
@@ -84,6 +85,23 @@ export default function ProfileScreen() {
   const saveProfile = () => {
     setEditing(false);
     setNotice('Modifications conservées dans cette session. La sauvegarde du profil n’est pas encore connectée.');
+  };
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.replace('/connexion');
+    } catch (error) {
+      const details = error instanceof Error ? error.message : 'Le serveur n’a pas confirmé la déconnexion.';
+      router.replace({
+        pathname: '/connexion',
+        params: { status: `La session locale a été fermée, mais la déconnexion serveur n’a pas été confirmée. ${details}` },
+      });
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -150,7 +168,8 @@ export default function ProfileScreen() {
             label="Se déconnecter"
             icon="logout"
             outline
-            onPress={async () => { await logout(); router.replace('/connexion'); }}
+            loading={loggingOut}
+            onPress={() => void handleLogout()}
           />
           {notice ? <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text> : null}
         </View>

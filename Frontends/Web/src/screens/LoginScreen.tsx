@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
 import { colors } from '../theme';
@@ -14,6 +14,7 @@ const socialProviders = [
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { status: routeStatus } = useLocalSearchParams<{ status?: string | string[] }>();
   const { width } = useWindowDimensions();
   const narrow = width < 360;
   const horizontalPadding = narrow ? 16 : 24;
@@ -21,7 +22,9 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; status?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; status?: string }>(() => ({
+    status: Array.isArray(routeStatus) ? routeStatus[0] : routeStatus,
+  }));
 
   const submit = async () => {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -67,6 +70,7 @@ export default function LoginScreen() {
               error={errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
+              style={styles.field}
             />
             {mode !== 'recovery' ? (
               <Field
@@ -76,6 +80,7 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 error={errors.password}
                 secureTextEntry={!showPassword}
+                style={styles.field}
                 right={
                   <InteractivePressable
                     accessibilityRole="button"
@@ -148,19 +153,20 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flexGrow: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 36 },
+  page: { flexGrow: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8 },
   formCard: { width: '100%', maxWidth: 440, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   cardAccent: { height: 4, backgroundColor: colors.accent },
-  form: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 },
+  form: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
   brandLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
-  heading: { color: colors.white, fontSize: 26, lineHeight: 34, fontWeight: '700', marginTop: 12, marginBottom: 28 },
-  headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 20 },
-  fields: { gap: 8 },
+  heading: { color: colors.white, fontSize: 26, lineHeight: 34, fontWeight: '700', marginTop: 6, marginBottom: 16 },
+  headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 10 },
+  fields: { gap: 2 },
+  field: { marginBottom: 2 },
   textLinkHitbox: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   link: { color: colors.accent, fontSize: 15, lineHeight: 21, fontWeight: '700' },
   showPassword: { minHeight: 44, minWidth: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   showPasswordText: { color: colors.muted, fontSize: 13 },
-  socialDivider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 18 },
+  socialDivider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12, marginBottom: 8 },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
   socialIntro: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   socials: { flexDirection: 'row', gap: 10 },
@@ -168,7 +174,7 @@ const styles = StyleSheet.create({
   socialButton: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingHorizontal: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.deep },
   socialButtonNarrow: { flexBasis: '45%' },
   socialText: { color: colors.white, fontSize: 14, fontWeight: '700' },
-  account: { marginTop: 32, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
+  account: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
   accountText: { color: colors.white, fontSize: 15, lineHeight: 22 },
   status: { color: '#FFD1D1', fontSize: 14, lineHeight: 20, marginTop: 8, padding: 12, borderWidth: 1, borderColor: '#FF8B8B', borderRadius: 10, backgroundColor: colors.deep },
 });
