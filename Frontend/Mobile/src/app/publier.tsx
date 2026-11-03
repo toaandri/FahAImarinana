@@ -199,6 +199,6 @@ const styles = StyleSheet.create({
   source: { color: '#fff', backgroundColor: 'rgba(14,24,31,0.48)', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 10, fontSize: 8, fontFamily: 'Montserrat_600SemiBold_Italic' },
   bodyLabel: { color: '#fff', fontSize: 13, fontFamily: 'Montserrat_700Bold_Italic', marginTop: 10, marginBottom: 6 },
   bodyInput: { minHeight: 150, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', padding: 12, color: '#fff', textAlignVertical: 'top', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
-  publishButton: { marginTop: 20, backgroundColor: palette.mint, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  publishText: { color: '#0b2b2b', fontSize: 18, fontFamily: 'Montserrat_700Bold_Italic' },
+  publishButton: { minHeight: 58, marginTop: 20, backgroundColor: palette.mint, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  publishText: { width: '100%', color: '#0b2b2b', fontSize: 18, textAlign: 'center', flexShrink: 1, fontFamily: 'Montserrat_700Bold_Italic' },
 });
