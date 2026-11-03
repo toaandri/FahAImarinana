@@ -3,16 +3,22 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { HeaderBar, GlassCard, BottomTabs, StoryCard } from '@/components/ui';
-import { getLatestNews, type NewsItem } from '@/services/mockData';
+import { getLatestNews, latestNews, type NewsItem } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 
 export default function HomeScreen() {
   const [items, setItems] = useState<NewsItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     getLatestNews().then((news) => {
-      setItems(news);
+      setItems(news.length ? news : latestNews);
+      setIsDemo(news.length === 0);
+      setActiveIndex(0);
+    }).catch(() => {
+      setItems(latestNews);
+      setIsDemo(true);
       setActiveIndex(0);
     });
   }, []);
@@ -38,6 +44,7 @@ export default function HomeScreen() {
           source={activeItem?.source ?? '2424.mg'}
           credibility={activeItem?.credibility ?? 85}
           image={activeItem?.image}
+          label={isDemo ? 'Exemples de démonstration' : 'Dernière information'}
           onPress={() => router.push('/discussion' as any)}
         />
         {items.length > 1 ? (
