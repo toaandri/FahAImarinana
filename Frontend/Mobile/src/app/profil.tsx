@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, ActivityIndicator, TextInput, KeyboardAvoidingView, Keyboard, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,8 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { getNotifications, getProfile, logout, saveProfilePhoto, saveResponseLanguage, updateProfile, type ResponseLanguage } from '@/services/mockData';
-import { LanguageSelector } from '@/components/LanguageSelector';
+import { getNotifications, getProfile, logout, saveProfilePhoto, updateProfile } from '@/services/mockData';
 
 export default function ProfilScreen() {
   const { language, persistenceFailed, setLanguage, t } = useLanguage();
@@ -26,12 +25,11 @@ export default function ProfilScreen() {
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
-  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>('auto');
-  const [savingLanguage, setSavingLanguage] = useState(false);
-  const [languageNotice, setLanguageNotice] = useState('');
+  const [menuNotice, setMenuNotice] = useState('');
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [notifications, setNotifications] = useState<{ title: string; message: string }[]>([]);
 
   useFocusEffect(useCallback(() => {
@@ -44,7 +42,6 @@ export default function ProfilScreen() {
       setNameDraft(saved.name);
       setEmailDraft(saved.email);
       setProfilePhoto(saved.photo);
-      setResponseLanguage(saved.language);
       getNotifications().then((items) => { if (active) setNotifications(items); }).catch(() => undefined);
     }).catch((error) => {
       if (!active) return;
@@ -53,27 +50,19 @@ export default function ProfilScreen() {
     return () => { active = false; };
   }, [t]));
 
-  async function changeLanguage(value: ResponseLanguage) {
-    setSavingLanguage(true);
-    setLanguageNotice('');
-    try {
-      const saved = await saveResponseLanguage(value);
-      setResponseLanguage(saved.language);
-      setLanguageNotice(t('aiLanguageSaved'));
-    } catch (error) {
-      setLanguageNotice(error instanceof Error ? error.message : t('aiLanguageSaveFailed'));
-    } finally {
-      setSavingLanguage(false);
-    }
-  }
-
   async function saveAccountProfile() {
+    if (savingProfile) return;
+    setSavingProfile(true);
+    setProfileError('');
     try {
       const saved = await updateProfile(nameDraft.trim(), emailDraft.trim());
       setProfile((current) => ({ ...current, name: saved.name, email: saved.email }));
       setEditing(false);
+      Keyboard.dismiss();
     } catch (error) {
       setProfileError(error instanceof Error ? error.message : t('unexpectedError'));
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -124,7 +113,11 @@ export default function ProfilScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <HeaderBar />
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <GlassCard style={styles.profileCard}>
           <View style={styles.profileHeader}>
             <Pressable
@@ -147,19 +140,61 @@ export default function ProfilScreen() {
             <View style={styles.identity}>
               <Text style={styles.name}>{displayName}</Text>
               <Text style={styles.email}>{profile.email}</Text>
-              <Pressable style={styles.outlineButton} onPress={() => setEditing((value) => !value)}>
-                <Ionicons name="create-outline" size={12} color="#fff" />
-                <Text style={styles.outlineText}>{t('editProfile')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={savingProfile}
+                accessibilityState={{ disabled: savingProfile }}
+                style={styles.outlineButton}
+                onPress={() => {
+                  if (editing) {
+                    setNameDraft(profile.name);
+                    setEmailDraft(profile.email);
+                    Keyboard.dismiss();
+                  }
+                  setEditing((value) => !value);
+                }}
+              >
+                <Ionicons name={editing ? 'close-outline' : 'create-outline'} size={12} color="#fff" />
+                <Text style={styles.outlineText}>{editing ? t('cancel') : t('editProfile')}</Text>
               </Pressable>
             </View>
-            {editing ? <View style={styles.editForm}>
-              <TextInput value={nameDraft} onChangeText={setNameDraft} placeholder={t('profileName')} style={styles.editInput} />
-              <TextInput value={emailDraft} onChangeText={setEmailDraft} keyboardType="email-address" autoCapitalize="none" style={styles.editInput} />
-              <Pressable style={styles.outlineButton} onPress={() => { void saveAccountProfile(); }}>
-                <Text style={styles.outlineText}>Enregistrer</Text>
-              </Pressable>
-            </View> : null}
           </View>
+          {editing ? (
+            <View style={styles.editForm}>
+              <TextInput
+                value={nameDraft}
+                onChangeText={setNameDraft}
+                placeholder={t('profileName')}
+                accessibilityLabel={t('profileName')}
+                returnKeyType="next"
+                style={styles.editInput}
+              />
+              <TextInput
+                value={emailDraft}
+                onChangeText={setEmailDraft}
+                placeholder={t('email')}
+                accessibilityLabel={t('email')}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (!savingProfile) void saveAccountProfile();
+                }}
+                style={styles.editInput}
+              />
+              <Pressable
+                accessibilityRole="button"
+                disabled={savingProfile}
+                accessibilityState={{ disabled: savingProfile, busy: savingProfile }}
+                style={[styles.saveProfileButton, savingProfile && styles.disabledButton]}
+                onPress={() => { void saveAccountProfile(); }}
+              >
+                {savingProfile ? <ActivityIndicator size="small" color={palette.ink} /> : null}
+                <Text style={styles.saveProfileText}>{t('saveChanges')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.statsRow}>
             <View style={styles.stat}><Text style={styles.statNumber}>{profile.publications}</Text><Text style={styles.statLabel}>{t('publications')}</Text></View>
             <View style={styles.stat}><Text style={styles.statNumber}>{profile.verifications}</Text><Text style={styles.statLabel}>{t('verifications')}</Text></View>
@@ -171,8 +206,7 @@ export default function ProfilScreen() {
         {photoNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{photoNotice}</Text> : null}
 
         <GlassCard style={styles.menuCard}>
-          <LanguageSelector value={responseLanguage} onChange={(value) => void changeLanguage(value)} disabled={loadingProfile || savingLanguage} />
-          {languageNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{languageNotice}</Text> : null}
+          {menuNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{menuNotice}</Text> : null}
           <View style={styles.menuRow}>
             <View style={styles.menuLeft}><Ionicons name="document-text-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('myPublications')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
@@ -181,7 +215,7 @@ export default function ProfilScreen() {
             <View style={styles.menuLeft}><Ionicons name="time-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('verificationHistory')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </View>
-          <Pressable style={styles.menuRow} onPress={() => setLanguageNotice(notifications.length ? notifications.map((item) => `${item.title}: ${item.message}`).join('\n') : 'Aucune notification.')}>
+          <Pressable style={styles.menuRow} onPress={() => setMenuNotice(notifications.length ? notifications.map((item) => `${item.title}: ${item.message}`).join('\n') : 'Aucune notification.')}>
             <View style={styles.menuLeft}><Ionicons name="notifications-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('notifications')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </Pressable>
@@ -213,6 +247,7 @@ export default function ProfilScreen() {
           <Text style={styles.disconnectText}>{t('logout')}</Text>
         </Pressable>
       </ScrollView>
+      </KeyboardAvoidingView>
       <BottomTabs active="profil" />
       <Modal
         transparent
@@ -300,11 +335,15 @@ export default function ProfilScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
+  keyboardAvoiding: { flex: 1 },
   content: { padding: 16, paddingBottom: 120 },
   profileCard: { padding: 12 },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  editForm: { width: '100%', marginTop: 12, gap: 8 },
-  editInput: { minHeight: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 10, paddingHorizontal: 10, color: '#fff', backgroundColor: 'rgba(255,255,255,0.06)' },
+  editForm: { width: '100%', marginTop: 12, paddingTop: 12, gap: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)' },
+  editInput: { width: '100%', minHeight: 44, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 10, paddingHorizontal: 12, color: '#fff', backgroundColor: 'rgba(255,255,255,0.06)' },
+  saveProfileButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: palette.mint, borderRadius: 12, paddingHorizontal: 14, marginTop: 4 },
+  saveProfileText: { color: palette.ink, fontFamily: 'Montserrat_700Bold_Italic' },
+  disabledButton: { opacity: 0.6 },
   avatarButton: { width: 61, height: 61, borderRadius: 31, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center' },
   avatar: { color: '#0b2b2b', textAlign: 'center', textAlignVertical: 'center', fontFamily: 'Montserrat_700Bold_Italic', fontSize: 21 },
   avatarImage: { width: 61, height: 61, borderRadius: 31 },

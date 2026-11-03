@@ -80,7 +80,7 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
             accessibilityRole="tab"
             accessibilityLabel={item.label}
             accessibilityState={{ selected: isActive }}
-            onPress={() => router.push(item.route)}
+            onPress={() => router.navigate(item.route)}
             style={styles.tabButton}
           >
             <Ionicons name={item.icon} size={20} color={color} />
@@ -93,7 +93,7 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
         accessibilityLabel={t('discussWithAI')}
         accessibilityHint={active === 'discussion' ? t('discussionOpen') : t('openVerification')}
         accessibilityState={{ selected: active === 'discussion' }}
-        onPress={() => router.push('/discussion')}
+        onPress={() => router.navigate('/discussion')}
         style={styles.centerTab}
       >
         <Ionicons name="chatbubble-ellipses-outline" size={26} color="#0E1B21" />
@@ -107,7 +107,7 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
             accessibilityRole="tab"
             accessibilityLabel={item.label}
             accessibilityState={{ selected: isActive }}
-            onPress={() => router.push(item.route)}
+            onPress={() => router.navigate(item.route)}
             style={styles.tabButton}
           >
             <Ionicons name={item.icon} size={20} color={color} />
