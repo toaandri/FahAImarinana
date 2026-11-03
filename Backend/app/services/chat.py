@@ -7,6 +7,7 @@ from ..core.errors import NotFoundError
 from ..repositories import ChatRepository
 logger = logging.getLogger(__name__)
 from .research import build_research_answer
+from ..utils.languages import resolve_language, Language
 
 def create_chat_session(db: Session, user: Utilisateur, titre: str) -> SessionChat:
     scope_for_user(db, user)
@@ -36,7 +37,7 @@ def get_chat_messages(db: Session, session_id: int, user: Utilisateur) -> list[M
 
 
 
-def ask_copilot(db: Session, user: Utilisateur, session_id: int, question: str) -> tuple[MessageChat, MessageChat, list[dict], list[dict]]:
+def ask_copilot(db: Session, user: Utilisateur, session_id: int, question: str, *, language: Language | None = None) -> tuple[MessageChat, MessageChat, list[dict], list[dict]]:
     session = ChatRepository(db).get(session_id)
     if session is None or session.utilisateur_id != user.id:
         raise NotFoundError("Session introuvable.")
@@ -50,7 +51,8 @@ def ask_copilot(db: Session, user: Utilisateur, session_id: int, question: str) 
         horodatage=now,
     )
     db.add(user_message)
-    answer, citations, chronology = build_research_answer(db, question, use_openrouter=True)
+    selected_language = resolve_language(language or user.response_language, question)
+    answer, citations, chronology = build_research_answer(db, question, use_openrouter=True, language=selected_language)
     assistant_message = MessageChat(
         session_id=session.id,
         role="assistant",

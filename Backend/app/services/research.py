@@ -8,6 +8,7 @@ from ..utils.text import tokenize as _tokenize
 logger = logging.getLogger(__name__)
 from ..integrations.ai.gemini import GeminiUnavailableError, research_web
 from ..integrations.ai.openrouter import OpenRouterUnavailableError, answer_question
+from ..utils.languages import expand_research_question
 
 def index_certified_article(db: Session, article: ArticleCertifie, *, commit: bool = True) -> DocumentRecherche:
     set_scope(db, article.newsroom_id, article.dataset)
@@ -29,7 +30,7 @@ def index_certified_article(db: Session, article: ArticleCertifie, *, commit: bo
 def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[dict]:
     from .administration import technical_setting
     limit = technical_setting(db,"research_result_limit",limit)
-    terms = _tokenize(question)
+    terms = _tokenize(expand_research_question(question))
     if not terms:
         return []
     documents = ResearchRepository(db).certified()
@@ -55,7 +56,7 @@ def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[di
     return results
 
 
-def build_research_answer(db: Session, question: str, *, use_openrouter: bool = False) -> tuple[str, list[dict], list[dict]]:
+def build_research_answer(db: Session, question: str, *, use_openrouter: bool = False, language: str = 'fr') -> tuple[str, list[dict], list[dict]]:
     results = None
     if use_openrouter and get_settings().openrouter_api_key.get_secret_value().strip():
         results = search_knowledge_base(db, question)
@@ -64,7 +65,7 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
             for item in results
         ]
         try:
-            return answer_question(question, citations), citations, sorted(
+            return answer_question(question, citations, language=language), citations, sorted(
                 [{"date": item["date"], "titre": item["titre"], "extrait": item["extrait"]} for item in results],
                 key=lambda item: item["date"] or "",
             )
@@ -72,7 +73,7 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
             logger.warning("OpenRouter indisponible ; utilisation du repli de recherche.")
     if get_settings().gemini_api_key.get_secret_value():
         try:
-            answer, citations = research_web(question)
+            answer, citations = research_web(question, language=language)
             return answer, citations, []
         except GeminiUnavailableError:
             pass
@@ -87,16 +88,19 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
         key=lambda item: item["date"] or "",
     )
     if not results:
-        answer = (
+        answer = ('Tsy misy antontan-taratasy voamarina mifanaraka amin’ity fanontaniana ity. '
+                  'Mbola eo am-panamarinana izany ny mpanao gazety.' if language == 'mg' else (
             "Aucun document certifié ne correspond à cette question. "
             "Sujet en cours de vérification par nos journalistes."
-        )
+        ))
     else:
         context = "\n".join(f"- {item['titre']}: {item['extrait']}" for item in results)
-        answer = (
+        answer = ((f"Ireto ny loharano voamarina {len(results)} mifandraika amin’ny fanontaniana.\n"
+                   f"Fanontaniana: {question}\nLoharano (teny niandohana):\n{context}\n"
+                   "Mbola mila famakiana sy fanamarinana ataon’ny mpanao gazety ity valiny ity.") if language == 'mg' else (
             f"Réponse contextuelle basée sur {len(results)} source(s) certifiée(s).\n"
             f"Question: {question}\n"
             f"Contexte:\n{context}\n"
             "Cette synthèse est une pré-analyse IA et doit être relue par un journaliste."
-        )
+        ))
     return answer, citations, chronology

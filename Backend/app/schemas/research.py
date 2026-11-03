@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from ..utils.languages import Language
 
 
 class ResearchRequest(BaseModel):
@@ -36,9 +37,22 @@ class ChatMessageRead(BaseModel):
 class ResearchQuestion(BaseModel):
     question: str = Field(min_length=3, max_length=2_000)
     session_id: int | None = None
+    language: Language | None = None
 
 
 class ResearchAnswer(BaseModel):
     reponse: str
     citations: list[dict[str, Any]]
     chronologie: list[dict[str, Any]]
+
+
+class TranslationRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    text: str = Field(min_length=1, max_length=12000)
+    target_language: Literal['fr', 'mg']
+
+
+class TranslationRead(BaseModel):
+    text: str
+    language: Literal['fr', 'mg']
+    provider: str

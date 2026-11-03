@@ -111,6 +111,11 @@ Le chatbot transmet la question et les extraits pertinents des documents certifi
 à OpenRouter, sans recherche web en direct. En cas d’échec, il utilise Gemini si
 configuré, puis le moteur local. Les autres fonctions IA conservent leur fournisseur.
 
+Le [chatbot français/malagasy](docs/MALAGASY.md) propose le choix Auto/Français/Malagasy,
+une préférence enregistrée dans le profil et la traduction des réponses en conservant
+leurs références. Google Cloud Translation est optionnel ; OpenRouter ou Gemini
+assurent le repli de traduction.
+
 Le [rapport d’inspection et le socle du connecteur Maharavo](Backend/MAHARAVO_INTEGRATION.md)
 distinguent le contrat backend proposé de l’interface externe, qui n’est pas documentée
 dans ce dépôt. Aucune connexion réelle à un moteur HTTP Maharavo n’est annoncée.

@@ -8,7 +8,7 @@ from ....models import User,AuthSession
 from ....schemas.auth import (LoginRequest,TokenRead,UserCreate,RefreshRequest,ServiceLogin,
     AccountRead,SessionRead,PasswordChange)
 from ....services.auth import (register_user,login_user,refresh_tokens,revoke_session,revoke_all,change_password)
-from ....schemas.profile import ProfilePhotoRead, ProfilePhotoUpdate
+from ....schemas.profile import ProfilePhotoRead, ProfilePhotoUpdate, ProfileLanguage
 from ....services.profile import read_profile_photo, save_profile_photo
 
 router=APIRouter(prefix='/auth',tags=['Authentification'])
@@ -45,7 +45,17 @@ def refresh(payload: RefreshRequest,response: Response,db: Session=Depends(get_d
 
 @router.get('/me')
 def me(user: User=Depends(current_user)):
-    return {**AccountRead.model_validate(user).model_dump(),'permissions':sorted(permissions_for(user))}
+    return {**AccountRead.model_validate(user).model_dump(),'permissions':sorted(permissions_for(user)),
+            'response_language': user.response_language}
+
+
+@router.patch('/me/language', response_model=ProfileLanguage)
+def update_language(payload: ProfileLanguage, response: Response,
+                    db: Session = Depends(get_db), user: User = Depends(current_user)):
+    no_store(response)
+    user.response_language = payload.language
+    db.commit()
+    return payload
 
 
 @router.get('/me/photo', response_model=ProfilePhotoRead)

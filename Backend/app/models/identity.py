@@ -19,6 +19,7 @@ class User(ScopedRecord, Base):
     role: Mapped[str] = mapped_column(String(30), default="LECTEUR")
     actif: Mapped[bool] = mapped_column(Boolean, default=True)
     profile_photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    response_language: Mapped[str] = mapped_column(String(4), default='auto', server_default='auto')
 
     account_type: Mapped[str] = mapped_column(String(10),default='human')
     auth_version: Mapped[int] = mapped_column(Integer,default=1)

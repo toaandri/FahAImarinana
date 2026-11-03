@@ -1,8 +1,11 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
-import { AppShell, Card, CredibilityBadge, Icon, InteractivePressable, PageTitle } from '../components/ui';
+import { AppShell, Card, Icon, InteractivePressable, PageTitle } from '../components/ui';
 import { colors, spacing } from '../theme';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, type ResponseLanguage } from '../services/api';
 
 type Attachment = { uri: string; name: string; type: 'image' | 'video' };
 
@@ -10,6 +13,21 @@ export default function VerifyScreen() {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [status, setStatus] = useState('');
+  const [language, setLanguage] = useState<ResponseLanguage>('auto');
+  const [loadingLanguage, setLoadingLanguage] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<ResearchResult | null>(null);
+  const [question, setQuestion] = useState('');
+  const [translation, setTranslation] = useState<string | null>(null);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setLoadingLanguage(true);
+    getResponseLanguage().then((value) => { if (active) setLanguage(value); })
+      .catch((error) => { if (active) setStatus(error instanceof Error ? error.message : 'Préférence indisponible.'); })
+      .finally(() => { if (active) setLoadingLanguage(false); });
+    return () => { active = false; };
+  }, []));
 
   const pickMedia = async (type: 'image' | 'video') => {
     try {
@@ -36,42 +54,77 @@ export default function VerifyScreen() {
     }
   };
 
-  const sendMessage = () => {
-    if (!message.trim() && attachments.length === 0) {
-      setStatus('Ajoutez un message ou une photo/vidéo avant l’envoi.');
+  const sendMessage = async () => {
+    if (busy || loadingLanguage) return;
+    if (attachments.length) {
+      setStatus('Ce dialogue vérifie le texte. Retirez les pièces jointes et décrivez votre question.');
       return;
     }
-    setStatus('Votre demande n’a pas été envoyée : le service de vérification n’est pas encore connecté.');
+    if (message.trim().length < 3) {
+      setStatus('Écrivez une question d’au moins trois caractères.');
+      return;
+    }
+    const submitted = message.trim();
+    setBusy(true);
+    setStatus('');
+    try {
+      const answer = await sendMessageToAI(submitted, language);
+      setResult(answer);
+      setQuestion(submitted);
+      setTranslation(null);
+      setMessage('');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Réponse indisponible.');
+    } finally {
+      setBusy(false);
+    }
   };
+
+  async function translate(target: 'fr' | 'mg') {
+    if (!result || busy) return;
+    setBusy(true);
+    setStatus('');
+    try {
+      const translated = await translateAnswer(result.reponse, target);
+      setTranslation(translated.text);
+      setStatus('Traduction automatique à relire. / Dikanteny mandeha ho azy, mila averina vakina.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Traduction indisponible.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <AppShell active="/verifier">
       <View style={styles.content}>
         <PageTitle>Vérifier une information</PageTitle>
+        <LanguageSelector value={language} onChange={setLanguage} disabled={busy || loadingLanguage} />
         <View style={styles.conversation}>
           <View style={styles.aiMessage}>
             <Text style={styles.messageText}>
-              AI • Bonjour ! Envoyez-moi un texte, une photo ou une vidéo : je vérifie l’information.
+              {language === 'mg' ? 'AI • Salama! Alefaso ny fanontanianao, hanampy anao hanamarina ny vaovao aho.' : 'AI • Bonjour ! Posez une question pour préparer votre vérification journalistique.'}
             </Text>
           </View>
-          <View style={styles.sampleMedia}>
-            <Text style={styles.sampleText}>Exemple de média</Text>
-          </View>
-          <View style={styles.userMessage}>
-            <Text style={styles.userMessageText}>[Message de l’utilisateur]</Text>
-          </View>
+          {question ? <View style={styles.userMessage}>
+            <Text style={styles.userMessageText}>{question}</Text>
+          </View> : null}
           <Card style={styles.resultCard}>
-            <CredibilityBadge value="72 %" caption="Crédibilité moyenne · exemple de maquette" />
-            <Text style={styles.resultTitle}>[Résumé de la vérification]</Text>
-            <Text style={styles.resultText}>
-              [Explication de l’IA : ce qui est confirmé, ce qui reste à vérifier]
+            <Text style={styles.resultTitle}>{language === 'mg' ? 'Valin’ny IA — mbola mila hamarinina' : 'Pré-analyse IA — à vérifier'}</Text>
+            <Text selectable style={styles.resultText}>
+              {translation ?? result?.reponse ?? 'Envoyez un message / Alefaso ny fanontanianao.'}
             </Text>
             <View style={styles.sources}>
-              <Text style={styles.source}>[Source 1]</Text>
-              <Text style={styles.source}>[Source 2]</Text>
+              {result?.citations.map((source, index) => <Text selectable key={index} style={styles.source}>{[source.titre, source.url].filter(Boolean).join(' — ')}</Text>)}
+              {result && !result.citations.length ? <Text style={styles.source}>Aucune source retournée / Tsy nisy loharano nomena.</Text> : null}
             </View>
+            {result ? <View style={styles.translationActions}>
+              <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => void translate('mg')} style={styles.translationButton}><Text style={styles.source}>Adika amin’ny teny malagasy</Text></InteractivePressable>
+              <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => void translate('fr')} style={styles.translationButton}><Text style={styles.source}>Traduire en français</Text></InteractivePressable>
+              {translation ? <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => { setTranslation(null); setStatus(''); }} style={styles.translationButton}><Text style={styles.source}>Voir l’original / Teny niandohana</Text></InteractivePressable> : null}
+            </View> : null}
             <Text style={styles.disclaimer}>
-              Exemple visuel uniquement — aucun résultat d’analyse réel.
+              {busy ? 'En cours… / Eo am-pikarakarana…' : 'Une réponse IA doit être relue par un journaliste. / Mila hamarinina amin’ny mpanao gazety ny valin’ny IA.'}
             </Text>
           </Card>
         </View>
@@ -122,11 +175,13 @@ export default function VerifyScreen() {
             <TextInput
               accessibilityLabel="Écrire un message"
               value={message}
+              editable={!busy}
+              maxLength={2000}
               onChangeText={(value) => {
                 setMessage(value);
                 setStatus('');
               }}
-              placeholder="Écrire un message..."
+              placeholder={language === 'mg' ? 'Soraty eto ny fanontanianao…' : 'Écrire un message…'}
               placeholderTextColor={colors.muted}
               style={styles.composerInput}
               returnKeyType="send"
@@ -136,6 +191,7 @@ export default function VerifyScreen() {
               accessibilityRole="button"
               accessibilityLabel="Envoyer le message"
               onPress={sendMessage}
+              disabled={busy || loadingLanguage}
               style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}
             >
               <Icon name="send" color={colors.deep} />
@@ -179,7 +235,9 @@ const styles = StyleSheet.create({
   resultCard: { gap: 18 },
   resultTitle: { color: colors.white, fontSize: 17, lineHeight: 24, fontWeight: '700' },
   resultText: { color: colors.white, fontSize: 16, lineHeight: 24 },
-  sources: { flexDirection: 'row', gap: 16, marginTop: 16 },
+  sources: { gap: 12, marginTop: 16 },
+  translationActions: { gap: 8 },
+  translationButton: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, padding: 12, justifyContent: 'center' },
   source: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   disclaimer: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   composerArea: { marginTop: 32, paddingBottom: spacing.md },

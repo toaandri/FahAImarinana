@@ -43,6 +43,8 @@ class Settings(BaseModel):
     openrouter_api_key: SecretStr = SecretStr("")
     openrouter_model: str = Field(default="openrouter/free", min_length=1, max_length=200)
     openrouter_timeout_seconds: float = Field(default=45, gt=0, le=300)
+    google_translation_api_key: SecretStr = SecretStr("")
+    translation_timeout_seconds: float = Field(default=20, gt=0, le=60)
     sms_backend: Literal["simulation"] = "simulation"
     auth_requests_per_minute: int = Field(default=60,ge=1,le=10000)
     public_requests_per_minute: int = Field(default=60,ge=1,le=10000)

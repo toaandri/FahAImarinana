@@ -1,13 +1,23 @@
+<<<<<<< Updated upstream
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
+=======
+import { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal, ActivityIndicator } from 'react-native';
+>>>>>>> Stashed changes
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
+<<<<<<< Updated upstream
 import { getProfile, logout, saveProfilePhoto } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
+=======
+import { getProfile, logout, saveProfilePhoto, saveResponseLanguage, type ResponseLanguage } from '@/services/mockData';
+import { LanguageSelector } from '@/components/LanguageSelector';
+>>>>>>> Stashed changes
 
 export default function ProfilScreen() {
   const { language, persistenceFailed, setLanguage, t } = useLanguage();
@@ -25,15 +35,44 @@ export default function ProfilScreen() {
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
+  const [language, setLanguage] = useState<ResponseLanguage>('auto');
+  const [savingLanguage, setSavingLanguage] = useState(false);
+  const [languageNotice, setLanguageNotice] = useState('');
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setLoadingProfile(true);
     getProfile().then((saved) => {
+      if (!active) return;
       setProfile(saved);
       setProfilePhoto(saved.photo);
+      setLanguage(saved.language);
     }).catch((error) => {
+<<<<<<< Updated upstream
       setProfileError(error instanceof Error ? error.message : '');
     }).finally(() => setLoadingProfile(false));
   }, []);
+=======
+      if (!active) return;
+      Alert.alert('Profil indisponible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+    }).finally(() => { if (active) setLoadingProfile(false); });
+    return () => { active = false; };
+  }, []));
+
+  async function changeLanguage(value: ResponseLanguage) {
+    setSavingLanguage(true);
+    setLanguageNotice('');
+    try {
+      const saved = await saveResponseLanguage(value);
+      setLanguage(saved.language);
+      setLanguageNotice('Préférence de langue enregistrée. / Voatahiry ny teny nofidina.');
+    } catch (error) {
+      setLanguageNotice(error instanceof Error ? error.message : 'Enregistrement impossible.');
+    } finally {
+      setSavingLanguage(false);
+    }
+  }
+>>>>>>> Stashed changes
 
   async function chooseProfilePhoto() {
     if (loadingProfile || savingPhoto) return;
@@ -122,6 +161,7 @@ export default function ProfilScreen() {
         {photoNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{photoNotice}</Text> : null}
 
         <GlassCard style={styles.menuCard}>
+<<<<<<< Updated upstream
           <View style={styles.menuRow}>
             <View style={styles.menuLeft}><Ionicons name="document-text-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('myPublications')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
@@ -147,6 +187,21 @@ export default function ProfilScreen() {
             <View style={styles.menuLeft}><Ionicons name="settings-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('settings')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </View>
+=======
+          <LanguageSelector value={language} onChange={(value) => void changeLanguage(value)} disabled={loadingProfile || savingLanguage} />
+          {languageNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{languageNotice}</Text> : null}
+          {[
+            ['Mes publications', 'document-text-outline'],
+            ['Historique des vérifications', 'time-outline'],
+            ['Notifications', 'notifications-outline'],
+            ['Paramètres', 'settings-outline'],
+          ].map(([label, icon]) => (
+            <Pressable key={label} style={styles.menuRow}>
+              <View style={styles.menuLeft}><Ionicons name={icon as any} size={18} color={palette.mint} /><Text style={styles.menuLabel}>{label}</Text></View>
+              <Ionicons name="chevron-forward" size={18} color="#fff" />
+            </Pressable>
+          ))}
+>>>>>>> Stashed changes
         </GlassCard>
         {persistenceFailed ? <Text accessibilityRole="alert" style={styles.photoError}>{t('languageSaveFailed')}</Text> : null}
 
