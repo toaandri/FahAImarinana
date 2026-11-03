@@ -1,21 +1,13 @@
 import { useEffect, useState } from 'react';
-<<<<<<< Updated upstream
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal, ActivityIndicator } from 'react-native';
-=======
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal } from 'react-native';
->>>>>>> Stashed changes
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
-<<<<<<< Updated upstream
 import { getProfile, logout, saveProfilePhoto } from '@/services/mockData';
-=======
-import { getProfile, logout } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
->>>>>>> Stashed changes
 
 export default function ProfilScreen() {
   const { language, persistenceFailed, setLanguage, t } = useLanguage();
@@ -35,18 +27,12 @@ export default function ProfilScreen() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-<<<<<<< Updated upstream
     getProfile().then((saved) => {
       setProfile(saved);
       setProfilePhoto(saved.photo);
     }).catch((error) => {
-      Alert.alert('Profil indisponible', error instanceof Error ? error.message : 'Une erreur est survenue.');
-    }).finally(() => setLoadingProfile(false));
-=======
-    getProfile().then(setProfile).catch((error) => {
       setProfileError(error instanceof Error ? error.message : '');
-    });
->>>>>>> Stashed changes
+    }).finally(() => setLoadingProfile(false));
   }, []);
 
   async function chooseProfilePhoto() {
@@ -72,13 +58,9 @@ export default function ProfilScreen() {
       setProfilePhoto(saved.photo);
       setPhotoNotice('Photo de profil enregistrée.');
     } catch (error) {
-<<<<<<< Updated upstream
-      setPhotoError(error instanceof Error ? error.message : 'Impossible de sélectionner cette photo.');
+      setPhotoError(error instanceof Error ? error.message : t('photoSelectFailed'));
     } finally {
       setSavingPhoto(false);
-=======
-      setPhotoError(error instanceof Error ? error.message : t('photoSelectFailed'));
->>>>>>> Stashed changes
     }
   }
 
