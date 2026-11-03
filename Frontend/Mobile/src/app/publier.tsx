@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Alert, Image, Platform } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Alert, Image, Platform, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { useFocusEffect } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard, TagChip } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { publishArticle } from '@/services/mockData';
@@ -21,13 +23,56 @@ export default function PublierScreen() {
   const [analysis, setAnalysis] = useState<PublicationAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
+  const camera = useRef<CameraView | null>(null);
+  const recordingRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const focusedRef = useRef(false);
+  const durationRef = useRef(0);
+  const captureGeneration = useRef(0);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [withAudio, setWithAudio] = useState(false);
+
+  const interruptCapture = useCallback(() => {
+    captureGeneration.current += 1;
+    cancelledRef.current = true;
+    if (recordingRef.current) {
+      try { camera.current?.stopRecording(); } catch { /* Camera may already be stopped. */ }
+    }
+    recordingRef.current = false;
+    setCameraOpen(false);
+    setCameraReady(false);
+    setRecording(false);
+    setFinishing(false);
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    focusedRef.current = true;
+    return () => { focusedRef.current = false; interruptCapture(); };
+  }, [interruptCapture]));
 
   useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' && cameraOpen) interruptCapture();
+    });
+    return () => listener.remove();
+  }, [cameraOpen, interruptCapture]);
+
+  function selectMedia(value: ImagePicker.ImagePickerAsset | null) {
     setAnalysis(null);
     setAnalysisError('');
-    if (!media) { setAnalyzing(false); return; }
+    setAnalyzing(!!value);
+    setMedia(value);
+  }
+
+  useEffect(() => {
+    if (!media) return;
     const controller = new AbortController();
-    setAnalyzing(true);
     analyzePublicationMedia(media, controller.signal)
       .then((result) => { if (!controller.signal.aborted) setAnalysis(result); })
       .catch((error) => { if (!controller.signal.aborted) setAnalysisError(error instanceof Error ? error.message : 'Analyse indisponible.'); })
@@ -40,7 +85,7 @@ export default function PublierScreen() {
     if (Platform.OS !== 'web') setMediaLoading(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes, quality: 0.9 });
-      if (!result.canceled) setMedia(result.assets[0]);
+      if (!result.canceled) selectMedia(result.assets[0]);
     } catch (error) {
       setMediaError(error instanceof Error ? error.message : t('galleryError'));
     } finally {
@@ -50,24 +95,91 @@ export default function PublierScreen() {
 
   async function recordVideo() {
     setMediaError('');
-    if (Platform.OS !== 'web') setMediaLoading(true);
+    if (Platform.OS === 'web') {
+      setMediaError('La capture vidéo intégrée est disponible sur Android et iOS.');
+      return;
+    }
+    setMediaLoading(true);
     try {
-      if (Platform.OS !== 'web') {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          setMediaError(t('cameraPermission'));
-          return;
-        }
+      const permission = cameraPermission?.granted ? cameraPermission : await requestCameraPermission();
+      if (!focusedRef.current) return;
+      if (!permission.granted) {
+        setMediaError(t('cameraPermission'));
+        return;
       }
-
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'] });
-      if (!result.canceled) setMedia(result.assets[0]);
+      const microphone = microphonePermission?.granted ? microphonePermission : await requestMicrophonePermission();
+      if (!focusedRef.current) return;
+      setWithAudio(!!microphone.granted);
+      setCameraReady(false);
+      setRecordingSeconds(0);
+      cancelledRef.current = false;
+      setCameraOpen(true);
     } catch (error) {
       setMediaError(error instanceof Error ? error.message : t('cameraError'));
     } finally {
-      if (Platform.OS !== 'web') setMediaLoading(false);
+      setMediaLoading(false);
     }
   }
+
+  async function startRecording() {
+    if (!camera.current || !cameraReady || recordingRef.current || finishing) return;
+    const started = Date.now();
+    const generation = ++captureGeneration.current;
+    cancelledRef.current = false;
+    durationRef.current = 0;
+    recordingRef.current = true;
+    setRecordingSeconds(0);
+    setRecording(true);
+    try {
+      const clip = await camera.current.recordAsync({ maxDuration: 10, maxFileSize: 4 * 1024 * 1024 - 65536,
+        ...(Platform.OS === 'ios' ? { codec: 'avc1' as const } : {}) });
+      if (generation !== captureGeneration.current || cancelledRef.current || !focusedRef.current) return;
+      if (!clip?.uri) throw new Error('La caméra n’a pas enregistré de vidéo.');
+      const seconds = Math.max(0.1, Math.min(10, durationRef.current || (Date.now() - started) / 1000));
+      const isMov = /\.mov(?:$|\?)/i.test(clip.uri);
+      selectMedia({ uri: clip.uri, type: 'video', width: 0, height: 0, duration: seconds * 1000,
+        mimeType: isMov ? 'video/quicktime' : 'video/mp4', fileName: isMov ? 'video.mov' : 'video.mp4' });
+      setCameraOpen(false);
+      setCameraReady(false);
+    } catch (error) {
+      if (generation === captureGeneration.current && !cancelledRef.current && focusedRef.current) {
+        setMediaError(error instanceof Error ? error.message : 'Enregistrement impossible.');
+        setCameraOpen(false);
+      }
+    } finally {
+      if (generation === captureGeneration.current) {
+        recordingRef.current = false;
+        if (focusedRef.current) { setRecording(false); setFinishing(false); }
+      }
+    }
+  }
+
+  function stopRecording() {
+    if (!recordingRef.current || finishing) return;
+    setFinishing(true);
+    try { camera.current?.stopRecording(); } catch { setFinishing(false); }
+  }
+
+  if (cameraOpen) return (
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.captureScreen}>
+        <Text style={styles.captureTitle}>Filmer une vidéo</Text>
+        <CameraView ref={camera} style={styles.cameraPreview} mode="video" facing="back" mute={!withAudio}
+          videoQuality="720p" videoBitrate={800000} onCameraReady={() => setCameraReady(true)}
+          onMountError={(event) => { setMediaError(event.message || t('cameraError')); interruptCapture(); }}
+          onRecordingProgress={(event) => { durationRef.current = event.duration; setRecordingSeconds(event.duration); }} />
+        <Text style={styles.captureHint}>{withAudio ? 'Son activé' : 'Sans son : accès au microphone refusé'} · 10 secondes maximum</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.captureHint}>{recording ? `Enregistrement : ${Math.min(10, Math.floor(recordingSeconds))} s` : 'Cadrez puis lancez l’enregistrement.'}</Text>
+        <View style={styles.captureActions}>
+          <Pressable accessibilityRole="button" onPress={interruptCapture} style={styles.captureCancel}><Text style={styles.captureButtonText}>Annuler</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={finishing || (!cameraReady && !recording)}
+            onPress={recording ? stopRecording : () => void startRecording()} style={[styles.captureStart, (finishing || !cameraReady) && styles.captureDisabled]}>
+            <Text style={styles.captureStartText}>{finishing ? 'Finalisation…' : recording ? 'Arrêter' : 'Enregistrer'}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -119,7 +231,7 @@ export default function PublierScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('removeMedia')}
                 style={styles.removeMediaButton}
-                onPress={() => setMedia(null)}
+                onPress={() => selectMedia(null)}
               >
                 <Ionicons name="close" size={16} color="#fff" />
               </Pressable>
@@ -186,7 +298,7 @@ export default function PublierScreen() {
               Alert.alert(t('articleSent'), t('articleSentMessage'));
               setTitle('');
               setBody('');
-              setMedia(null);
+              selectMedia(null);
             } catch (error) {
               Alert.alert(t('sendFailed'), error instanceof Error ? error.message : t('unexpectedError'));
             } finally {
@@ -202,6 +314,16 @@ export default function PublierScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
+  captureScreen: { flex: 1, padding: 16, gap: 12 },
+  captureTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  cameraPreview: { flex: 1, minHeight: 240, borderRadius: 16, overflow: 'hidden', backgroundColor: '#182d31' },
+  captureHint: { color: '#fff', textAlign: 'center', fontSize: 12 },
+  captureActions: { flexDirection: 'row', gap: 12, paddingBottom: 10 },
+  captureCancel: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#fff' },
+  captureButtonText: { color: '#fff', fontWeight: '700' },
+  captureStart: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 12, backgroundColor: palette.mint },
+  captureStartText: { color: '#0b2b2b', fontWeight: '700' },
+  captureDisabled: { opacity: 0.5 },
   content: { padding: 16, paddingBottom: 120 },
   titleCard: { padding: 12 },
   titleLabel: { color: '#fff', fontSize: 13, fontFamily: 'Montserrat_700Bold_Italic', marginBottom: 12 },

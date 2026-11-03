@@ -119,7 +119,7 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
   );
 }
 
-export function StoryCard({ title, source, status, image, analysis, label = 'Dernière information', onPress }: { title: string; source: string; status: string; image?: string; analysis?: { state: 'loading' | 'done' | 'unavailable'; coherence?: number | null; reason?: string }; label?: string; onPress?: () => void }) {
+export function StoryCard({ title, source, status, image, analysis, label = 'Dernière information', onPress }: { title: string; source: string; status: string; image?: string; analysis?: { state: 'loading' | 'done' | 'unavailable'; coherence?: number | null; reason?: string; demo?: boolean }; label?: string; onPress?: () => void }) {
   const { t } = useLanguage();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Analyser : ${title}`} onPress={onPress} style={styles.storyCard}>
@@ -136,11 +136,12 @@ export function StoryCard({ title, source, status, image, analysis, label = 'Der
         <View style={styles.storyDetails}>
           <View style={styles.ringWrap}>
           <Text style={styles.credibilityCaption}>{status}</Text>
-          <Text style={styles.credibilityCaption}>Fiabilité</Text>
-          <Text style={styles.credibilityCaption}>Non calculée</Text>
-          <Text style={styles.credibilityCaption}>Cohérence des sources</Text>
+          {analysis?.demo ? <Text style={styles.credibilityCaption}>Analyse IA</Text> : <>
+            <Text style={styles.credibilityCaption}>Fiabilité non calculée</Text>
+            <Text style={styles.credibilityCaption}>Cohérence des sources</Text>
+          </>}
           <CredibilityRingCore value={analysis?.state === 'done' ? analysis.coherence : null} size={52} />
-          <Text style={styles.credibilityCaption}>{analysis?.state === 'loading' || !analysis ? 'Analyse IA…' : analysis.state === 'unavailable' ? analysis.reason?.includes('Reconnectez-vous') ? 'Reconnectez-vous' : 'Analyse indisponible' : analysis.coherence == null ? analysis.reason || 'Sources insuffisantes' : 'IA · à vérifier'}</Text>
+          {!analysis?.demo ? <Text style={styles.credibilityCaption}>{analysis?.state === 'loading' || !analysis ? 'Analyse IA…' : analysis.state === 'unavailable' ? analysis.reason?.includes('Reconnectez-vous') ? 'Reconnectez-vous' : 'Analyse indisponible' : analysis.coherence == null ? analysis.reason || 'Sources insuffisantes' : 'IA · à vérifier'}</Text> : null}
           </View>
           <Text numberOfLines={2} style={styles.storySource}>{source}</Text>
         </View>

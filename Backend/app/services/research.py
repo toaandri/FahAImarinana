@@ -6,7 +6,7 @@ from ..core.config import get_settings
 from ..repositories import ResearchRepository
 from ..utils.text import tokenize as _tokenize
 logger = logging.getLogger(__name__)
-from ..integrations.ai.gemini import GeminiUnavailableError, research_web
+from ..integrations.ai.gemini import GeminiUnavailableError, answer_without_search, research_web
 from ..integrations.ai.openrouter import OpenRouterUnavailableError, answer_question
 from ..utils.languages import expand_research_question
 
@@ -58,6 +58,8 @@ def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[di
 
 def build_research_answer(db: Session, question: str, *, use_openrouter: bool = False, language: str = 'fr') -> tuple[str, list[dict], list[dict]]:
     results = None
+    ai_errors = []
+    ai_quota_exhausted = False
     if use_openrouter and get_settings().openrouter_api_key.get_secret_value().strip():
         results = search_knowledge_base(db, question)
         citations = [
@@ -69,14 +71,26 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
                 [{"date": item["date"], "titre": item["titre"], "extrait": item["extrait"]} for item in results],
                 key=lambda item: item["date"] or "",
             )
-        except OpenRouterUnavailableError:
-            logger.warning("OpenRouter indisponible ; utilisation du repli de recherche.")
+        except OpenRouterUnavailableError as exc:
+            logger.warning("OpenRouter indisponible : %s", exc)
+            ai_errors.append('openrouter')
+            ai_quota_exhausted = 'HTTP 429' in str(exc)
     if get_settings().gemini_api_key.get_secret_value():
         try:
             answer, citations = research_web(question, language=language)
             return answer, citations, []
-        except GeminiUnavailableError:
-            pass
+        except GeminiUnavailableError as exc:
+            logger.warning("Recherche Gemini indisponible : %s", exc)
+            ai_errors.append('gemini_search')
+            ai_quota_exhausted = ai_quota_exhausted or exc.http_status == 429
+            if exc.http_status in (429, 503):
+                try:
+                    answer = answer_without_search(question, language=language)
+                    return answer, [], []
+                except GeminiUnavailableError as fallback_exc:
+                    logger.warning("Repli Gemini sans recherche indisponible : %s", fallback_exc)
+                    ai_errors.append('gemini_text')
+                    ai_quota_exhausted = ai_quota_exhausted or fallback_exc.http_status == 429
     if results is None:
         results = search_knowledge_base(db, question)
     citations = [
@@ -87,15 +101,25 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
         [{"date": item["date"], "titre": item["titre"], "extrait": item["extrait"]} for item in results],
         key=lambda item: item["date"] or "",
     )
-    if language == 'en':
-        if not results:
+    if not results:
+        if ai_errors:
+            reason = ('the configured providers reached their limits' if ai_quota_exhausted
+                      else 'the configured providers are unavailable')
+            if language == 'en':
+                answer = (f'The AI assistant could not obtain a response because {reason}. '
+                          'Try again later or configure a provider with available quota.')
+            elif language == 'mg':
+                answer = ('Tsy nahazo valiny ny mpanampy AI satria tsy misy mpamatsy azo ampiasaina amin’izao. '
+                          'Andramo indray rehefa afaka kelikely na amboary mpamatsy mbola manana quota.')
+            else:
+                answer = ('Le chatbot IA n’a pas pu obtenir de réponse : ' +
+                          ('les quotas des fournisseurs sont atteints. ' if ai_quota_exhausted else
+                           'les fournisseurs configurés sont indisponibles. ') +
+                          'Réessayez plus tard ou configurez un fournisseur avec du quota disponible.')
+            return answer, citations, chronology
+        if language == 'en':
             return ('No certified document matches this question. '
                     'Our journalists are still verifying this topic.'), citations, chronology
-        context = "\n".join(f"- {item['titre']}: {item['extrait']}" for item in results)
-        return (f"Found {len(results)} certified source(s).\nQuestion: {question}\n"
-                f"Sources (original language):\n{context}\n"
-                "This preliminary analysis must be reviewed by a journalist."), citations, chronology
-    if not results:
         answer = ('Tsy misy antontan-taratasy voamarina mifanaraka amin’ity fanontaniana ity. '
                   'Mbola eo am-panamarinana izany ny mpanao gazety.' if language == 'mg' else (
             "Aucun document certifié ne correspond à cette question. "
@@ -103,7 +127,10 @@ def build_research_answer(db: Session, question: str, *, use_openrouter: bool = 
         ))
     else:
         context = "\n".join(f"- {item['titre']}: {item['extrait']}" for item in results)
-        answer = ((f"Ireto ny loharano voamarina {len(results)} mifandraika amin’ny fanontaniana.\n"
+        answer = ((f"Found {len(results)} certified source(s).\nQuestion: {question}\n"
+                   f"Sources (original language):\n{context}\n"
+                   "This preliminary analysis must be reviewed by a journalist.") if language == 'en' else (
+            f"Ireto ny loharano voamarina {len(results)} mifandraika amin’ny fanontaniana.\n"
                    f"Fanontaniana: {question}\nLoharano (teny niandohana):\n{context}\n"
                    "Mbola mila famakiana sy fanamarinana ataon’ny mpanao gazety ity valiny ity.") if language == 'mg' else (
             f"Réponse contextuelle basée sur {len(results)} source(s) certifiée(s).\n"

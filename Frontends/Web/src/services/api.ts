@@ -41,6 +41,92 @@ export function sendMessageToAI(question: string, language: ResponseLanguage) {
   return request<ResearchResult>('/copilot/research', { method: 'POST', body: JSON.stringify({ question, language }) });
 }
 
+export type ImageAnalysisResult = {
+  labels: string[];
+  text: string;
+  summary: string;
+  provider: string;
+  notice: string;
+};
+
+export type PublicationMediaAnalysis = ImageAnalysisResult;
+
+export function analyzeImage(imageBase64: string) {
+  return request<ImageAnalysisResult>('/vision/image', {
+    method: 'POST', body: JSON.stringify({ image_base64: imageBase64 }),
+  });
+}
+
+type PublicationMediaInput = {
+  uri: string;
+  file?: Blob | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+  duration?: number | null;
+  fileName?: string | null;
+  type: 'image' | 'video';
+};
+
+async function readMediaBase64(media: PublicationMediaInput, maxBytes: number, signal?: AbortSignal) {
+  if (signal?.aborted) throw new Error('Analyse interrompue.');
+  if (media.fileSize != null && media.fileSize > maxBytes) throw new ContributionMediaTooLargeError();
+  const response = media.file ? null : await fetch(media.uri, { signal });
+  if (response && !response.ok) throw new Error('Impossible de lire le média sélectionné.');
+  const blob = media.file ?? await response?.blob();
+  if (!blob || blob.size <= 0) throw new Error('Le média sélectionné est vide ou illisible.');
+  if (blob.size > maxBytes) throw new ContributionMediaTooLargeError();
+  const encoded = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') reject(new Error('Impossible de lire le média sélectionné.'));
+      else resolve(reader.result.slice(reader.result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Impossible de lire le média sélectionné.'));
+    reader.readAsDataURL(blob);
+  });
+  if (signal?.aborted) throw new Error('Analyse interrompue.');
+  return { base64: encoded, mimeType: media.mimeType || blob.type };
+}
+
+export async function analyzePublicationMedia(media: PublicationMediaInput, signal?: AbortSignal): Promise<PublicationMediaAnalysis> {
+  const analysisLimit = 4 * 1024 * 1024;
+  const { base64, mimeType: detectedMimeType } = await readMediaBase64(media, analysisLimit, signal);
+  if (media.type === 'image') {
+    return request<PublicationMediaAnalysis>('/vision/image', {
+      method: 'POST', signal, body: JSON.stringify({ image_base64: base64 }),
+    });
+  }
+
+  const durationSeconds = typeof media.duration === 'number' ? media.duration / 1000 : null;
+  if (durationSeconds == null || durationSeconds <= 0 || durationSeconds > 10) {
+    throw new Error('Pour l’analyse, choisissez une vidéo de 10 secondes maximum.');
+  }
+  const capabilities = await request<{ configured: boolean; capture_id: string; max_video_bytes: number }>('/vision/status', { signal });
+  if (!capabilities.configured) throw new Error('Analyse vidéo indisponible : Gemini n’est pas configuré.');
+  const mimeType = media.mimeType || detectedMimeType
+    || (/\.mov(?:$|\?)/i.test(media.fileName || media.uri) ? 'video/quicktime' : 'video/mp4');
+  if (mimeType !== 'video/mp4' && mimeType !== 'video/quicktime') {
+    throw new Error('Pour l’analyse, choisissez une vidéo MP4 ou MOV.');
+  }
+  const result = await request<{
+    result?: { analysis?: { summary: string; observations: { time_seconds: number; description: string }[] };
+      error?: { message: string } } | null;
+  }>('/vision/video', {
+    method: 'POST', signal,
+    body: JSON.stringify({
+      capture_id: capabilities.capture_id, sequence: 1, captured_at: new Date().toISOString(),
+      duration_seconds: durationSeconds, mime_type: mimeType, video_base64: base64, language: 'fr',
+    }),
+  });
+  const analysis = result.result?.analysis;
+  if (!analysis) throw new Error(result.result?.error?.message || 'Analyse vidéo indisponible.');
+  return {
+    labels: analysis.observations.map((item) => item.description), text: '', summary: analysis.summary,
+    provider: 'gemini',
+    notice: 'Ces observations ne déterminent pas si la vidéo est authentique, fausse ou générée par IA. Vérification humaine nécessaire.',
+  };
+}
+
 export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
   return request<{ text: string; language: 'fr' | 'mg'; provider: string }>('/copilot/translate', {
     method: 'POST', body: JSON.stringify({ text, target_language: targetLanguage }),
@@ -51,7 +137,7 @@ const configuredUrl = (
   (typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL : undefined)
   || (Constants.expoConfig?.extra?.apiUrl as string | undefined)
 );
-const backendUrl = new URL(configuredUrl || 'http://127.0.0.1:8000/api/v1');
+const backendUrl = new URL(configuredUrl || 'http://127.0.0.1:18000/api/v1');
 const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
 const isPrivateHost = (host: string) => ['localhost', '127.0.0.1'].includes(host)
   || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
@@ -217,35 +303,15 @@ export function getArticles() {
 
 async function encodeContributionMedia(media: {
   uri: string;
+  file?: Blob | null;
   mimeType?: string | null;
   fileSize?: number | null;
   type: 'image' | 'video';
 }) {
-  if (media.fileSize !== undefined && media.fileSize !== null && media.fileSize > MAX_CONTRIBUTION_MEDIA_BYTES) {
-    throw new ContributionMediaTooLargeError();
-  }
-  const response = await fetch(media.uri);
-  if (!response.ok) throw new Error('Impossible de lire le média sélectionné.');
-  const blob = await response.blob();
-  if (blob.size > MAX_CONTRIBUTION_MEDIA_BYTES) {
-    throw new ContributionMediaTooLargeError();
-  }
-  const mediaBase64 = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result !== 'string') {
-        reject(new Error('Impossible de lire le média sélectionné.'));
-        return;
-      }
-      resolve(result.slice(result.indexOf(',') + 1));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error('Impossible de lire le média sélectionné.'));
-    reader.readAsDataURL(blob);
-  });
+  const encoded = await readMediaBase64(media, MAX_CONTRIBUTION_MEDIA_BYTES);
   return {
-    media_base64: mediaBase64,
-    media_content_type: media.mimeType || blob.type || (media.type === 'image' ? 'image/jpeg' : 'video/mp4'),
+    media_base64: encoded.base64,
+    media_content_type: media.mimeType || encoded.mimeType || (media.type === 'image' ? 'image/jpeg' : 'video/mp4'),
   };
 }
 
@@ -254,7 +320,7 @@ export async function submitContribution(payload: {
   body: string;
   category: string;
   source?: string;
-  media?: { uri: string; mimeType?: string | null; fileSize?: number | null; type: 'image' | 'video' } | null;
+  media?: { uri: string; file?: Blob | null; mimeType?: string | null; fileSize?: number | null; type: 'image' | 'video' } | null;
 }) {
   const media = payload.media ? await encodeContributionMedia(payload.media) : {};
   return request<{ id: number }>('/contributions/signals', {

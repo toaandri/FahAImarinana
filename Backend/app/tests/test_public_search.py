@@ -50,3 +50,12 @@ class PublicSearchTests(unittest.IsolatedAsyncioTestCase):
     async def test_sitemap_requires_public_https_address(self):
         with patch('app.core.config.get_settings', return_value=SimpleNamespace(public_site_url='')):
             self.assertEqual((await self.client.get('/api/v1/public/sitemap.xml')).status_code, 503)
+
+    async def test_separate_public_app_exposes_no_private_api(self):
+        from app.public_site import app
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            page = await client.get('/api/v1/public/article', params={'id': self.public_id})
+            self.assertEqual(page.status_code, 200)
+            self.assertEqual((await client.post('/api/v1/auth/login', json={})).status_code, 404)
+            self.assertEqual((await client.get('/api/v1/editorial/contributions')).status_code, 404)
+            self.assertEqual((await client.get('/openapi.json')).status_code, 404)

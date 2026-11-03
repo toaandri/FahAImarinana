@@ -13,7 +13,10 @@ type ApiError = {
 };
 
 const configuredUrl = process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl;
-const backendUrl = new URL(configuredUrl || 'http://localhost:8000/api/v1');
+// Keep the fallback aligned with Backend/scripts/run_local.py and app.json.
+// Expo can omit expoConfig in some web/dev entry points; port 8000 then made
+// the browser call a different (usually absent) backend and fail CORS/network.
+const backendUrl = new URL(configuredUrl || 'http://127.0.0.1:18000/api/v1');
 const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
 const isPrivateHost = (host: string) => ['localhost', '127.0.0.1'].includes(host)
   || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);

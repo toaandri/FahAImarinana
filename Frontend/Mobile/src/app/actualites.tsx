@@ -14,8 +14,6 @@ function ContributionImage({ id }: { id: number }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    setUri(null);
-    setFailed(false);
     editorialImageDataUrl(id, controller.signal)
       .then((value) => { if (!controller.signal.aborted) setUri(value); })
       .catch(() => { if (!controller.signal.aborted) setFailed(true); });

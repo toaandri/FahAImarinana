@@ -65,7 +65,7 @@ export default function DiscussionScreen() {
       }
     });
     return () => { active = false; };
-  }, [params.question, params.analyze, loadingLanguage, language, t]);
+  }, [params.question, params.analyze, loadingLanguage, language, t, articleUrl]);
 
   async function send() {
     if (busy || loadingLanguage || text.trim().length < 3) return;

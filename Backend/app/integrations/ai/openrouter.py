@@ -49,6 +49,16 @@ def answer_question(question: str, sources: list[dict], *, language: str = 'fr',
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Empty completion")
         return content.strip()
-    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
+    except httpx.HTTPStatusError as exc:
+        # Keep the provider body and headers private; the status is enough to
+        # distinguish authentication, quota, and model errors in backend logs.
+        raise OpenRouterUnavailableError(
+            f"OpenRouter répond avec HTTP {exc.response.status_code}. Vérifiez la clé, le quota et le modèle configuré."
+        ) from None
+    except httpx.RequestError as exc:
+        raise OpenRouterUnavailableError(
+            f"OpenRouter est injoignable ({type(exc).__name__})."
+        ) from None
+    except (ValueError, KeyError, IndexError, TypeError):
         # Never propagate provider bodies or headers containing sensitive data.
         raise OpenRouterUnavailableError("OpenRouter n'a pas retourné de réponse exploitable.") from None

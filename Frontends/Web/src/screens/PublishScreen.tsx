@@ -1,9 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
-import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Field, Icon, InteractivePressable, PageTitle, PrimaryButton } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { ContributionMediaTooLargeError, MAX_CONTRIBUTION_MEDIA_BYTES, submitContribution } from '../services/api';
+import { analyzePublicationMedia, ContributionMediaTooLargeError, MAX_CONTRIBUTION_MEDIA_BYTES, submitContribution, type PublicationMediaAnalysis } from '../services/api';
 import { useI18n } from '../components/i18n';
 
 const categories = [
@@ -24,15 +24,47 @@ export default function PublishScreen() {
   const [source, setSource] = useState('');
   const [article, setArticle] = useState('');
   const [media, setMedia] = useState<PublishMedia | null>(null);
+  const [analysis, setAnalysis] = useState<PublicationMediaAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; article?: string; status?: string }>({});
 
+  function selectMedia(value: PublishMedia | null) {
+    setAnalysis(null);
+    setAnalysisError('');
+    setAnalyzing(!!value);
+    setMedia(value);
+  }
+
+  useEffect(() => {
+    if (!media) return;
+    const controller = new AbortController();
+    void Promise.resolve().then(async () => {
+      try {
+        const result = await analyzePublicationMedia(media, controller.signal);
+        if (!controller.signal.aborted) setAnalysis(result);
+      } catch (reason) {
+        if (!controller.signal.aborted) {
+          setAnalysisError(reason instanceof ContributionMediaTooLargeError
+            ? t('publish.analysisMediaTooLarge')
+            : reason instanceof Error ? reason.message : t('publish.analysisFailed'));
+        }
+      } finally {
+        if (!controller.signal.aborted) setAnalyzing(false);
+      }
+    });
+    return () => controller.abort();
+  }, [media, t]);
+
   const pickMedia = async (type: 'image' | 'video') => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setErrors((current) => ({ ...current, status: t('publish.mediaPermission') }));
-        return;
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          setErrors((current) => ({ ...current, status: t('publish.mediaPermission') }));
+          return;
+        }
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: type === 'image' ? ['images'] : ['videos'],
@@ -45,7 +77,7 @@ export default function PublishScreen() {
           setErrors((current) => ({ ...current, status: t('publish.mediaTooLarge') }));
           return;
         }
-        setMedia({ ...selected, type });
+        selectMedia({ ...selected, type });
         setErrors((current) => ({ ...current, status: undefined }));
       }
     } catch (error) {
@@ -71,6 +103,7 @@ export default function PublishScreen() {
       setTitle('');
       setArticle('');
       setSource('');
+      selectMedia(null);
     } catch (error) {
       setErrors({
         status: error instanceof ContributionMediaTooLargeError
@@ -153,11 +186,26 @@ export default function PublishScreen() {
               media={media?.type === type ? media : null}
               onPick={pickMedia}
               onRemove={() => {
-                setMedia(null);
+                selectMedia(null);
                 setErrors((current) => ({ ...current, status: undefined }));
               }}
             />
           ))}
+          {media ? <View style={styles.analysisCard}>
+            <View style={styles.analysisHeading}>
+              <Icon name="creation-outline" color={colors.accent} size={20} />
+              <Text style={styles.analysisTitle}>{t('publish.analysisTitle')}</Text>
+            </View>
+            {analyzing ? <View style={styles.analysisLoading}><ActivityIndicator color={colors.accent} /><Text style={styles.analysisText}>{t('publish.analysisLoading')}</Text></View> : null}
+            {analysisError ? <Text style={styles.analysisError} accessibilityRole="alert">{analysisError}</Text> : null}
+            {analysis ? <>
+              {analysis.summary ? <Text style={styles.analysisText}>{analysis.summary}</Text> : null}
+              {analysis.labels.length ? <Text style={styles.analysisText}>{t('publish.analysisLabels', { labels: analysis.labels.join(' · ') })}</Text> : null}
+              {analysis.text ? <Text selectable style={styles.analysisText}>{t('publish.analysisText', { text: analysis.text })}</Text> : null}
+              <Text style={styles.analysisNotice}>{analysis.notice}</Text>
+            </> : null}
+            <Text style={styles.analysisLimit}>{t('publish.analysisLimit')}</Text>
+          </View> : null}
         </View>
       </View>
     </AppShell>
@@ -231,5 +279,13 @@ const styles = StyleSheet.create({
   mediaAction: { minHeight: 48, borderWidth: 1, borderColor: colors.accent, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   mediaActionText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
   mediaLimit: { color: colors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  analysisCard: { minWidth: 0, padding: 16, gap: 10, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  analysisHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  analysisTitle: { color: colors.white, fontSize: 16, lineHeight: 22, fontWeight: '800' },
+  analysisLoading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  analysisText: { color: colors.white, fontSize: 13, lineHeight: 20 },
+  analysisNotice: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  analysisLimit: { color: colors.muted, fontSize: 11, lineHeight: 16 },
+  analysisError: { color: colors.white, fontSize: 13, lineHeight: 20 },
   status: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12 },
 });

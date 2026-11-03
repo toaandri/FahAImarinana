@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { HeaderBar, GlassCard, BottomTabs, StoryCard } from '@/components/ui';
-import { articleAnalysisQuestion, getGdeltNews, getLatestNews, getPrecompute, startPrecompute, interleaveNewsWithImages } from '@/services/mockData';
+import { articleAnalysisQuestion, getGdeltNews, getLatestNews, interleaveNewsWithImages } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 
 type CarouselItem = { id: string; title: string; source: string; image?: string; excerpt?: string; url?: string; status: string };
-type Analysis = { state: 'loading' | 'done' | 'unavailable'; coherence?: number | null; reason?: string };
+const DEMO_SCORES = [82, 68, 91, 74, 63] as const;
 
 export default function HomeScreen() {
   const { t } = useLanguage();
@@ -17,8 +17,6 @@ export default function HomeScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
-  const [analyses, setAnalyses] = useState<Record<string, Analysis>>({});
-  const analysesRef = useRef<Record<string, Analysis>>({});
 
   useEffect(() => {
     let active = true;
@@ -43,48 +41,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (items.length < 2) return undefined;
-    const url = items[activeIndex]?.url;
-    if (url && (!analyses[url] || analyses[url].state === 'loading')) return undefined;
-
     const timer = setTimeout(() => {
       setActiveIndex((index) => (index + 1) % items.length);
     }, 8_000);
 
     return () => clearTimeout(timer);
-  }, [activeIndex, items, analyses]);
+  }, [activeIndex, items.length]);
 
   const activeItem = items[activeIndex];
-  const articleUrl = activeItem?.url;
-
-  useEffect(() => {
-    if (!articleUrl || analysesRef.current[articleUrl]?.state === 'done') return;
-    let active = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const update = (analysis: Analysis) => {
-      if (!active) return;
-      analysesRef.current = { ...analysesRef.current, [articleUrl]: analysis };
-      setAnalyses(analysesRef.current);
-    };
-    const poll = async (jobId: string, attempts: number) => {
-      try {
-        const job = await getPrecompute(jobId);
-        if (!active) return;
-        if (job.status === 'completed' && job.result) {
-          const coherence = job.result.calculation?.corroboration_percent ?? null;
-          const reason = job.result.warnings.includes('ia_indisponible') ? 'IA indisponible' : 'Sources insuffisantes';
-          update({ state: 'done', coherence, reason: coherence == null ? reason : undefined });
-        } else if (job.status === 'failed' || attempts >= 90) {
-          update({ state: 'unavailable' });
-        } else {
-          timer = setTimeout(() => void poll(jobId, attempts + 1), 1000);
-        }
-      } catch (error) { update({ state: 'unavailable', reason: error instanceof Error ? error.message : 'Analyse indisponible' }); }
-    };
-    update({ state: 'loading' });
-    startPrecompute(articleUrl).then((job) => { if (active) void poll(job.job_id, 0); })
-      .catch((error) => update({ state: 'unavailable', reason: error instanceof Error ? error.message : 'Analyse indisponible' }));
-    return () => { active = false; if (timer) clearTimeout(timer); };
-  }, [articleUrl]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -95,13 +59,14 @@ export default function HomeScreen() {
           source={activeItem.source}
           status={activeItem.status}
           image={activeItem.image}
-          analysis={activeItem.url ? analyses[activeItem.url] : undefined}
+          analysis={{ state: 'done', coherence: DEMO_SCORES[activeIndex % DEMO_SCORES.length], demo: true }}
           label={t('latestInformation')}
           onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem), ...(activeItem.url ? { article_url: activeItem.url } : {}) } })}
         /> : <GlassCard style={styles.emptyCard}>
           <Text style={styles.emptyText}>{loading ? 'Chargement des actualités…' : error}</Text>
           {!loading ? <Pressable accessibilityRole="button" onPress={() => { setLoading(true); setReload((value) => value + 1); }}><Text style={styles.emptyText}>Réessayer</Text></Pressable> : null}
         </GlassCard>}
+        {activeItem ? <Text style={styles.demoNotice}>Valeur illustrative, sans analyse de cet article.</Text> : null}
         {items.length > 1 ? (
           <View style={styles.carouselControls}>
           <Pressable accessibilityRole="button" accessibilityLabel="Actualité précédente" onPress={() => setActiveIndex((index) => (index - 1 + items.length) % items.length)}><Text style={styles.carouselArrow}>‹</Text></Pressable>
@@ -149,6 +114,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120 },
   emptyCard: { padding: 20 },
   emptyText: { color: '#fff', paddingVertical: 8 },
+  demoNotice: { color: '#d9e8e4', fontSize: 11, textAlign: 'center', marginTop: 8 },
   carouselControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
   carouselArrow: { color: '#fff', fontSize: 30, paddingHorizontal: 14 },
   analyzeButton: { marginTop: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: palette.mint, alignItems: 'center' },
