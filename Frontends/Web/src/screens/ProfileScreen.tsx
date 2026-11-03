@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ActivityIndicator, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Card, Field, Icon, InteractivePressable, PageTitle, PrimaryButton, ProfileRow } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { getProfile, logout, saveProfilePhoto } from '../services/api';
+import { getProfile, logout, saveProfilePhoto, saveResponseLanguage, type ResponseLanguage } from '../services/api';
+import { LanguageSelector } from '../components/LanguageSelector';
 
 const profileLinks = [
   { icon: 'file-document-outline', label: 'Mes publications' },
   { icon: 'history', label: 'Historique des vérifications' },
   { icon: 'bell-outline', label: 'Notifications' },
-  { icon: 'web', label: 'Langue : Français' },
   { icon: 'cog-outline', label: 'Paramètres' },
 ] as const;
 
@@ -27,14 +27,34 @@ export default function ProfileScreen() {
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [photoNotice, setPhotoNotice] = useState('');
-  useEffect(() => {
+  const [language, setLanguage] = useState<ResponseLanguage>('auto');
+  const [savingLanguage, setSavingLanguage] = useState(false);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setLoadingProfile(true);
     getProfile().then((profile) => {
+      if (!active) return;
       setName(profile.role);
       setEmail(profile.email);
       setPhoto(profile.photo);
-    }).catch((error) => setNotice(error instanceof Error ? error.message : 'Profil indisponible.'))
-      .finally(() => setLoadingProfile(false));
-  }, []);
+      setLanguage(profile.response_language);
+    }).catch((error) => { if (active) setNotice(error instanceof Error ? error.message : 'Profil indisponible.'); })
+      .finally(() => { if (active) setLoadingProfile(false); });
+    return () => { active = false; };
+  }, []));
+
+  async function changeLanguage(value: ResponseLanguage) {
+    setSavingLanguage(true);
+    try {
+      const saved = await saveResponseLanguage(value);
+      setLanguage(saved.language);
+      setNotice('Préférence de langue enregistrée. / Voatahiry ny teny nofidina.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Enregistrement impossible.');
+    } finally {
+      setSavingLanguage(false);
+    }
+  }
 
   async function choosePhoto() {
     if (loadingProfile || savingPhoto) return;
@@ -117,6 +137,7 @@ export default function ProfileScreen() {
         </Card>
 
         <View style={styles.links}>
+          <LanguageSelector value={language} onChange={(value) => void changeLanguage(value)} disabled={loadingProfile || savingLanguage} />
           {profileLinks.map((item) => (
             <ProfileRow
               key={item.label}

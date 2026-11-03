@@ -1,5 +1,24 @@
 import { apiRequest, clearTokens, setTokens } from './api';
 
+export type ResponseLanguage = 'auto' | 'fr' | 'mg';
+
+export async function getResponseLanguage() {
+  const account = await apiRequest<{ response_language: ResponseLanguage }>('/auth/me');
+  return account.response_language;
+}
+
+export function saveResponseLanguage(language: ResponseLanguage) {
+  return apiRequest<{ language: ResponseLanguage }>('/auth/me/language', {
+    method: 'PATCH', body: JSON.stringify({ language }),
+  });
+}
+
+export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
+  return apiRequest<{ text: string; language: 'fr' | 'mg'; provider: string }>('/copilot/translate', {
+    method: 'POST', body: JSON.stringify({ text, target_language: targetLanguage }),
+  });
+}
+
 export type NewsItem = {
   id: string;
   source: string;
@@ -104,19 +123,19 @@ export async function login(email: string, password: string) {
   return { ok: true };
 }
 
-export async function sendMessageToAI(message: string) {
+export async function sendMessageToAI(message: string, language?: ResponseLanguage) {
   const answer = await apiRequest<{
     reponse: string;
     citations: Array<{ titre?: string; url?: string }>;
   }>('/copilot/research', {
     method: 'POST',
-    body: JSON.stringify({ question: message }),
+    body: JSON.stringify({ question: message, language }),
   });
   return {
     message: message || 'Message reçu',
-    confidence: answer.citations.length ? 72 : 0,
+    confidence: 0,
     summary: answer.reponse,
-    sources: answer.citations.map((citation) => citation.titre || citation.url || 'Source'),
+    sources: answer.citations.map((citation) => [citation.titre, citation.url].filter(Boolean).join(' — ') || 'Source'),
   };
 }
 
@@ -144,6 +163,7 @@ export async function getProfile() {
     id: number;
     email: string;
     role: string;
+    response_language: ResponseLanguage;
   }>('/auth/me');
   const photo = await apiRequest<{ photo: string | null }>('/auth/me/photo');
   return {
@@ -153,6 +173,7 @@ export async function getProfile() {
     verifications: 0,
     credibility: 0,
     photo: photo.photo,
+    language: account.response_language,
   };
 }
 

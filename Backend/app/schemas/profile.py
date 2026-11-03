@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from ..utils.languages import Language
 
 MAX_PHOTO_BYTES = 2 * 1024 * 1024
 MAX_PHOTO_BASE64_CHARS = 4 * ((MAX_PHOTO_BYTES + 2) // 3)
@@ -11,3 +12,8 @@ class ProfilePhotoUpdate(BaseModel):
 
 class ProfilePhotoRead(BaseModel):
     photo: str | None
+
+
+class ProfileLanguage(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    language: Language

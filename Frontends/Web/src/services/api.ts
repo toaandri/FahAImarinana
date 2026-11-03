@@ -2,6 +2,29 @@ import Constants from 'expo-constants';
 
 type TokenResponse = { access_token: string; refresh_token: string };
 type ApiError = { detail?: string | Array<{ msg?: string }> };
+export type ResponseLanguage = 'auto' | 'fr' | 'mg';
+export type ResearchResult = { reponse: string; citations: { titre?: string; url?: string }[]; chronologie: unknown[] };
+
+export async function getResponseLanguage() {
+  const account = await request<{ response_language: ResponseLanguage }>('/auth/me');
+  return account.response_language;
+}
+
+export function saveResponseLanguage(language: ResponseLanguage) {
+  return request<{ language: ResponseLanguage }>('/auth/me/language', {
+    method: 'PATCH', body: JSON.stringify({ language }),
+  });
+}
+
+export function sendMessageToAI(question: string, language: ResponseLanguage) {
+  return request<ResearchResult>('/copilot/research', { method: 'POST', body: JSON.stringify({ question, language }) });
+}
+
+export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
+  return request<{ text: string; language: 'fr' | 'mg'; provider: string }>('/copilot/translate', {
+    method: 'POST', body: JSON.stringify({ text, target_language: targetLanguage }),
+  });
+}
 
 const API_URL = ((Constants.expoConfig?.extra?.apiUrl as string | undefined) || 'http://localhost:18000/api/v1').replace(/\/$/, '');
 let accessToken: string | null = null;
@@ -77,7 +100,7 @@ export function logout() {
 }
 
 export async function getProfile() {
-  const profile = await request<{ email: string; role: string }>('/auth/me');
+  const profile = await request<{ email: string; role: string; response_language: ResponseLanguage }>('/auth/me');
   const photo = await request<{ photo: string | null }>('/auth/me/photo');
   return { ...profile, photo: photo.photo };
 }
