@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { getResponseLanguage, sendMessageToAI, translateAnswer, startPrecompute, type ResponseLanguage, type Corroboration } from '@/services/mockData';
-import { LanguageSelector } from '@/components/LanguageSelector';
 import { CredibilityForm } from '@/components/CredibilityForm';
 
 export default function DiscussionScreen() {
   const { t } = useLanguage();
   const params = useLocalSearchParams<{ question?: string; analyze?: string; article_url?: string }>();
-  const { bottom } = useSafeAreaInsets();
   const [text, setText] = useState(typeof params.question === 'string' ? params.question.slice(0, 2000) : '');
   const [answer, setAnswer] = useState('');
   const [original, setOriginal] = useState('');
@@ -113,8 +111,15 @@ export default function DiscussionScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <HeaderBar showBack />
-      <ScrollView contentContainerStyle={styles.content}>
-        <LanguageSelector value={language} onChange={setLanguage} disabled={busy || loadingLanguage} />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+      <ScrollView
+        style={styles.messages}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.messageRow}>
           <Text style={styles.avatar}>AI</Text>
           <View style={styles.aiBubble}><Text style={styles.bubbleText}>{t('aiGreeting')}</Text></View>
@@ -149,7 +154,7 @@ export default function DiscussionScreen() {
         {answer ? <CredibilityForm key={`${analysisVersion}-${question}`} articleUrl={params.analyze === '1' && question === params.question ? params.article_url : undefined} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
       </ScrollView>
 
-      <View style={[styles.inputBar, { bottom: Math.max(bottom, 12) + 8 }]}>
+      <View style={styles.inputBar}>
         <TextInput value={text} onChangeText={setText} maxLength={2000} editable={!busy} placeholder={t('writeMessage')} placeholderTextColor="rgba(255,255,255,0.55)" style={styles.input} />
         <Pressable
           style={styles.sendButton}
@@ -158,13 +163,16 @@ export default function DiscussionScreen() {
           onPress={() => void send()}
         ><Ionicons name="send" size={16} color="#0B2B2B" /></Pressable>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
-  content: { padding: 16, paddingBottom: 108 },
+  keyboardAvoiding: { flex: 1 },
+  messages: { flex: 1 },
+  content: { padding: 16, paddingBottom: 16 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
   avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: palette.mint, color: '#0b2b2b', textAlign: 'center', textAlignVertical: 'center', fontWeight: '800', fontFamily: 'Montserrat_700Bold_Italic', marginRight: 8 },
   aiBubble: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 12, maxWidth: '78%' },
@@ -186,7 +194,7 @@ const styles = StyleSheet.create({
   translationButton: { minHeight: 44, borderWidth: 1, borderColor: palette.mint, borderRadius: 10, justifyContent: 'center', padding: 10 },
   tagRow: { flexDirection: 'row', marginTop: 12 },
   tag: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, color: '#fff', marginRight: 8, fontSize: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
-  inputBar: { position: 'absolute', left: 16, right: 16, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
+  inputBar: { marginHorizontal: 16, marginTop: 8, marginBottom: 8, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
   inputActions: { flexDirection: 'row', gap: 10, marginRight: 8 },
   input: { flex: 1, color: '#fff', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
   sendButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
