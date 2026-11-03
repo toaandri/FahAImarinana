@@ -162,11 +162,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 24,
   },
   formCard: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 480,
     overflow: 'hidden',
     borderRadius: 22,
     borderWidth: 1,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   cardAccent: { height: 4, backgroundColor: colors.accent },
-  form: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
+  form: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
   formNarrow: { paddingHorizontal: 16 },
   brandLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   heading: {
@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.deep,
   },
   noticeText: { flex: 1, color: colors.muted, fontSize: 14, lineHeight: 20 },
-  fields: { gap: 2 },
-  field: { marginBottom: 2 },
+  fields: { gap: 12 },
+  field: { marginBottom: 4 },
   showPassword: {
     minHeight: 44,
     minWidth: 80,

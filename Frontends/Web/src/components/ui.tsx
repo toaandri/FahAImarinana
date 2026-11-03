@@ -320,7 +320,7 @@ export function AppShell({
       ) : (
         <View style={styles.header}>
           <View style={[styles.headerInner, { paddingHorizontal: horizontalPadding }]}>
-            <Brand compact={width < 360} />
+            <Link href="/" asChild accessibilityLabel={t('navigation.homeBrand')}><InteractivePressable style={{ flexShrink: 1, minHeight: 44, justifyContent: 'center' }}><Brand compact={width < 480} /></InteractivePressable></Link>
             <View style={[styles.headerActions, width < 360 && styles.headerActionsCompact]}>
               <View style={[styles.currentPage, width < 360 && styles.currentPageCompact]}>
                 <View style={styles.onlineDot} />
@@ -510,11 +510,9 @@ export function MediaPreview({
   onRemove?: () => void;
   compact?: boolean;
 }) {
-  const { width } = useWindowDimensions();
-  const compactWidth = width < 768 ? 112 : 204;
   return (
-    <View style={[styles.mediaPreview, compact && [styles.mediaPreviewCompact, { width: compactWidth }]]}>
-      {uri ? <Image source={{ uri }} style={styles.mediaImage} resizeMode="cover" /> : null}
+    <View style={[styles.mediaPreview, compact && !uri && styles.mediaPreviewCompact]}>
+      {uri ? <Image source={{ uri }} accessibilityLabel={title} style={styles.mediaImage} resizeMode="contain" /> : null}
       <View style={styles.mediaAccent} />
       <Text style={styles.mediaText}>{title}</Text>
       {onRemove ? (
@@ -591,7 +589,7 @@ const styles = StyleSheet.create({
   currentPageTextCompact: { fontSize: 13, lineHeight: 18 },
   currentPageText: { color: colors.deep, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   menuToggle: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
-  mobileNavigation: { paddingTop: 12, paddingBottom: 20, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: '#E4EBED' },
+  mobileNavigation: { paddingTop: 12, paddingBottom: 20, backgroundColor: colors.deep, borderTopWidth: 1, borderTopColor: colors.border },
   brand: { fontSize: 19, lineHeight: 26, fontWeight: '800', letterSpacing: 0.1 },
   brandCompact: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
   brandText: { color: colors.background },
@@ -634,16 +632,19 @@ const styles = StyleSheet.create({
   pageDesktop: { maxWidth: undefined, alignSelf: 'stretch' },
   pageInner: {
     width: '100%',
-    paddingTop: 28,
+    maxWidth: 1296,
+    alignSelf: 'center',
+    paddingTop: 32,
     paddingBottom: 48,
   },
-  pageInnerFill: { flexGrow: 1, paddingBottom: 92 },
+  pageInnerFill: { flexGrow: 1, paddingBottom: 48 },
   pageTitle: { color: colors.white, fontSize: 32, lineHeight: 40, fontWeight: '700', marginBottom: 24 },
   pageTitleTablet: { fontSize: 28, lineHeight: 36 },
   pageTitleMobile: { fontSize: 26, lineHeight: 34 },
   card: {
     padding: spacing.xl,
-    borderRadius: 16,
+    borderRadius: 20,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -654,17 +655,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingVertical: 12,
     backgroundColor: colors.accent,
   },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.accent },
   buttonDisabled: { opacity: 0.5 },
   buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  buttonText: { color: colors.deep, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  buttonText: { flexShrink: 1, textAlign: 'center', color: colors.deep, fontSize: 15, lineHeight: 20, fontWeight: '700' },
   buttonOutlineText: { color: colors.white },
   pressed: { opacity: 0.78 },
   fieldGroup: { marginBottom: 20 },
-  fieldLabel: { color: colors.white, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 6 },
+  fieldLabel: { color: colors.white, fontSize: 15, lineHeight: 20, fontWeight: '700', marginBottom: 6 },
   inputWrap: {
     minHeight: 50,
     borderRadius: 12,
@@ -677,7 +679,7 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: '#FF8B8B' },
   inputFocused: { borderColor: colors.accent, borderWidth: 2 },
-  input: { flex: 1, minHeight: 48, color: colors.white, fontSize: 16, paddingVertical: 10 },
+  input: { flex: 1, minHeight: 48, color: colors.white, fontSize: 16, lineHeight: 24, minWidth: 0, paddingVertical: 12 },
   textAreaWrap: { minHeight: 150, alignItems: 'stretch', borderRadius: 16, paddingVertical: 8 },
   textArea: { minHeight: 134, textAlignVertical: 'top' },
   errorText: { color: '#FFD1D1', fontSize: 14, lineHeight: 20, marginTop: 4 },
@@ -690,14 +692,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     backgroundColor: colors.deep,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 16,
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: 14,
   },
-  mediaPreviewCompact: { minHeight: 96, width: 204, paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
-  mediaAccent: { width: 4, alignSelf: 'stretch', backgroundColor: colors.accent },
-  mediaText: { flex: 1, color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
-  mediaImage: { width: 64, height: 64, borderRadius: 6 },
+  mediaPreviewCompact: { minHeight: 88, width: '100%', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
+  mediaAccent: { width: 48, height: 4, borderRadius: 2, backgroundColor: colors.accent },
+  mediaText: { color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  mediaImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12 },
   mediaRemove: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
   profileRow: {
     minHeight: 64,
@@ -708,7 +711,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 6,
+    borderRadius: 14,
   },
   profileRowLabel: { flex: 1, color: colors.white, fontSize: 16, lineHeight: 22, fontWeight: '700' },
 });

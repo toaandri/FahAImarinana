@@ -80,6 +80,7 @@ export default function PublishScreen() {
       <PageTitle>{t('publish.title')}</PageTitle>
       <View style={[styles.columns, desktop && styles.columnsDesktop]}>
         <View style={styles.formColumn}>
+          {!desktop ? <MediaCard media={media} onPick={pickMedia} onRemove={() => { setMedia(null); setErrors((current) => ({ ...current, status: undefined })); }} /> : null}
           <Field
             label={t('publish.articleTitle')}
             value={title}
@@ -114,16 +115,6 @@ export default function PublishScreen() {
               })}
             </View>
           </View>
-          {!desktop ? (
-            <MediaCard
-              media={media}
-              onPick={pickMedia}
-              onRemove={() => {
-                setMedia(null);
-                setErrors((current) => ({ ...current, status: undefined }));
-              }}
-            />
-          ) : null}
           <Field
             label={t('publish.sourceOptional')}
             value={source}
@@ -177,7 +168,7 @@ function MediaCard({
     <View style={styles.mediaCard}>
       <View style={styles.mediaPlaceholder}>
         {media?.type === 'image' ? (
-          <Image source={{ uri: media.uri }} style={styles.mediaImage} resizeMode="cover" />
+          <Image source={{ uri: media.uri }} accessibilityLabel={media.fileName ?? t('publish.attachPhoto')} style={styles.mediaImage} resizeMode="contain" />
         ) : null}
         <View style={styles.mediaAccent} />
         <Text style={styles.mediaPrompt}>
@@ -208,7 +199,7 @@ function MediaCard({
 const styles = StyleSheet.create({
   columns: { gap: spacing.xl },
   columnsDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
-  formColumn: { flex: 1, minWidth: 0 },
+  formColumn: { flex: 1, minWidth: 0, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   fieldGroup: { marginBottom: 20 },
   label: { color: colors.white, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 8 },
   categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -218,10 +209,10 @@ const styles = StyleSheet.create({
   categoryText: { color: colors.white, fontSize: 14, fontWeight: '700' },
   categoryTextSelected: { color: colors.deep },
   mediaCard: { flex: 1, minWidth: 0, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, backgroundColor: colors.surface, marginBottom: 20 },
-  mediaPlaceholder: { minHeight: 240, padding: 20, backgroundColor: colors.deep, flexDirection: 'row', alignItems: 'center', gap: 16, borderRadius: 12 },
-  mediaAccent: { width: 4, alignSelf: 'stretch', backgroundColor: colors.accent },
-  mediaPrompt: { flex: 1, color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
-  mediaImage: { width: 96, height: 96, borderRadius: 10 },
+  mediaPlaceholder: { minHeight: 240, padding: 20, backgroundColor: colors.deep, flexDirection: 'column', alignItems: 'stretch', gap: 16, borderRadius: 12 },
+  mediaAccent: { width: 48, height: 4, borderRadius: 2, backgroundColor: colors.accent },
+  mediaPrompt: { color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  mediaImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12 },
   removeButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
   mediaActions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   mediaAction: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },

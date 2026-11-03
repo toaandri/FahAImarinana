@@ -164,15 +164,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flexGrow: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8 },
-  formCard: { width: '100%', maxWidth: 440, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  page: { flexGrow: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 24 },
+  formCard: { width: '100%', maxWidth: 480, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   cardAccent: { height: 4, backgroundColor: colors.accent },
-  form: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
+  form: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
   brandLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   heading: { color: colors.white, fontSize: 26, lineHeight: 34, fontWeight: '700', marginTop: 6, marginBottom: 16 },
   headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 10 },
-  fields: { gap: 2 },
-  field: { marginBottom: 2 },
+  fields: { gap: 12 },
+  field: { marginBottom: 4 },
   textLinkHitbox: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   link: { color: colors.accent, fontSize: 15, lineHeight: 21, fontWeight: '700' },
   showPassword: { minHeight: 44, minWidth: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },

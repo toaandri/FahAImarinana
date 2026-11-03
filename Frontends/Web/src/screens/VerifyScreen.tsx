@@ -189,7 +189,7 @@ export default function VerifyScreen() {
               {attachments.map((item, index) => (
                 <View style={styles.attachment} key={`${item.uri}-${index}`}>
                   {item.type === 'image' ? (
-                    <Image source={{ uri: item.uri }} style={styles.attachmentImage} />
+                    <Image source={{ uri: item.uri }} accessibilityLabel={item.name} style={styles.attachmentImage} resizeMode="contain" />
                   ) : (
                     <Icon name="video-outline" color={colors.accent} />
                   )}
@@ -294,16 +294,16 @@ const styles = StyleSheet.create({
   translationActions: { gap: 8 },
   translationButton: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, padding: 12, justifyContent: 'center' },
   source: { color: colors.accent, fontSize: 14, fontWeight: '700' },
-  disclaimer: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  disclaimer: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   composerArea: { marginTop: 32, paddingBottom: spacing.md },
   attachments: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  attachment: { maxWidth: '100%', minHeight: 48, paddingLeft: 8, paddingRight: 4, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.deep },
-  attachmentImage: { width: 34, height: 34 },
+  attachment: { maxWidth: '100%', minHeight: 48, padding: 12, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, backgroundColor: colors.deep },
+  attachmentImage: { width: 96, height: 72, borderRadius: 8 },
   attachmentName: { maxWidth: 180, color: colors.muted, fontSize: 14 },
   removeAttachment: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   composer: { minHeight: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, backgroundColor: colors.deep, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
   composerIcon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  composerInput: { flex: 1, minWidth: 40, minHeight: 48, color: colors.white, fontSize: 15, paddingHorizontal: 8 },
+  composerInput: { flex: 1, minWidth: 40, minHeight: 48, color: colors.white, fontSize: 16, lineHeight: 24, paddingHorizontal: 8 },
   sendButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.75 },
   status: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 8 },

@@ -86,6 +86,7 @@ export default function NewsScreen() {
         {externalError ? <InteractivePressable accessibilityRole="button" onPress={loadFeed}><Text style={styles.empty}>{t('common.retry')}</Text></InteractivePressable> : null}
         {!feedLoading && !externalError && visibleExternal.length === 0 ? <Text style={styles.empty}>{t('news.noExternal')}</Text> : null}
         {visibleExternal.map((item) => <View key={item.url} style={styles.story}>
+          {item.image ? <Image source={{ uri: item.image }} accessibilityLabel={item.title} style={styles.externalImage} resizeMode="cover" /> : null}
           <View style={styles.storyText}>
             <Text style={styles.source}>{item.source}{item.seen_at ? ` · ${new Date(item.seen_at).toLocaleString(language === 'mg' ? 'mg-MG' : language === 'en' ? 'en-US' : 'fr-FR')}` : ''}</Text>
             <Text style={styles.title}>{item.title}</Text>
@@ -95,7 +96,6 @@ export default function NewsScreen() {
               <InteractivePressable accessibilityRole="button" onPress={() => router.push({ pathname: '/verifier', params: { analyze: '1', question: articleAnalysisQuestion(item), article_url: item.url } })}><Text style={styles.externalLink}>{t('news.analyze')}</Text></InteractivePressable>
             </View>
           </View>
-          {item.image ? <Image source={{ uri: item.image }} style={styles.externalImage} resizeMode="cover" /> : null}
         </View>)}
         <Text style={styles.externalHeading}>{t('news.certified')}</Text>
       </View> : null}
@@ -105,11 +105,11 @@ export default function NewsScreen() {
           <Text style={styles.empty}>{t('news.noCertified')}</Text>
         ) : visibleStories.map((story, index) => (
           <View key={`${story.source}-${index}`} style={styles.story}>
+            <MediaPreview title={mobile ? t('common.image') : t('common.media')} compact />
             <View style={styles.storyText}>
               <Text style={styles.source}>{story.source}</Text>
               <Text style={[styles.title, mobile && styles.titleMobile]}>{story.title}</Text>
             </View>
-            <MediaPreview title={mobile ? t('common.image') : t('common.media')} compact />
           </View>
         ))}
       </View>
@@ -120,8 +120,8 @@ export default function NewsScreen() {
 const styles = StyleSheet.create({
   externalHeading: { color: colors.white, fontSize: 18, fontWeight: '700', marginVertical: 12 },
   externalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginTop: 12 },
-  externalImage: { width: 100, height: 80, borderRadius: 8 },
-  externalLink: { color: colors.background, textDecorationLine: 'underline', fontWeight: '700', paddingVertical: 8 },
+  externalImage: { width: '100%', aspectRatio: 16 / 9, maxHeight: 440, borderRadius: 12 },
+  externalLink: { color: colors.background, textDecorationLine: 'underline', fontWeight: '700', fontSize: 16, lineHeight: 24, paddingVertical: 12, minHeight: 48 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.xl },
   filterButton: {
     minHeight: 44,
@@ -136,20 +136,20 @@ const styles = StyleSheet.create({
   filterSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   filterText: { color: colors.white, fontSize: 14, fontWeight: '700' },
   filterTextSelected: { color: colors.deep },
-  list: { gap: 8 },
+  list: { gap: 20, marginBottom: 24 },
   story: {
     minHeight: 120,
     padding: 16,
     backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     justifyContent: 'space-between',
     gap: 16,
     borderRadius: 16,
   },
-  storyText: { flex: 1, minWidth: 0 },
+  storyText: { minWidth: 0 },
   source: { color: colors.background, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 8 },
   title: { color: colors.background, fontSize: 18, lineHeight: 26, fontWeight: '700' },
-  titleMobile: { fontSize: 16, lineHeight: 24 },
+  titleMobile: { fontSize: 18, lineHeight: 27 },
   empty: { color: colors.muted, fontSize: 16, lineHeight: 24 },
 });

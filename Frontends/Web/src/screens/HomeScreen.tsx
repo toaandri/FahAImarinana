@@ -56,9 +56,8 @@ export default function HomeScreen() {
             <Text style={styles.cardTitle}>{t('home.latest')}</Text>
           </View>
           {activeItem ? <View style={[styles.headline, desktop && styles.headlineDesktop]}>
-            <View style={styles.headlineAccent} />
+            {activeItem.image ? <Image source={{ uri: activeItem.image }} accessibilityLabel={activeItem.title} style={styles.image} resizeMode="cover" /> : null}
             <Text style={styles.headlineText}>{activeItem.title}</Text>
-            {activeItem.image ? <Image source={{ uri: activeItem.image }} style={styles.image} resizeMode="cover" /> : null}
           </View> : <Text style={styles.meta}>{loading ? t('home.loading') : error ? t(error) : ''}</Text>}
           {activeItem ? <>
             <View style={styles.metaRow}>
@@ -97,29 +96,30 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   columns: { gap: spacing.xl },
-  columnsDesktop: { flex: 1, flexDirection: 'row', alignItems: 'stretch' },
-  columnCard: { flex: 1, minHeight: 320 },
+  columnsDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
+  columnCard: { flex: 1, minWidth: 0, gap: 8 },
   cardHeading: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  cardTitleIcon: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', borderRadius: 12, backgroundColor: colors.deep },
+  cardTitleIcon: { width: 56, height: 56, justifyContent: 'center', alignItems: 'center', borderRadius: 12, backgroundColor: colors.deep },
   cardTitle: { flex: 1, color: colors.white, fontSize: 22, lineHeight: 30, fontWeight: '700' },
   headline: {
     minHeight: 140,
     backgroundColor: colors.deep,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 20,
+    padding: 16,
     marginBottom: 20,
     borderRadius: 12,
   },
-  headlineDesktop: { flex: 1 },
+  headlineDesktop: { minHeight: 180 },
   headlineAccent: { width: 4, alignSelf: 'stretch', backgroundColor: colors.accent, marginRight: 12 },
-  headlineText: { flex: 1, color: colors.muted, fontSize: 17, lineHeight: 24, fontWeight: '700' },
-  image: { width: 90, height: 90, borderRadius: 8, marginLeft: 8 },
+  headlineText: { color: colors.white, fontSize: 21, lineHeight: 30, fontWeight: '700' },
+  image: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12 },
   carouselActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   carouselButton: { minHeight: 44, justifyContent: 'center', borderColor: colors.accent, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center', marginTop: 12 },
   meta: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  description: { color: colors.white, fontSize: 17, lineHeight: 25, marginTop: 20, marginBottom: 'auto' },
+  description: { color: colors.white, fontSize: 17, lineHeight: 25, marginTop: 4, marginBottom: 24 },
   cta: { minHeight: 48, borderRadius: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.accent },
-  ctaText: { color: colors.deep, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  ctaText: { flexShrink: 1, color: colors.deep, fontSize: 15, lineHeight: 20, fontWeight: '700' },
 });

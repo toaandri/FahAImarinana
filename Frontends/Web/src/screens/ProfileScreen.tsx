@@ -106,7 +106,7 @@ export default function ProfileScreen() {
               onPress={choosePhoto}
               style={styles.avatar}
             >
-              {photo ? <Image source={{ uri: photo }} style={styles.avatarImage} /> : <Icon name="account-outline" size={32} color={colors.deep} />}
+              {photo ? <Image source={{ uri: photo }} accessibilityLabel={name} style={styles.avatarImage} resizeMode="cover" /> : <Icon name="account-outline" size={32} color={colors.deep} />}
               <View style={styles.avatarCamera}>
                 {savingPhoto ? <ActivityIndicator size="small" color={colors.deep} /> : <Icon name="camera" size={12} color={colors.deep} />}
               </View>
@@ -212,9 +212,9 @@ const styles = StyleSheet.create({
   columns: { gap: spacing.xl },
   columnsDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
   profileCard: { flex: 1, minWidth: 0 },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  avatar: { width: 60, height: 60, borderRadius: 40, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
-  avatarImage: { width: 60, height: 60, borderRadius: 40 },
+  identity: { alignItems: 'flex-start', gap: 20 },
+  avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
+  avatarImage: { width: 104, height: 104, borderRadius: 52 },
   avatarCamera: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   photoError: { color: '#ffd0d0', marginTop: 8, fontSize: 14 },
   name: { color: colors.white, fontSize: 20, lineHeight: 28, fontWeight: '700', flexShrink: 1 },
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
   stat: { flex: 1, paddingHorizontal: 6, borderRightWidth: 1, borderRightColor: colors.border },
   statCompact: { flex: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0, borderRightWidth: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
   statValue: { color: colors.accent, fontSize: 20, lineHeight: 26, fontWeight: '700' },
-  statLabel: { color: colors.white, fontSize: 12, lineHeight: 18, marginTop: 8 },
+  statLabel: { color: colors.white, fontSize: 14, lineHeight: 21, marginTop: 8 },
   statLabelCompact: { fontSize: 14, lineHeight: 20, marginTop: 0 },
-  links: { flex: 1, gap: 8 },
+  links: { flex: 1, gap: 12 },
   notice: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 8 },
   modalBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.55)' },
   confirmation: { width: '100%', maxWidth: 420, gap: 16, padding: 24, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
