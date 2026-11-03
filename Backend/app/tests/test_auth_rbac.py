@@ -70,7 +70,7 @@ class AuthRBACTests(unittest.TestCase):
             ('GET','/sources',None,{'ADMINISTRATEUR'},200),
             ('POST','/sources',{'nom':'Managed source','type':'Web','url':'https://managed.example.invalid'},{'ADMINISTRATEUR'},201),
             ('PUT','/admin/settings/research_result_limit',{'value':3},{'ADMINISTRATEUR'},200),
-            ('POST','/contributions/signals',{'content':'A report'},{'CONTRIBUTEUR'},201),
+            ('POST','/contributions/signals',{'content':'A report'},{'CONTRIBUTEUR','JOURNALISTE'},201),
             ('POST','/workflow/process-pending',None,{'SERVICE_IA'},200),
             ('POST',f'/workflow/drafts/{self.draft_id}/review',{'expected_version':1,'decision':'reviewed','notes':'Reviewed'},{'EDITEUR'},200),
             ('POST',f'/workflow/drafts/{self.draft_id}/validate',{**FINAL,'expected_version':1},{'EDITEUR'},200),

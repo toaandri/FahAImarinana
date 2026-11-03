@@ -3,6 +3,27 @@ import Constants from 'expo-constants';
 type TokenResponse = { access_token: string; refresh_token: string };
 type ApiError = { detail?: string | Array<{ msg?: string }> };
 export type ResponseLanguage = 'auto' | 'fr' | 'mg';
+export type SourceAssessment = { url: string; assessment: 'supports' | 'contradicts' | 'inconclusive' };
+export type Corroboration = { claim: string; corroboration_percent: number | null; supports: number; contradicts: number; inconclusive: number; source_groups: number; excluded_duplicates: number; limitation: string };
+export function calculateCorroboration(claim: string, sources: SourceAssessment[]) {
+  return request<Corroboration>('/copilot/credibility', { method: 'POST', body: JSON.stringify({ claim, sources }) });
+}
+export type PrecomputeSource = SourceAssessment & { title: string; excerpt: string; quote: string; date: string | null; origin: string; duplicate: boolean };
+export type PrecomputeResult = { claim: string | null; sources: PrecomputeSource[]; calculation: Corroboration | null; checked_at: string; warnings: string[]; notice: string };
+export type PrecomputeJob = { job_id: string; status: 'queued' | 'running' | 'completed' | 'failed'; result?: PrecomputeResult | null };
+export function startPrecompute(articleUrl: string) {
+  return request<PrecomputeJob>('/copilot/precompute', { method: 'POST', body: JSON.stringify({ article_url: articleUrl }) });
+}
+export function getPrecompute(jobId: string) {
+  return request<PrecomputeJob>(`/copilot/precompute/${jobId}`);
+}
+export type GdeltArticle = { title: string; url: string; source: string; seen_at: string | null; image: string | null; excerpt: string; categories: string[] };
+export function articleAnalysisQuestion(item: { title: string; excerpt?: string; url?: string }) {
+  return `Analyse journalistique de ce contenu. Distingue les affirmations, les preuves disponibles, les éléments à vérifier et les limites ; ne conclus pas à sa fiabilité sans sources indépendantes. Tu ne disposes que du titre${item.excerpt ? ' et de l’extrait fourni' : ''}, ne prétends pas avoir lu un lien.\nTitre : ${item.title.slice(0, 350)}\n${item.excerpt ? `Extrait : ${item.excerpt.slice(0, 850)}\n` : ''}${item.url ? `Source : ${item.url.slice(0, 400)}` : ''}`;
+}
+export function getGdeltNews() {
+  return request<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss' | 'google_news' | 'mixed'; stale?: boolean }>('/public/gdelt?themes=1');
+}
 export type ResearchResult = { reponse: string; citations: { titre?: string; url?: string }[]; chronologie: unknown[] };
 
 export async function getResponseLanguage() {
@@ -26,13 +47,7 @@ export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
   });
 }
 
-const configuredApiUrl = (Constants.expoConfig?.extra?.apiUrl as string | undefined) || 'http://localhost:18000/api/v1';
-const apiUrl = new URL(configuredApiUrl);
-const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
-if (__DEV__ && ['localhost', '127.0.0.1'].includes(apiUrl.hostname) && metroHost) {
-  apiUrl.hostname = metroHost;
-}
-const API_URL = apiUrl.toString().replace(/\/$/, '');
+const API_URL = ((Constants.expoConfig?.extra?.apiUrl as string | undefined) || 'http://localhost:8000/api/v1').replace(/\/$/, '');
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
@@ -47,25 +62,14 @@ function message(payload: ApiError) {
   return 'La requête a échoué.';
 }
 
-async function fetchApi(url: string, init: RequestInit) {
-  try {
-    return await fetch(url, init);
-  } catch (error) {
-    if (error instanceof TypeError) {
-      throw new Error(`Impossible de joindre l’API (${API_URL}). Vérifiez que le backend est démarré et autorise l’origine web (CORS).`);
-    }
-    throw error;
-  }
-}
-
 async function request<T>(path: string, init: RequestInit = {}, canRefresh = true): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
   if (accessToken) headers.set('Authorization', 'Bearer ' + accessToken);
-  const response = await fetchApi(`${API_URL}${path}`, { ...init, headers });
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
 
   if (response.status === 401 && canRefresh && refreshToken) {
-    const refreshed = await fetchApi(`${API_URL}/auth/refresh`, {
+    const refreshed = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -133,6 +137,7 @@ export function getArticles() {
   return request<Array<{
     id: number;
     titre_final: string;
+    corps_article: string;
     categorie: string;
     horodatage_validation: string;
   }>>('/public/articles');

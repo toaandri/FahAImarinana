@@ -8,6 +8,13 @@ from ....schemas import ArticlePublicRead
 router = APIRouter(prefix="/public", tags=["Frontend public"])
 
 
+@router.get('/gdelt')
+def gdelt_news(response: Response):
+    from ....services.gdelt import latest_news
+    response.headers['Cache-Control'] = 'public, max-age=300'
+    return latest_news()
+
+
 @router.get("/articles", response_model=list[ArticlePublicRead])
 def list_certified_articles(db: Session = Depends(get_public_db),
                            limit: int=Query(default=50,ge=1,le=200),offset: int=Query(default=0,ge=0)):

@@ -3,34 +3,47 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { HeaderBar, GlassCard, BottomTabs, StoryCard } from '@/components/ui';
-import { getLatestNews, latestNews, type NewsItem } from '@/services/mockData';
+import { articleAnalysisQuestion, getGdeltNews, getLatestNews } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 
+type CarouselItem = { id: string; title: string; source: string; image?: string; excerpt?: string; url?: string; status: string };
+
 export default function HomeScreen() {
   const { t } = useLanguage();
-  const [items, setItems] = useState<NewsItem[]>([]);
+  const [items, setItems] = useState<CarouselItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isDemo, setIsDemo] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    getLatestNews().then((news) => {
-      setItems(news.length ? news : latestNews);
-      setIsDemo(news.length === 0);
+    let active = true;
+    Promise.allSettled([getGdeltNews(), getLatestNews()]).then(([external, certified]) => {
+      if (!active) return;
+      const fromFeed: CarouselItem[] = external.status === 'fulfilled' ? external.value.articles.slice(0, 10).map((item) => ({
+        id: item.url, title: item.title, source: item.source, image: item.image || undefined,
+        excerpt: item.excerpt, url: item.url, status: 'Non vérifié',
+      })) : [];
+      const fromCertified: CarouselItem[] = certified.status === 'fulfilled' ? certified.value.map((item) => ({
+        id: `fanilo-${item.id}`, title: item.title, source: item.source, image: item.image,
+        excerpt: item.summary, url: `article:${item.id}`, status: 'Article certifié',
+      })) : [];
+      const all = [...fromFeed, ...fromCertified];
+      setItems(all);
       setActiveIndex(0);
-    }).catch(() => {
-      setItems(latestNews);
-      setIsDemo(true);
-      setActiveIndex(0);
+      setError(all.length ? '' : external.status === 'rejected' && certified.status === 'rejected' ? 'Actualités indisponibles.' : 'Aucune actualité disponible.');
+      setLoading(false);
     });
-  }, []);
+    return () => { active = false; };
+  }, [reload]);
 
   useEffect(() => {
     if (items.length < 2) return undefined;
 
     const timer = setTimeout(() => {
       setActiveIndex((index) => (index + 1) % items.length);
-    }, 20_000);
+    }, 8_000);
 
     return () => clearTimeout(timer);
   }, [activeIndex, items.length]);
@@ -41,15 +54,20 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.screen}>
       <HeaderBar />
       <ScrollView contentContainerStyle={styles.content}>
-        <StoryCard
-          title={activeItem?.title ?? 'Jeux Olympiques de la Jeunesse 2026'}
-          source={activeItem?.source ?? '2424.mg'}
-          credibility={activeItem?.credibility ?? 85}
-          image={activeItem?.image}
-          label={isDemo ? t('demoExamples') : t('latestInformation')}
-          onPress={() => router.push('/discussion' as any)}
-        />
+        {activeItem ? <StoryCard
+          title={activeItem.title}
+          source={activeItem.source}
+          status={activeItem.status}
+          image={activeItem.image}
+          label={t('latestInformation')}
+          onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem), ...(activeItem.url ? { article_url: activeItem.url } : {}) } })}
+        /> : <GlassCard style={styles.emptyCard}>
+          <Text style={styles.emptyText}>{loading ? 'Chargement des actualités…' : error}</Text>
+          {!loading ? <Pressable accessibilityRole="button" onPress={() => { setLoading(true); setReload((value) => value + 1); }}><Text style={styles.emptyText}>Réessayer</Text></Pressable> : null}
+        </GlassCard>}
         {items.length > 1 ? (
+          <View style={styles.carouselControls}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Actualité précédente" onPress={() => setActiveIndex((index) => (index - 1 + items.length) % items.length)}><Text style={styles.carouselArrow}>‹</Text></Pressable>
           <View style={styles.carouselIndicators} accessibilityRole="tablist">
             {items.map((item, index) => (
               <Pressable
@@ -62,7 +80,10 @@ export default function HomeScreen() {
               />
             ))}
           </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Actualité suivante" onPress={() => setActiveIndex((index) => (index + 1) % items.length)}><Text style={styles.carouselArrow}>›</Text></Pressable>
+          </View>
         ) : null}
+        {activeItem ? <Pressable accessibilityRole="button" style={styles.analyzeButton} onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem), ...(activeItem.url ? { article_url: activeItem.url } : {}) } })}><Text style={styles.analyzeText}>Analyser avec l’IA</Text></Pressable> : null}
 
         <GlassCard style={styles.talkCard}>
           <View style={styles.talkRow}>
@@ -89,6 +110,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
   content: { padding: 16, paddingBottom: 120 },
+  emptyCard: { padding: 20 },
+  emptyText: { color: '#fff', paddingVertical: 8 },
+  carouselControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
+  carouselArrow: { color: '#fff', fontSize: 30, paddingHorizontal: 14 },
+  analyzeButton: { marginTop: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: palette.mint, alignItems: 'center' },
+  analyzeText: { color: '#fff', fontWeight: '700' },
   carouselIndicators: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
   carouselDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.4)' },
   carouselDotActive: { width: 18, backgroundColor: palette.mint },

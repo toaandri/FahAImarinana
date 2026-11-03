@@ -17,7 +17,7 @@ class RateLimitMiddleware:
             return await self.app(scope,receive,send)
         path=canonical_api_path(scope['path']) or ''
         group='vision' if path=='/vision/video' else 'auth' if path in {'/auth/login','/auth/register','/auth/refresh','/auth/service-token'} else 'public'
-        protected=(group in {'auth','vision'} and scope['method']=='POST') or path in {'/sms/citizen','/public/sync'}
+        protected=(group in {'auth','vision'} and scope['method']=='POST') or path in {'/sms/citizen','/public/sync','/public/gdelt'}
         if protected:
             tick=time.monotonic()
             # ASGI event loop serializes this synchronous section; no await between read/write.

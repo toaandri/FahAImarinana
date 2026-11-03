@@ -26,12 +26,19 @@ test('mobile forwards the chosen language and keeps source references without in
       if (route === '/copilot/research') return { reponse: 'Valiny', citations: [{ titre: 'Source originale', url: 'https://example.invalid/source' }] };
       if (route === '/auth/me') return { response_language: 'mg' };
       if (route === '/auth/me/language') return { language: 'fr' };
+      if (route === '/copilot/credibility') return { corroboration_percent: 50, supports: 1, contradicts: 1, inconclusive: 0, source_groups: 2, excluded_duplicates: 0 };
       return { text: 'Dikanteny', language: 'mg', provider: 'openrouter' };
     }, clearTokens() {}, setTokens() {} },
   });
   const result = await service.sendMessageToAI('Inona ny vaovao?', 'mg');
+  const analysis = service.articleAnalysisQuestion({ title: 'Un titre', excerpt: 'Un extrait', url: 'https://news.example/article' });
+  assert.match(analysis, /Un titre/);
+  assert.match(analysis, /Un extrait/);
+  assert.match(analysis, /https:\/\/news.example\/article/);
+  assert.match(analysis, /sources indépendantes/);
+  assert.ok(service.articleAnalysisQuestion({ title: 't'.repeat(1000), excerpt: 'e'.repeat(2000), url: 'https://example.invalid/' + 'x'.repeat(1000) }).length <= 2000);
   assert.equal(calls[0].body.language, 'mg');
-  assert.equal(result.confidence, 0);
+  assert.equal(result.confidence, null);
   assert.equal(result.sources[0], 'Source originale — https://example.invalid/source');
   await service.translateAnswer(result.summary, 'mg');
   assert.equal(calls[1].body.text, 'Valiny');
@@ -40,6 +47,13 @@ test('mobile forwards the chosen language and keeps source references without in
   assert.equal(await service.getResponseLanguage(), 'mg');
   await service.saveResponseLanguage('fr');
   assert.equal(calls.at(-1).body.language, 'fr');
+  const statistics = await service.calculateCorroboration('Une affirmation', [
+    { url: 'https://example.org/a', assessment: 'supports' },
+    { url: 'https://example.net/b', assessment: 'contradicts' },
+  ]);
+  assert.equal(calls.at(-1).route, '/copilot/credibility');
+  assert.equal(calls.at(-1).body.sources[1].assessment, 'contradicts');
+  assert.equal(statistics.corroboration_percent, 50);
 });
 
 test('web sends authenticated bilingual questions and translations through the backend', async () => {
@@ -50,13 +64,18 @@ test('web sends authenticated bilingual questions and translations through the b
     calls.push({ url, init, body: init.body && JSON.parse(init.body) });
     if (url.endsWith('/auth/login')) return Response.json({ access_token: 'session-only', refresh_token: 'refresh-only' });
     if (url.endsWith('/copilot/translate')) return Response.json({ detail: 'Traduction indisponible' }, { status: 503 });
+    if (url.endsWith('/copilot/credibility')) return Response.json({ corroboration_percent: null, supports: 1, contradicts: 0, inconclusive: 0 });
     return Response.json({ reponse: 'Valiny', citations: [{ url: 'https://example.invalid/source' }], chronologie: [] });
   } });
   await service.login('journalist@example.invalid', 'password123');
+  assert.match(service.articleAnalysisQuestion({ title: 'Un titre', url: 'https://news.example/article' }), /sources indépendantes/);
   const result = await service.sendMessageToAI('Inona ny vaovao?', 'auto');
   assert.equal(calls[1].body.language, 'auto');
   assert.equal(calls[1].init.headers.get('Authorization'), 'Bearer session-only');
   await assert.rejects(service.translateAnswer(result.reponse, 'mg'), /Traduction indisponible/);
   assert.equal(result.reponse, 'Valiny');
   assert.equal(result.citations[0].url, 'https://example.invalid/source');
+  const insufficient = await service.calculateCorroboration('Une affirmation', [{ url: 'https://example.org/a', assessment: 'supports' }]);
+  assert.equal(insufficient.corroboration_percent, null);
+  assert.equal(calls.at(-1).init.headers.get('Authorization'), 'Bearer session-only');
 });
