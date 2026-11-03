@@ -145,13 +145,22 @@ export async function getProfile() {
     email: string;
     role: string;
   }>('/auth/me');
+  const photo = await apiRequest<{ photo: string | null }>('/auth/me/photo');
   return {
     name: account.role,
     email: account.email,
     publications: 0,
     verifications: 0,
     credibility: 0,
+    photo: photo.photo,
   };
+}
+
+export function saveProfilePhoto(imageBase64: string) {
+  return apiRequest<{ photo: string }>('/auth/me/photo', {
+    method: 'PUT',
+    body: JSON.stringify({ image_base64: imageBase64 }),
+  });
 }
 
 export async function logout() {

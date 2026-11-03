@@ -76,8 +76,17 @@ export function logout() {
   return request<void>('/auth/logout', { method: 'POST' }).finally(clearTokens);
 }
 
-export function getProfile() {
-  return request<{ email: string; role: string }>('/auth/me');
+export async function getProfile() {
+  const profile = await request<{ email: string; role: string }>('/auth/me');
+  const photo = await request<{ photo: string | null }>('/auth/me/photo');
+  return { ...profile, photo: photo.photo };
+}
+
+export function saveProfilePhoto(imageBase64: string) {
+  return request<{ photo: string }>('/auth/me/photo', {
+    method: 'PUT',
+    body: JSON.stringify({ image_base64: imageBase64 }),
+  });
 }
 
 export function getArticles() {

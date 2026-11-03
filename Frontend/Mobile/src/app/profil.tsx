@@ -1,39 +1,59 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
-import { getProfile, logout } from '@/services/mockData';
+import { getProfile, logout, saveProfilePhoto } from '@/services/mockData';
 
 export default function ProfilScreen() {
   const [profile, setProfile] = useState({ name: 'Nom de l’utilisateur', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: 0 });
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoNotice, setPhotoNotice] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingPhoto, setSavingPhoto] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-    getProfile().then(setProfile).catch((error) => {
+    getProfile().then((saved) => {
+      setProfile(saved);
+      setProfilePhoto(saved.photo);
+    }).catch((error) => {
       Alert.alert('Profil indisponible', error instanceof Error ? error.message : 'Une erreur est survenue.');
-    });
+    }).finally(() => setLoadingProfile(false));
   }, []);
 
   async function chooseProfilePhoto() {
+    if (loadingProfile || savingPhoto) return;
     setPhotoError('');
+    setPhotoNotice('');
+    setSavingPhoto(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.85,
+        base64: true,
       });
-      if (!result.canceled) setProfilePhoto(result.assets[0].uri);
+      if (result.canceled) return;
+      const imageBase64 = result.assets[0].base64;
+      if (!imageBase64) throw new Error('Impossible de lire cette photo. Choisissez une autre image.');
+      if (imageBase64.length > 4 * Math.ceil((2 * 1024 * 1024) / 3)) {
+        throw new Error('La photo dépasse 2 Mio. Choisissez une image plus petite.');
+      }
+      const saved = await saveProfilePhoto(imageBase64);
+      setProfilePhoto(saved.photo);
+      setPhotoNotice('Photo de profil enregistrée.');
     } catch (error) {
       setPhotoError(error instanceof Error ? error.message : 'Impossible de sélectionner cette photo.');
+    } finally {
+      setSavingPhoto(false);
     }
   }
 
@@ -62,6 +82,8 @@ export default function ProfilScreen() {
               accessibilityRole="button"
               accessibilityLabel={profilePhoto ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
               onPress={chooseProfilePhoto}
+              disabled={loadingProfile || savingPhoto}
+              accessibilityState={{ disabled: loadingProfile || savingPhoto, busy: savingPhoto }}
               style={styles.avatarButton}
             >
               {profilePhoto ? (
@@ -70,7 +92,7 @@ export default function ProfilScreen() {
                 <Text style={styles.avatar}>{profile.name.slice(0, 1).toUpperCase()}</Text>
               )}
               <View style={styles.avatarCamera}>
-                <Ionicons name="camera" size={12} color={palette.ink} />
+                {savingPhoto ? <ActivityIndicator size="small" color={palette.ink} /> : <Ionicons name="camera" size={12} color={palette.ink} />}
               </View>
             </Pressable>
             <View style={styles.identity}>
@@ -89,6 +111,7 @@ export default function ProfilScreen() {
           </View>
         </GlassCard>
         {photoError ? <Text accessibilityRole="alert" style={styles.photoError}>{photoError}</Text> : null}
+        {photoNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{photoNotice}</Text> : null}
 
         <GlassCard style={styles.menuCard}>
           {[
@@ -178,6 +201,7 @@ const styles = StyleSheet.create({
   avatarImage: { width: 61, height: 61, borderRadius: 31 },
   avatarCamera: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: palette.mint, borderWidth: 2, borderColor: palette.background, alignItems: 'center', justifyContent: 'center' },
   photoError: { marginTop: 8, color: '#ffd0d0', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  photoNotice: { marginTop: 8, color: palette.mint, fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
   identity: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
   name: { color: '#fff', fontSize: 18, fontFamily: 'Montserrat_700Bold_Italic' },
   email: { color: '#fff', fontSize: 12, marginTop: 4, opacity: 0.8, fontFamily: 'Montserrat_600SemiBold_Italic' },

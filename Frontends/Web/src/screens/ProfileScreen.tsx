@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { ActivityIndicator, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Card, Field, Icon, InteractivePressable, PageTitle, PrimaryButton, ProfileRow } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { getProfile, logout } from '../services/api';
+import { getProfile, logout, saveProfilePhoto } from '../services/api';
 
 const profileLinks = [
   { icon: 'file-document-outline', label: 'Mes publications' },
@@ -21,12 +22,44 @@ export default function ProfileScreen() {
   const [name, setName] = useState('[Nom de l’utilisateur]');
   const [email, setEmail] = useState('[adresse@email.mg]');
   const [notice, setNotice] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [photoNotice, setPhotoNotice] = useState('');
   useEffect(() => {
     getProfile().then((profile) => {
       setName(profile.role);
       setEmail(profile.email);
-    }).catch((error) => setNotice(error instanceof Error ? error.message : 'Profil indisponible.'));
+      setPhoto(profile.photo);
+    }).catch((error) => setNotice(error instanceof Error ? error.message : 'Profil indisponible.'))
+      .finally(() => setLoadingProfile(false));
   }, []);
+
+  async function choosePhoto() {
+    if (loadingProfile || savingPhoto) return;
+    setSavingPhoto(true);
+    setPhotoError('');
+    setPhotoNotice('');
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85, base64: true,
+      });
+      if (result.canceled) return;
+      const imageBase64 = result.assets[0].base64;
+      if (!imageBase64) throw new Error('Impossible de lire cette photo. Choisissez une autre image.');
+      if (imageBase64.length > 4 * Math.ceil((2 * 1024 * 1024) / 3)) {
+        throw new Error('La photo dépasse 2 Mio. Choisissez une image plus petite.');
+      }
+      const saved = await saveProfilePhoto(imageBase64);
+      setPhoto(saved.photo);
+      setPhotoNotice('Photo de profil enregistrée.');
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : 'Impossible d’enregistrer cette photo.');
+    } finally {
+      setSavingPhoto(false);
+    }
+  }
 
   const saveProfile = () => {
     setEditing(false);
@@ -39,9 +72,23 @@ export default function ProfileScreen() {
       <View style={[styles.columns, desktop && styles.columnsDesktop]}>
         <Card style={styles.profileCard}>
           <View style={styles.identity}>
-            <View style={styles.avatar}><Icon name="account-outline" size={32} color={colors.deep} /></View>
+            <InteractivePressable
+              accessibilityRole="button"
+              accessibilityLabel={photo ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
+              accessibilityState={{ disabled: loadingProfile || savingPhoto, busy: savingPhoto }}
+              disabled={loadingProfile || savingPhoto}
+              onPress={choosePhoto}
+              style={styles.avatar}
+            >
+              {photo ? <Image source={{ uri: photo }} style={styles.avatarImage} /> : <Icon name="account-outline" size={32} color={colors.deep} />}
+              <View style={styles.avatarCamera}>
+                {savingPhoto ? <ActivityIndicator size="small" color={colors.deep} /> : <Icon name="camera" size={12} color={colors.deep} />}
+              </View>
+            </InteractivePressable>
             <Text style={styles.name}>{name}</Text>
           </View>
+          {photoError ? <Text accessibilityRole="alert" style={styles.photoError}>{photoError}</Text> : null}
+          {photoNotice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{photoNotice}</Text> : null}
           <View style={styles.emailRow}>
             <Icon name="email-outline" size={20} />
             <Text style={styles.email}>{email}</Text>
@@ -106,6 +153,9 @@ const styles = StyleSheet.create({
   profileCard: { flex: 1, minWidth: 0 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: { width: 60, height: 60, borderRadius: 40, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
+  avatarImage: { width: 60, height: 60, borderRadius: 40 },
+  avatarCamera: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  photoError: { color: '#ffd0d0', marginTop: 8, fontSize: 14 },
   name: { color: colors.white, fontSize: 20, lineHeight: 28, fontWeight: '700', flexShrink: 1 },
   emailRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 16 },
   email: { color: colors.muted, fontSize: 14, lineHeight: 20, flexShrink: 1 },

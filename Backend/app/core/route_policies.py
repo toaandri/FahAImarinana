@@ -6,6 +6,7 @@ PUBLIC_ROUTES=frozenset({('GET','/health'),('GET','/public/articles'),('GET','/p
     ('POST','/auth/register'),('POST','/auth/login'),('POST','/auth/refresh'),('POST','/auth/service-token')})
 # None means authentication only (own profile/session management).
 POLICIES=[
+    ('GET',r'/auth/me/photo',None),('PUT',r'/auth/me/photo',None),
     ('GET',r'/vision/(status|analyses(/[0-9]+)?)',P.ANALYSIS_WRITE),
     ('POST',r'/vision/video',P.ANALYSIS_WRITE),
     ('GET',r'/auth/me',None),('GET',r'/auth/sessions',None),('DELETE',r'/auth/sessions/[a-f0-9]{32}',None),

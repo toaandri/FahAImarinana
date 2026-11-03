@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Integer, String, JSON
+from sqlalchemy import Boolean, CheckConstraint, Integer, String, JSON, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym, validates
 from ..database.base import Base
 from ..core.rbac import canonical_role
@@ -18,6 +18,7 @@ class User(ScopedRecord, Base):
     mot_de_passe_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(30), default="LECTEUR")
     actif: Mapped[bool] = mapped_column(Boolean, default=True)
+    profile_photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
 
     account_type: Mapped[str] = mapped_column(String(10),default='human')
     auth_version: Mapped[int] = mapped_column(Integer,default=1)

@@ -8,6 +8,8 @@ from ....models import User,AuthSession
 from ....schemas.auth import (LoginRequest,TokenRead,UserCreate,RefreshRequest,ServiceLogin,
     AccountRead,SessionRead,PasswordChange)
 from ....services.auth import (register_user,login_user,refresh_tokens,revoke_session,revoke_all,change_password)
+from ....schemas.profile import ProfilePhotoRead, ProfilePhotoUpdate
+from ....services.profile import read_profile_photo, save_profile_photo
 
 router=APIRouter(prefix='/auth',tags=['Authentification'])
 
@@ -44,6 +46,19 @@ def refresh(payload: RefreshRequest,response: Response,db: Session=Depends(get_d
 @router.get('/me')
 def me(user: User=Depends(current_user)):
     return {**AccountRead.model_validate(user).model_dump(),'permissions':sorted(permissions_for(user))}
+
+
+@router.get('/me/photo', response_model=ProfilePhotoRead)
+def profile_photo(response: Response, user: User = Depends(current_user)):
+    no_store(response)
+    return read_profile_photo(user)
+
+
+@router.put('/me/photo', response_model=ProfilePhotoRead)
+def update_profile_photo(payload: ProfilePhotoUpdate, response: Response,
+                         db: Session = Depends(get_db), user: User = Depends(current_user)):
+    no_store(response)
+    return save_profile_photo(db, user, payload.image_base64)
 
 
 @router.get('/sessions',response_model=list[SessionRead])
