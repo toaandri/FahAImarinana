@@ -1,0 +1,4 @@
+const {chromium}=require('C:/Users/Pricio/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const b=await chromium.launch({headless:true,executablePath:"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"});const p=await b.newPage({viewport:{width:1440,height:900}});await p.goto('http://127.0.0.1:8084',{timeout:120000});await p.waitForTimeout(65000);console.log((await p.locator('body').innerText()).slice(0,2500));await p.screenshot({path:'C:/FahAImarinana/.slides-build/web.png'});for(const [name,w,h] of [['tablet',834,1112],['mobile',390,844]]){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(1500);await p.screenshot({path:'C:/FahAImarinana/.slides-build/'+name+'.png'});}await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+
+
