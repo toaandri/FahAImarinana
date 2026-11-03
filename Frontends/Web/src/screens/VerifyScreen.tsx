@@ -6,12 +6,12 @@ import { AppShell, Card, Icon, InteractivePressable, PageTitle } from '../compon
 import { colors, spacing } from '../theme';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { CredibilityForm } from '../components/CredibilityForm';
-import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, type ResponseLanguage, type Corroboration } from '../services/api';
+import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, startPrecompute, type ResponseLanguage, type Corroboration } from '../services/api';
 
 type Attachment = { uri: string; name: string; type: 'image' | 'video' };
 
 export default function VerifyScreen() {
-  const params = useLocalSearchParams<{ question?: string; analyze?: string }>();
+  const params = useLocalSearchParams<{ question?: string; analyze?: string; article_url?: string }>();
   const [message, setMessage] = useState(typeof params.question === 'string' ? params.question.slice(0, 2000) : '');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [status, setStatus] = useState('');
@@ -24,6 +24,12 @@ export default function VerifyScreen() {
   const [statistics, setStatistics] = useState<Corroboration | null>(null);
   const [analysisVersion, setAnalysisVersion] = useState(0);
   const analyzedQuestion = useRef('');
+  const [statisticsProvisional, setStatisticsProvisional] = useState(false);
+  useEffect(() => {
+    if (params.analyze === '1' && typeof params.article_url === 'string') {
+      void startPrecompute(params.article_url).catch(() => {});
+    }
+  }, [params.analyze, params.article_url]);
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -146,7 +152,7 @@ export default function VerifyScreen() {
           <Card style={styles.resultCard}>
             <Text style={styles.resultTitle}>{language === 'mg' ? 'Valin’ny IA — mbola mila hamarinina' : 'Pré-analyse IA — à vérifier'}</Text>
             {result ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
-              <Text style={styles.resultTitle}>Statistique de corroboration</Text>
+              <Text style={styles.resultTitle}>{statisticsProvisional ? 'Statistique IA provisoire' : 'Statistique de corroboration'}</Text>
               <Text style={styles.resultText}>{statistics?.corroboration_percent == null
                 ? 'Preuves insuffisantes — renseignez les sources ci-dessous.'
                 : `${statistics.corroboration_percent} % des groupes conclusifs confirment l’affirmation.`}</Text>
@@ -168,7 +174,7 @@ export default function VerifyScreen() {
               {busy ? 'En cours… / Eo am-pikarakarana…' : 'Une réponse IA doit être relue par un journaliste. / Mila hamarinina amin’ny mpanao gazety ny valin’ny IA.'}
             </Text>
           </Card>
-          {result ? <CredibilityForm key={`${analysisVersion}-${question}`} onResultChange={setStatistics} /> : null}
+          {result ? <CredibilityForm key={`${analysisVersion}-${question}`} articleUrl={params.analyze === '1' && question === params.question ? params.article_url : undefined} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
         </View>
 
         <View style={styles.composerArea}>

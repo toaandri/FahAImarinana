@@ -26,7 +26,7 @@ export default function HomeScreen() {
         excerpt: item.excerpt, url: item.url, status: 'Non vérifié',
       })) : [];
       const fromCertified: CarouselItem[] = certified.status === 'fulfilled' ? certified.value.slice(0, 3).map((item) => ({
-        id: `fanilo-${item.id}`, title: item.titre_final, source: 'FANILO', excerpt: item.corps_article, status: 'Article certifié',
+        id: `fanilo-${item.id}`, title: item.titre_final, source: 'FANILO', excerpt: item.corps_article, url: `article:${item.id}`, status: 'Article certifié',
       })) : [];
       const all = [...fromFeed, ...fromCertified];
       setItems(all);
@@ -65,7 +65,7 @@ export default function HomeScreen() {
                 <InteractivePressable accessibilityRole="button" accessibilityLabel="Actualité précédente" onPress={() => setIndex((current) => (current - 1 + items.length) % items.length)} style={styles.carouselButton}><Text style={styles.meta}>← Précédente</Text></InteractivePressable>
                 <InteractivePressable accessibilityRole="button" accessibilityLabel="Actualité suivante" onPress={() => setIndex((current) => (current + 1) % items.length)} style={styles.carouselButton}><Text style={styles.meta}>Suivante →</Text></InteractivePressable>
               </> : null}
-              <InteractivePressable accessibilityRole="button" onPress={() => router.push({ pathname: '/verifier', params: { analyze: '1', question: articleAnalysisQuestion(activeItem) } })} style={styles.carouselButton}><Text style={styles.meta}>Analyser avec l’IA</Text></InteractivePressable>
+              <InteractivePressable accessibilityRole="button" onPress={() => router.push({ pathname: '/verifier', params: { analyze: '1', question: articleAnalysisQuestion(activeItem), ...(activeItem.url ? { article_url: activeItem.url } : {}) } })} style={styles.carouselButton}><Text style={styles.meta}>Analyser avec l’IA</Text></InteractivePressable>
             </View>
           </> : !loading ? <InteractivePressable accessibilityRole="button" onPress={() => { setLoading(true); setReload((value) => value + 1); }} style={styles.carouselButton}><Text style={styles.meta}>Réessayer</Text></InteractivePressable> : null}
         </Card>

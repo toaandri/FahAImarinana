@@ -269,3 +269,9 @@ Les sources complètes se trouvent aux chemins ci-dessous. Les façades ne dupli
 | [Dockerfile](Dockerfile) | Image Python 3.12, dépendances et utilisateur applicatif. |
 | [.dockerignore](.dockerignore) | Exclusion des secrets et artefacts locaux du contexte Docker. |
 | [database/fanilo_postgresql.sql](database/fanilo_postgresql.sql) | Schéma historique conservé ; Alembic pilote désormais les évolutions. |
+
+### Pré-calcul de corroboration
+
+Depuis une actualité, l’application lance en arrière-plan une recherche de sources dans les documents FANILO accessibles à l’utilisateur, GDELT et les flux RSS configurés. Google Fact Check peut également être activé avec `GOOGLE_FACT_CHECK_API_KEY` dans le fichier `Backend/.env` local. OpenRouter propose une affirmation et des évaluations à partir des extraits disponibles : les titres seuls ne suffisent pas, les passages cités doivent être présents dans les extraits et les reprises détectées ne sont pas comptabilisées automatiquement. Le journaliste doit lire les sources, corriger les propositions et valider le calcul. Le pourcentage provisoire n’est disponible qu’avec au moins deux groupes de sources conclusifs ; il ne mesure pas la probabilité de vérité.
+
+Les travaux et leurs résultats sont privés, conservés en mémoire pendant 15 minutes après leur fin et perdus au redémarrage. Cette implémentation locale nécessite un seul processus backend ; un déploiement à plusieurs processus ou serveurs doit utiliser une file de tâches et un cache partagés. Les recherches externes peuvent être indisponibles et Google Fact Check reste facultatif.

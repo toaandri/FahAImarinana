@@ -16,7 +16,7 @@ export default function NewsScreen() {
   const [error, setError] = useState('');
   const [external, setExternal] = useState<GdeltArticle[]>([]);
   const [externalError, setExternalError] = useState('');
-  const [feedProvider, setFeedProvider] = useState<'gdelt' | 'rss' | null>(null);
+  const [feedProvider, setFeedProvider] = useState<'gdelt' | 'rss' | 'google_news' | 'mixed' | null>(null);
   const [feedStale, setFeedStale] = useState(false);
   const [feedLoading, setFeedLoading] = useState(true);
   useEffect(() => {
@@ -66,8 +66,8 @@ export default function NewsScreen() {
         })}
       </View>
       {filter !== 'Vérifiés' ? <View style={styles.list}>
-        <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
-        <Text style={styles.empty}>{feedProvider === 'rss' ? 'GDELT indisponible : affichage du flux de presse. Articles non vérifiés ; dates de publication.' : 'Articles externes non vérifiés. La date indique leur détection par GDELT.'}</Text>
+        <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'mixed' ? 'GDELT et Google Actualités' : feedProvider === 'google_news' ? 'Google Actualités' : feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
+        <Text style={styles.empty}>Articles externes non vérifiés. La date correspond à leur publication ou à leur détection selon la source.</Text>
         <Text style={styles.empty}>Thèmes attribués automatiquement à partir du contenu disponible.</Text>
         {feedStale ? <Text style={styles.empty}>Derniers articles disponibles ; actualisation momentanément indisponible.</Text> : null}
         {feedLoading ? <Text style={styles.empty}>Chargement des actualités…</Text> : null}
@@ -81,7 +81,7 @@ export default function NewsScreen() {
             {item.categories?.length ? <Text style={styles.source}>{item.categories.join(' · ')}</Text> : null}
             <View style={styles.externalActions}>
               <InteractivePressable accessibilityRole="button" onPress={() => void Linking.openURL(item.url).catch(() => setExternalError('Impossible d’ouvrir la source.'))}><Text style={styles.externalLink}>Lire la source</Text></InteractivePressable>
-              <InteractivePressable accessibilityRole="button" onPress={() => router.push({ pathname: '/verifier', params: { analyze: '1', question: articleAnalysisQuestion(item) } })}><Text style={styles.externalLink}>Analyser avec l’IA</Text></InteractivePressable>
+              <InteractivePressable accessibilityRole="button" onPress={() => router.push({ pathname: '/verifier', params: { analyze: '1', question: articleAnalysisQuestion(item), article_url: item.url } })}><Text style={styles.externalLink}>Analyser avec l’IA</Text></InteractivePressable>
             </View>
           </View>
           {item.image ? <Image source={{ uri: item.image }} style={styles.externalImage} resizeMode="cover" /> : null}

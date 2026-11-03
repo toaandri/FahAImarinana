@@ -9,12 +9,15 @@ from starlette.concurrency import run_in_threadpool
 from ....schemas import ChatMessageRead, ChatSessionCreate, ChatSessionRead, ResearchAnswer, ResearchQuestion
 from ....schemas.research import TranslationRequest, TranslationRead
 from ....schemas.credibility import CredibilityRequest, CredibilityResult
+from ....schemas.precompute import PrecomputeRequest
+from ....services import gdelt, precompute
 from ....services.credibility import calculate_corroboration
 from ....services.translation import translate_answer
 from ....utils.languages import resolve_language
 from ....repositories import ArticleRepository, SignalRepository
 from ....services.chat import ask_copilot, create_chat_session, get_chat_messages, list_chat_sessions
-from ....services.research import build_research_answer, index_certified_article
+from ....services.research import build_research_answer, index_certified_article, search_knowledge_base
+from ....repositories.research import ResearchRepository
 from ....services.notifications import alert_journalists
 from ....integrations.sms.gateway import SmsGateway, get_sms_gateway
 from ....integrations.notifications.websocket import alert_manager
@@ -66,6 +69,33 @@ def credibility(payload: CredibilityRequest, response: Response,
                 user: Utilisateur = Depends(require_permission(P.RESEARCH_RUN))):
     response.headers['Cache-Control'] = 'no-store'
     return calculate_corroboration(payload)
+
+
+@router.post('/precompute', status_code=status.HTTP_202_ACCEPTED)
+def begin_precompute(payload: PrecomputeRequest, response: Response, db: Session = Depends(get_db),
+                     user: Utilisateur = Depends(require_permission(P.RESEARCH_RUN))):
+    import re
+    article = None
+    match = re.fullmatch(r'article:([1-9][0-9]{0,9})', payload.article_url)
+    if match:
+        doc = ResearchRepository(db).by_article(int(match.group(1)))
+        if doc and doc.est_certifie:
+            article = {'url': payload.article_url, 'title': doc.titre, 'excerpt': doc.contenu[:1200]}
+    else:
+        article = next((item for item in gdelt.latest_news()['articles'] if item['url'] == payload.article_url), None)
+    if not article:
+        raise NotFoundError('Article introuvable dans les actualités ou les documents certifiés.')
+    local = [{'url': item['url'], 'title': item['titre'], 'excerpt': item['extrait'],
+              'date': item['date'], 'origin': 'fanilo'} for item in search_knowledge_base(db, article['title'])]
+    response.headers['Cache-Control'] = 'no-store'
+    return precompute.start(user, article, local, resolve_language(user.response_language, article['title']))
+
+
+@router.get('/precompute/{job_id}')
+def read_precompute(job_id: str, response: Response,
+                    user: Utilisateur = Depends(require_permission(P.RESEARCH_RUN))):
+    response.headers['Cache-Control'] = 'no-store'
+    return precompute.get(user, job_id)
 
 
 @router.post("/index/articles")

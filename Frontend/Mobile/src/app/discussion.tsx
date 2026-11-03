@@ -6,13 +6,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResponseLanguage, type Corroboration } from '@/services/mockData';
+import { getResponseLanguage, sendMessageToAI, translateAnswer, startPrecompute, type ResponseLanguage, type Corroboration } from '@/services/mockData';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { CredibilityForm } from '@/components/CredibilityForm';
 
 export default function DiscussionScreen() {
   const { t } = useLanguage();
-  const params = useLocalSearchParams<{ question?: string; analyze?: string }>();
+  const params = useLocalSearchParams<{ question?: string; analyze?: string; article_url?: string }>();
   const { bottom } = useSafeAreaInsets();
   const [text, setText] = useState(typeof params.question === 'string' ? params.question.slice(0, 2000) : '');
   const [answer, setAnswer] = useState('');
@@ -27,6 +27,12 @@ export default function DiscussionScreen() {
   const [statistics, setStatistics] = useState<Corroboration | null>(null);
   const [analysisVersion, setAnalysisVersion] = useState(0);
   const analyzedQuestion = useRef('');
+  const [statisticsProvisional, setStatisticsProvisional] = useState(false);
+  useEffect(() => {
+    if (params.analyze === '1' && typeof params.article_url === 'string') {
+      void startPrecompute(params.article_url).catch(() => {});
+    }
+  }, [params.analyze, params.article_url]);
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -121,7 +127,7 @@ export default function DiscussionScreen() {
             <View style={styles.resultTextWrap}>
               <Text style={styles.resultTitle}>{t('aiPreAnalysis')}</Text>
               {answer ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
-                <Text style={styles.resultTitle}>Statistique de corroboration</Text>
+                <Text style={styles.resultTitle}>{statisticsProvisional ? 'Statistique IA provisoire' : 'Statistique de corroboration'}</Text>
                 <Text style={styles.resultSummary}>{statistics?.corroboration_percent == null
                   ? 'Preuves insuffisantes — renseignez les sources ci-dessous.'
                   : `${statistics.corroboration_percent} % des groupes conclusifs confirment l’affirmation.`}</Text>
@@ -140,7 +146,7 @@ export default function DiscussionScreen() {
           {busy ? <Text accessibilityLiveRegion="polite" style={styles.source}>{t('aiWorking')}</Text> : null}
           {status ? <Text accessibilityLiveRegion="polite" style={styles.source}>{status}</Text> : null}
         </View>
-        {answer ? <CredibilityForm key={`${analysisVersion}-${question}`} onResultChange={setStatistics} /> : null}
+        {answer ? <CredibilityForm key={`${analysisVersion}-${question}`} articleUrl={params.analyze === '1' && question === params.question ? params.article_url : undefined} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
       </ScrollView>
 
       <View style={[styles.inputBar, { bottom: Math.max(bottom, 12) + 8 }]}>

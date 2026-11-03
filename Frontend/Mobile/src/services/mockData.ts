@@ -7,12 +7,21 @@ export function calculateCorroboration(claim: string, sources: SourceAssessment[
   return apiRequest<Corroboration>('/copilot/credibility', { method: 'POST', body: JSON.stringify({ claim, sources }) });
 }
 
+export type PrecomputeSource = SourceAssessment & { title: string; excerpt: string; quote: string; date: string | null; origin: string; duplicate: boolean };
+export type PrecomputeResult = { claim: string | null; sources: PrecomputeSource[]; calculation: Corroboration | null; checked_at: string; warnings: string[]; notice: string };
+export type PrecomputeJob = { job_id: string; status: 'queued' | 'running' | 'completed' | 'failed'; result?: PrecomputeResult | null };
+export function startPrecompute(articleUrl: string) {
+  return apiRequest<PrecomputeJob>('/copilot/precompute', { method: 'POST', body: JSON.stringify({ article_url: articleUrl }) });
+}
+export function getPrecompute(jobId: string) {
+  return apiRequest<PrecomputeJob>(`/copilot/precompute/${jobId}`);
+}
 export type GdeltArticle = { title: string; url: string; source: string; seen_at: string | null; image: string | null; excerpt: string; categories: string[] };
 export function articleAnalysisQuestion(item: { title: string; excerpt?: string; url?: string }) {
   return `Analyse journalistique de ce contenu. Distingue les affirmations, les preuves disponibles, les éléments à vérifier et les limites ; ne conclus pas à sa fiabilité sans sources indépendantes. Tu ne disposes que du titre${item.excerpt ? ' et de l’extrait fourni' : ''}, ne prétends pas avoir lu un lien.\nTitre : ${item.title.slice(0, 350)}\n${item.excerpt ? `Extrait : ${item.excerpt.slice(0, 850)}\n` : ''}${item.url ? `Source : ${item.url.slice(0, 400)}` : ''}`;
 }
 export function getGdeltNews() {
-  return apiRequest<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss'; stale?: boolean }>('/public/gdelt?themes=1');
+  return apiRequest<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss' | 'google_news' | 'mixed'; stale?: boolean }>('/public/gdelt?themes=1');
 }
 
 export async function getResponseLanguage() {

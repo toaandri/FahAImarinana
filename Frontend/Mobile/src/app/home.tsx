@@ -27,7 +27,7 @@ export default function HomeScreen() {
       })) : [];
       const fromCertified: CarouselItem[] = certified.status === 'fulfilled' ? certified.value.map((item) => ({
         id: `fanilo-${item.id}`, title: item.title, source: item.source, image: item.image,
-        excerpt: item.summary, status: 'Article certifié',
+        excerpt: item.summary, url: `article:${item.id}`, status: 'Article certifié',
       })) : [];
       const all = [...fromFeed, ...fromCertified];
       setItems(all);
@@ -60,7 +60,7 @@ export default function HomeScreen() {
           status={activeItem.status}
           image={activeItem.image}
           label={t('latestInformation')}
-          onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem) } })}
+          onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem), ...(activeItem.url ? { article_url: activeItem.url } : {}) } })}
         /> : <GlassCard style={styles.emptyCard}>
           <Text style={styles.emptyText}>{loading ? 'Chargement des actualités…' : error}</Text>
           {!loading ? <Pressable accessibilityRole="button" onPress={() => { setLoading(true); setReload((value) => value + 1); }}><Text style={styles.emptyText}>Réessayer</Text></Pressable> : null}
@@ -83,7 +83,7 @@ export default function HomeScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Actualité suivante" onPress={() => setActiveIndex((index) => (index + 1) % items.length)}><Text style={styles.carouselArrow}>›</Text></Pressable>
           </View>
         ) : null}
-        {activeItem ? <Pressable accessibilityRole="button" style={styles.analyzeButton} onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem) } })}><Text style={styles.analyzeText}>Analyser avec l’IA</Text></Pressable> : null}
+        {activeItem ? <Pressable accessibilityRole="button" style={styles.analyzeButton} onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(activeItem), ...(activeItem.url ? { article_url: activeItem.url } : {}) } })}><Text style={styles.analyzeText}>Analyser avec l’IA</Text></Pressable> : null}
 
         <GlassCard style={styles.talkCard}>
           <View style={styles.talkRow}>

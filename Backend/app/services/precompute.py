@@ -129,7 +129,7 @@ def _public_candidates(article):
 def _select_candidates(article, public, local):
     target = article['url']
     target_host = (urlsplit(target).hostname or '').lower()
-    target_group = '.'.join(target_host.split('.')[-2:])
+    target_group = 'fanilo.local' if target.startswith('article:') else '.'.join(target_host.split('.')[-2:])
     target_text = article['title'] + ' ' + article.get('excerpt', '')
     target_words = _tokens(article['title'])
     candidates, seen, content_groups = [], {target}, []
@@ -255,6 +255,8 @@ def _run(article, local, language):
                 {'url': candidate['url'], 'assessment': candidate['assessment']}
                 for candidate in candidates])
             result = calculate_corroboration(request)
+            result['limitation'] = ('Part des groupes de sources jugés concordants par l’IA, avant validation. '
+                                    'Ce chiffre ne mesure pas la probabilité de vérité ; vérifiez les passages et leur indépendance.')
         except ValueError:
             errors.append('calcul_indisponible')
     return {'article_url': article['url'], 'article_title': article['title'], 'claim': claim,
@@ -297,7 +299,7 @@ def start(user, article, local, language):
             with _lock:
                 _jobs[identifier].update(status='completed', result=result, finished_monotonic=time.monotonic())
         except Exception:
-            logger.exception('Pré-calcul interrompu')
+            logger.error('Pré-calcul interrompu')
             with _lock:
                 _jobs[identifier].update(status='failed', finished_monotonic=time.monotonic())
     _pool.submit(task)

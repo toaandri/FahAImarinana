@@ -14,7 +14,7 @@ export default function ActualitesScreen() {
   const [unavailable, setUnavailable] = useState(false);
   const [gdelt, setGdelt] = useState<GdeltArticle[]>([]);
   const [gdeltError, setGdeltError] = useState('');
-  const [feedProvider, setFeedProvider] = useState<'gdelt' | 'rss' | null>(null);
+  const [feedProvider, setFeedProvider] = useState<'gdelt' | 'rss' | 'google_news' | 'mixed' | null>(null);
   const [feedStale, setFeedStale] = useState(false);
   const [feedLoading, setFeedLoading] = useState(true);
   const filters = [
@@ -67,8 +67,8 @@ export default function ActualitesScreen() {
 
       <ScrollView contentContainerStyle={styles.listWrap}>
         {filter !== 'Vérifiés' ? <View style={styles.externalSection}>
-          <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
-          <Text style={styles.externalNote}>{feedProvider === 'rss' ? 'GDELT indisponible : affichage du flux de presse. Articles non vérifiés ; dates de publication.' : 'Articles externes non vérifiés. La date indique leur détection par GDELT.'}</Text>
+          <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'mixed' ? 'GDELT et Google Actualités' : feedProvider === 'google_news' ? 'Google Actualités' : feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
+          <Text style={styles.externalNote}>Articles externes non vérifiés. La date correspond à leur publication ou à leur détection selon la source.</Text>
           <Text style={styles.externalNote}>Thèmes attribués automatiquement à partir du contenu disponible.</Text>
           {feedStale ? <Text style={styles.externalNote}>Derniers articles disponibles ; actualisation momentanément indisponible.</Text> : null}
           {feedLoading ? <Text style={styles.externalNote}>Chargement des actualités…</Text> : null}
@@ -82,7 +82,7 @@ export default function ActualitesScreen() {
             {item.categories?.length ? <Text style={styles.externalSource}>{item.categories.join(' · ')}</Text> : null}
             <View style={styles.externalActions}>
               <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(item.url).catch(() => setGdeltError('Impossible d’ouvrir la source.'))}><Text style={styles.externalLink}>Lire la source</Text></Pressable>
-              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(item) } })}><Text style={styles.externalLink}>Analyser avec l’IA</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/discussion', params: { analyze: '1', question: articleAnalysisQuestion(item), article_url: item.url } })}><Text style={styles.externalLink}>Analyser avec l’IA</Text></Pressable>
             </View>
           </View>)}
         </View> : null}
