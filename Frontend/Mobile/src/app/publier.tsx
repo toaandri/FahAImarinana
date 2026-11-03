@@ -151,16 +151,13 @@ export default function PublierScreen() {
               Alert.alert(t('incompleteArticle'), t('completeArticleHint'));
               return;
             }
-            if (media) {
-              setMediaError(t('articleMediaUnsupported'));
-              return;
-            }
             setSubmitting(true);
             try {
-              await publishArticle({ title: title.trim(), body: body.trim(), category });
+              await publishArticle({ title: title.trim(), body: body.trim(), category, media });
               Alert.alert(t('articleSent'), t('articleSentMessage'));
               setTitle('');
               setBody('');
+              setMedia(null);
             } catch (error) {
               Alert.alert(t('sendFailed'), error instanceof Error ? error.message : t('unexpectedError'));
             } finally {

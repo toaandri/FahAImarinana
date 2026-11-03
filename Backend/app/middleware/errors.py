@@ -1,4 +1,5 @@
 import logging
+import re
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -14,8 +15,11 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):
-        if canonical_api_path(request.url.path) == '/vision/video':
-            # Never echo several MB of private footage in a validation response.
+        path = canonical_api_path(request.url.path)
+        if path == '/vision/video' or path == '/contributions/signals' or (
+            path is not None and re.fullmatch(r'/contributions/[0-9]+/information', path)
+        ):
+            # Never echo large media request bodies in validation responses.
             return JSONResponse(status_code=422, content={'detail': [
                 {key: item[key] for key in ('loc', 'type', 'msg') if key in item}
                 for item in exc.errors()]})

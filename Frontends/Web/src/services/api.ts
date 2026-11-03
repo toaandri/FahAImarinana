@@ -47,14 +47,29 @@ export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
   });
 }
 
-const API_URL = (
+const configuredUrl = (
   (typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL : undefined)
   || (Constants.expoConfig?.extra?.apiUrl as string | undefined)
-  || 'http://127.0.0.1:18000/api/v1'
-).replace(/\/$/, '');
+);
+const backendUrl = new URL(configuredUrl || 'http://127.0.0.1:18000/api/v1');
+const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
+const isPrivateHost = (host: string) => ['localhost', '127.0.0.1'].includes(host)
+  || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+if (__DEV__ && ['localhost', '127.0.0.1'].includes(backendUrl.hostname)) {
+  const browserHost = typeof location !== 'undefined' ? location.hostname : undefined;
+  const reachableHost = browserHost && isPrivateHost(browserHost) && !['localhost', '127.0.0.1'].includes(browserHost)
+    ? browserHost
+    : metroHost && isPrivateHost(metroHost) ? metroHost : undefined;
+  if (reachableHost) backendUrl.hostname = reachableHost;
+}
+const API_URL = backendUrl.toString().replace(/\/$/, '');
 const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+
+export const MAX_CONTRIBUTION_MEDIA_BYTES = 100 * 1024 * 1024;
+
+export class ContributionMediaTooLargeError extends Error {}
 
 function persistTokens(tokens: TokenResponse | null) {
   if (typeof globalThis.localStorage === 'undefined') return;
@@ -200,11 +215,53 @@ export function getArticles() {
   }>>('/public/articles');
 }
 
-export function submitContribution(payload: { title: string; body: string; category: string; source?: string }) {
+async function encodeContributionMedia(media: {
+  uri: string;
+  mimeType?: string | null;
+  fileSize?: number | null;
+  type: 'image' | 'video';
+}) {
+  if (media.fileSize !== undefined && media.fileSize !== null && media.fileSize > MAX_CONTRIBUTION_MEDIA_BYTES) {
+    throw new ContributionMediaTooLargeError();
+  }
+  const response = await fetch(media.uri);
+  if (!response.ok) throw new Error('Impossible de lire le média sélectionné.');
+  const blob = await response.blob();
+  if (blob.size > MAX_CONTRIBUTION_MEDIA_BYTES) {
+    throw new ContributionMediaTooLargeError();
+  }
+  const mediaBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Impossible de lire le média sélectionné.'));
+        return;
+      }
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Impossible de lire le média sélectionné.'));
+    reader.readAsDataURL(blob);
+  });
+  return {
+    media_base64: mediaBase64,
+    media_content_type: media.mimeType || blob.type || (media.type === 'image' ? 'image/jpeg' : 'video/mp4'),
+  };
+}
+
+export async function submitContribution(payload: {
+  title: string;
+  body: string;
+  category: string;
+  source?: string;
+  media?: { uri: string; mimeType?: string | null; fileSize?: number | null; type: 'image' | 'video' } | null;
+}) {
+  const media = payload.media ? await encodeContributionMedia(payload.media) : {};
   return request<{ id: number }>('/contributions/signals', {
     method: 'POST',
     body: JSON.stringify({
       content: `[${payload.category}] ${payload.title}\n\n${payload.body}${payload.source ? `\n\nSource : ${payload.source}` : ''}`,
+      ...media,
     }),
   });
 }

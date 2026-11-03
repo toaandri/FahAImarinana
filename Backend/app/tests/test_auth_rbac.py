@@ -6,9 +6,11 @@ os.environ['JWT_SECRET']='isolated-test-secret-at-least-thirty-two-bytes'
 os.environ['GEMINI_API_KEY']=''
 os.environ['AUTO_CREATE_TABLES']='false'
 import unittest
+import base64
 from datetime import timedelta
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from jose import jwt
@@ -84,6 +86,43 @@ class AuthRBACTests(unittest.TestCase):
                 lambda:withdraw_publication(db,user,999,reason='Test')]
             for call in calls:
                 with self.assertRaises(ForbiddenError): call()
+
+    def test_contributions_persist_media_and_enforce_the_upload_limit(self):
+        from app.core.media import MAX_MEDIA_BYTES, MAX_MEDIA_BASE64_LENGTH
+        self.assertEqual(MAX_MEDIA_BYTES,100*1024*1024)
+        self.assertEqual(MAX_MEDIA_BASE64_LENGTH,((100*1024*1024+2)//3)*4)
+        image=b'fake-image-bytes'
+        response=self.req('JOURNALISTE','POST','/contributions/signals',{
+            'content':'Article avec photo',
+            'media_base64':base64.b64encode(image).decode('ascii'),
+            'media_content_type':'image/png',
+        })
+        self.assertEqual(response.status_code,201,response.text)
+        from app.models import Contribution
+        with system_session() as db:
+            contribution=db.get(Contribution,response.json()['id'])
+            self.assertEqual(contribution.media,image)
+            self.assertEqual(contribution.media_content_type,'image/png')
+
+        legacy=self.req('JOURNALISTE','POST','/contributions/signals',{
+            'content':'Article avec média sans type déclaré',
+            'media_base64':base64.b64encode(image).decode('ascii'),
+        })
+        self.assertEqual(legacy.status_code,201,legacy.text)
+
+        with patch('app.core.media.MAX_MEDIA_BYTES',len(image)-1):
+            oversized=self.req('JOURNALISTE','POST','/contributions/signals',{
+                'content':'Article avec vidéo',
+                'media_base64':base64.b64encode(image).decode('ascii'),
+                'media_content_type':'video/mp4',
+            })
+        self.assertEqual(oversized.status_code,413,oversized.text)
+        invalid=self.req('JOURNALISTE','POST','/contributions/signals',{
+            'content':'Article avec média invalide',
+            'media_base64':'not-base64!',
+            'media_content_type':'image/png',
+        })
+        self.assertEqual(invalid.status_code,422,invalid.text)
 
     def test_open_registration_and_password_hash(self):
         body={'email':'invited@example.invalid','mot_de_passe':'password123'}

@@ -2,6 +2,7 @@
 import asyncio
 from starlette.responses import JSONResponse
 from ..core.route_policies import canonical_api_path
+from ..core.media import MAX_CONTRIBUTION_BODY_BYTES
 
 
 class VideoBodyLimitMiddleware:
@@ -12,24 +13,33 @@ class VideoBodyLimitMiddleware:
         if scope['type'] != 'http':
             return await self.app(scope, receive, send)
         route = (scope['method'], canonical_api_path(scope['path']))
-        if route == ('POST', '/vision/video'):
+        if route == ('POST', '/contributions/signals') or (
+            route[0] == 'POST' and route[1] is not None
+            and route[1].startswith('/contributions/') and route[1].endswith('/information')
+        ):
+            limit = MAX_CONTRIBUTION_BODY_BYTES
+            too_large = 'Le média dépasse la taille maximale de 100 Mo.'
+            timeout = 600
+        elif route == ('POST', '/vision/video'):
             limit = 6 * 1024 * 1024
-            media = 'Le clip'
+            too_large = 'Le clip dépasse la taille autorisée.'
+            timeout = 30
         elif route == ('PUT', '/auth/me/photo'):
             limit = 3 * 1024 * 1024
-            media = 'La photo'
+            too_large = 'La photo dépasse la taille autorisée.'
+            timeout = 30
         else:
             return await self.app(scope, receive, send)
         chunks = []; size = 0
         try:
-            async with asyncio.timeout(30):
+            async with asyncio.timeout(timeout):
                 while True:
                     event = await receive()
                     if event['type'] == 'http.disconnect':
                         return
                     chunk = event.get('body', b''); size += len(chunk)
                     if size > limit:
-                        return await JSONResponse({'detail': f'{media} dépasse la taille autorisée.'},
+                        return await JSONResponse({'detail': too_large},
                             status_code=413, headers={'Cache-Control': 'no-store'})(scope, receive, send)
                     chunks.append(chunk)
                     if not event.get('more_body', False):
