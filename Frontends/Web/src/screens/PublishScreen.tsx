@@ -15,7 +15,7 @@ const categories = [
 
 export default function PublishScreen() {
   const { width } = useWindowDimensions();
-  const desktop = width >= 1200;
+  const desktop = width >= 1000;
   const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Politique');
@@ -79,8 +79,7 @@ export default function PublishScreen() {
     <AppShell active="/publier">
       <PageTitle>{t('publish.title')}</PageTitle>
       <View style={[styles.columns, desktop && styles.columnsDesktop]}>
-        <View style={styles.formColumn}>
-          {!desktop ? <MediaCard media={media} onPick={pickMedia} onRemove={() => { setMedia(null); setErrors((current) => ({ ...current, status: undefined })); }} /> : null}
+        <View style={[styles.formColumn, desktop && styles.formColumnDesktop]}>
           <Field
             label={t('publish.articleTitle')}
             value={title}
@@ -139,26 +138,32 @@ export default function PublishScreen() {
           <PrimaryButton label={t('publish.submit')} icon="send" onPress={publish} loading={submitting} />
           {errors.status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="polite">{errors.status}</Text> : null}
         </View>
-        {desktop ? (
-          <MediaCard
-            media={media}
-            onPick={pickMedia}
-            onRemove={() => {
-              setMedia(null);
-              setErrors((current) => ({ ...current, status: undefined }));
-            }}
-          />
-        ) : null}
+        <View style={[styles.mediaColumn, desktop && styles.mediaColumnDesktop]}>
+          {(['image', 'video'] as const).map((type) => (
+            <MediaCard
+              key={type}
+              type={type}
+              media={media?.type === type ? media : null}
+              onPick={pickMedia}
+              onRemove={() => {
+                setMedia(null);
+                setErrors((current) => ({ ...current, status: undefined }));
+              }}
+            />
+          ))}
+        </View>
       </View>
     </AppShell>
   );
 }
 
 function MediaCard({
+  type,
   media,
   onPick,
   onRemove,
 }: {
+  type: 'image' | 'video';
   media: ImagePicker.ImagePickerAsset | null;
   onPick: (type: 'image' | 'video') => void;
   onRemove: () => void;
@@ -166,13 +171,17 @@ function MediaCard({
   const { t } = useI18n();
   return (
     <View style={styles.mediaCard}>
+      <View style={styles.mediaHeading}>
+        <Icon name={type === 'image' ? 'image-outline' : 'video-outline'} color={colors.accent} size={22} />
+        <Text accessibilityRole="header" style={styles.mediaTitle}>{t(type === 'image' ? 'common.photo' : 'common.video')}</Text>
+      </View>
       <View style={styles.mediaPlaceholder}>
         {media?.type === 'image' ? (
           <Image source={{ uri: media.uri }} accessibilityLabel={media.fileName ?? t('publish.attachPhoto')} style={styles.mediaImage} resizeMode="contain" />
         ) : null}
-        <View style={styles.mediaAccent} />
+        {media?.type !== 'image' ? <View style={styles.mediaIcon}><Icon name={type === 'image' ? 'image-plus-outline' : 'video-plus-outline'} color={colors.accent} size={36} /></View> : null}
         <Text style={styles.mediaPrompt}>
-          {media ? media.fileName ?? (media.type === 'video' ? t('publish.attachVideo') : t('publish.attachPhoto')) : t('publish.addMedia')}
+          {media ? media.fileName ?? t(type === 'video' ? 'publish.attachVideo' : 'publish.attachPhoto') : t(type === 'image' ? 'common.addPhoto' : 'common.addVideo')}
         </Text>
         {media ? (
           <InteractivePressable accessibilityRole="button" accessibilityLabel={t('publish.removeMedia')} onPress={onRemove} style={styles.removeButton}>
@@ -180,18 +189,10 @@ function MediaCard({
           </InteractivePressable>
         ) : null}
       </View>
-      <View style={styles.mediaActions}>
-        <InteractivePressable accessibilityRole="button" accessibilityLabel={t('common.addPhoto')} onPress={() => onPick('image')} style={styles.mediaAction}>
-          <Icon name="image-outline" color={colors.accent} size={19} />
-          <Text style={styles.mediaActionText}>{t('common.photo')}</Text>
-        </InteractivePressable>
-        <Text style={styles.slash}>/</Text>
-        <InteractivePressable accessibilityRole="button" accessibilityLabel={t('common.addVideo')} onPress={() => onPick('video')} style={styles.mediaAction}>
-          <Icon name="video-outline" color={colors.accent} size={19} />
-          <Text style={styles.mediaActionText}>{t('common.video')}</Text>
-        </InteractivePressable>
-      </View>
-      <Text style={styles.credibility}>{t('publish.credibility')}</Text>
+      <InteractivePressable accessibilityRole="button" accessibilityLabel={t(type === 'image' ? 'common.addPhoto' : 'common.addVideo')} onPress={() => onPick(type)} style={styles.mediaAction}>
+        <Icon name="plus" color={colors.accent} size={19} />
+        <Text style={styles.mediaActionText}>{t(type === 'image' ? 'common.addPhoto' : 'common.addVideo')}</Text>
+      </InteractivePressable>
     </View>
   );
 }
@@ -200,6 +201,9 @@ const styles = StyleSheet.create({
   columns: { gap: spacing.xl },
   columnsDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
   formColumn: { flex: 1, minWidth: 0, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  formColumnDesktop: { flex: 2, padding: 28 },
+  mediaColumn: { gap: spacing.xl, minWidth: 0 },
+  mediaColumnDesktop: { flex: 1, minWidth: 240, maxWidth: 340 },
   fieldGroup: { marginBottom: 20 },
   label: { color: colors.white, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 8 },
   categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -208,16 +212,15 @@ const styles = StyleSheet.create({
   categorySelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   categoryText: { color: colors.white, fontSize: 14, fontWeight: '700' },
   categoryTextSelected: { color: colors.deep },
-  mediaCard: { flex: 1, minWidth: 0, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, backgroundColor: colors.surface, marginBottom: 20 },
-  mediaPlaceholder: { minHeight: 240, padding: 20, backgroundColor: colors.deep, flexDirection: 'column', alignItems: 'stretch', gap: 16, borderRadius: 12 },
-  mediaAccent: { width: 48, height: 4, borderRadius: 2, backgroundColor: colors.accent },
-  mediaPrompt: { color: colors.muted, fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  mediaCard: { minWidth: 0, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 16, backgroundColor: colors.surface },
+  mediaHeading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mediaTitle: { flex: 1, color: colors.white, fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  mediaPlaceholder: { minHeight: 164, padding: 16, backgroundColor: colors.deep, alignItems: 'center', justifyContent: 'center', gap: 12, borderRadius: 12 },
+  mediaIcon: { width: 64, height: 64, borderRadius: 20, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  mediaPrompt: { color: colors.muted, fontSize: 14, lineHeight: 22, textAlign: 'center', flexShrink: 1 },
   mediaImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12 },
   removeButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
-  mediaActions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-  mediaAction: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mediaAction: { minHeight: 48, borderWidth: 1, borderColor: colors.accent, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   mediaActionText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
-  slash: { color: colors.accent, fontWeight: '700' },
-  credibility: { color: colors.white, fontSize: 15, marginTop: 4 },
   status: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12 },
 });
