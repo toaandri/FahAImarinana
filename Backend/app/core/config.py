@@ -19,6 +19,7 @@ class Settings(BaseModel):
     default_dataset: Literal["real", "demo", "quarantine"] = "real"
     public_newsroom_id: int = Field(default=1, gt=0)
     public_dataset: Literal["real", "demo"] = "real"
+    public_site_url: str = ""
     database_host: str = "localhost"
     database_port: int = Field(default=5432, ge=1, le=65535)
     database_name: str = "fanilo"

@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi import APIRouter, Depends, Query, Request, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from html import escape
+from urllib.parse import urlsplit
 from sqlalchemy.orm import Session
 from ....database import get_public_db
 from ....repositories.publications import PublicPublicationRepository
@@ -49,6 +51,36 @@ def news_image(url: str = Query(max_length=2000)):
 def list_certified_articles(db: Session = Depends(get_public_db),
                            limit: int=Query(default=50,ge=1,le=200),offset: int=Query(default=0,ge=0)):
     return PublicPublicationRepository(db).published(limit=limit,offset=offset)
+
+
+@router.get('/article', response_class=HTMLResponse, include_in_schema=False)
+def public_article(id: int = Query(gt=0), db: Session = Depends(get_public_db)):
+    article = PublicPublicationRepository(db).by_id(id)
+    if article is None:
+        raise HTTPException(status_code=404, detail='Article introuvable.')
+    title = escape(article['titre_final'])
+    body = escape(article['corps_article'])
+    category = escape(article['categorie'])
+    verdict = escape(article['statut_verification'])
+    return HTMLResponse(f'''<!doctype html><html lang="fr"><head><meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{title} — FahAImarinana</title></head><body>
+        <main><article><h1>{title}</h1><p>{category} · Statut : {verdict}</p>
+        <div style="white-space:pre-wrap">{body}</div></article></main></body></html>''',
+        headers={'Cache-Control': 'public, max-age=300'})
+
+
+@router.get('/sitemap.xml', include_in_schema=False)
+def public_sitemap(db: Session = Depends(get_public_db)):
+    from ....core.config import get_settings
+    base = get_settings().public_site_url.rstrip('/')
+    parsed = urlsplit(base)
+    if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise HTTPException(status_code=503, detail='Configurer PUBLIC_SITE_URL avec l’adresse HTTPS publique du site.')
+    articles = PublicPublicationRepository(db).published(limit=50000)
+    entries = ''.join(f'<url><loc>{escape(base + "/api/v1/public/article?id=" + str(article["id"]))}</loc></url>' for article in articles)
+    return Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+                    + entries + '</urlset>', media_type='application/xml', headers={'Cache-Control': 'public, max-age=300'})
 
 
 @router.get('/sync')

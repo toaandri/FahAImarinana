@@ -94,6 +94,26 @@ test('simultaneous expired requests share one refresh and retain the new session
   assert.ok(responses.every((response) => response.ok));
 });
 
+test('editorial photo uses authenticated media endpoint and restores expired session', async () => {
+  let attempts = 0;
+  class FakeReader {
+    readAsDataURL(blob) { this.result = `data:${blob.type};base64,cGhvdG8=`; this.onload(); }
+  }
+  const api = loadService('api', {
+    'expo-constants': { __esModule: true, default: {} },
+    './video-session': { setVideoReport() {} },
+  }, { FileReader: FakeReader, fetch: async (url, init) => {
+    if (url.endsWith('/auth/refresh')) return Response.json({ access_token: 'new-access', refresh_token: 'new-refresh' });
+    assert.ok(url.endsWith('/editorial/contributions/12/media'));
+    attempts++;
+    if (init.headers.get('Authorization') !== 'Bearer new-access') return Response.json({}, { status: 401 });
+    return new Response('photo', { headers: { 'Content-Type': 'image/png' } });
+  } });
+  api.setTokens({ access_token: 'expired', refresh_token: 'old-refresh' });
+  assert.equal(await api.editorialImageDataUrl(12), 'data:image/png;base64,cGhvdG8=');
+  assert.equal(attempts, 2);
+});
+
 test('physical phone resolves localhost against the private Metro host and sends only the session token', async () => {
   const requests = [];
   const cleared = [];

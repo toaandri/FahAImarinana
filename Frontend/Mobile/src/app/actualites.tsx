@@ -1,11 +1,30 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Linking } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Linking, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { HeaderBar, BottomTabs, TagChip } from '@/components/ui';
-import { articleAnalysisQuestion, getNewsList, getGdeltNews, interleaveNewsWithImages, type GdeltArticle } from '@/services/mockData';
+import { articleAnalysisQuestion, getNewsList, getGdeltNews, getEditorialContributions, getCurrentUserId, deleteContribution, parseContribution, interleaveNewsWithImages, type GdeltArticle, type EditorialContribution } from '@/services/mockData';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { editorialImageDataUrl } from '@/services/api';
+
+function ContributionImage({ id }: { id: number }) {
+  const [uri, setUri] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    setUri(null);
+    setFailed(false);
+    editorialImageDataUrl(id, controller.signal)
+      .then((value) => { if (!controller.signal.aborted) setUri(value); })
+      .catch(() => { if (!controller.signal.aborted) setFailed(true); });
+    return () => controller.abort();
+  }, [id]);
+  if (failed) return <View style={styles.externalImagePlaceholder}><Text style={styles.externalImagePlaceholderText}>Image indisponible</Text></View>;
+  if (!uri) return <View style={styles.externalImagePlaceholder}><Text style={styles.externalImagePlaceholderText}>Chargement de l’image…</Text></View>;
+  return <Image source={{ uri }} style={styles.externalImage} resizeMode="cover" onError={() => setFailed(true)} />;
+}
 
 function NewsImage({ uri }: { uri: string | null }) {
   const [failed, setFailed] = useState(false);
@@ -23,6 +42,10 @@ export default function ActualitesScreen() {
   const [feedProvider, setFeedProvider] = useState<'gdelt' | 'rss' | 'google_news' | 'mixed' | null>(null);
   const [feedStale, setFeedStale] = useState(false);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [contributions, setContributions] = useState<EditorialContribution[]>([]);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState('');
   const filters = [
     { value: 'Tous', key: 'all' },
     { value: 'Vérifiés', key: 'verified' },
@@ -46,7 +69,39 @@ export default function ActualitesScreen() {
     return () => { active = false; };
   }, [filter]);
 
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    getEditorialContributions().then((result) => { if (active) setContributions(result.filter((item) => item.kind === 'signal' && item.status === 'submitted')); })
+      .catch(() => { if (active) setContributions([]); });
+    getCurrentUserId().then((user) => { if (active) setUserId(user.id); }).catch(() => { if (active) setUserId(null); });
+    return () => { active = false; };
+  }, []));
+
   const visibleExternal = interleaveNewsWithImages(filter === 'Tous' ? gdelt : gdelt.filter((item) => (item.categories || []).includes(filter)));
+  const visibleContributions = contributions.map((item) => ({ ...item, parsed: parseContribution(item.content) }))
+    .filter((item) => filter !== 'Vérifiés' && (filter === 'Tous' || item.parsed.category === filter));
+
+  function confirmDelete(id: number) {
+    if (deletingId !== null) return;
+    const remove = async () => {
+      setDeleteError('');
+      setDeletingId(id);
+      try {
+        await deleteContribution(id);
+        setContributions((current) => current.filter((item) => item.id !== id));
+      } catch (error) {
+        setDeleteError(error instanceof Error ? error.message : 'Suppression impossible.');
+      } finally { setDeletingId(null); }
+    };
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm('Supprimer cette contribution et son média ?')) void remove();
+    } else {
+      Alert.alert('Supprimer la contribution ?', 'Le texte et le média joint seront supprimés.', [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: () => void remove() },
+      ]);
+    }
+  }
 
   function loadFeed() {
     setFeedLoading(true);
@@ -76,6 +131,23 @@ export default function ActualitesScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.listWrap}>
+        {visibleContributions.length ? <View style={styles.externalSection}>
+          <Text style={styles.externalHeading}>Contributions de la rédaction</Text>
+          <Text style={styles.externalNote}>Visibles par la rédaction · non vérifiées et non publiées.</Text>
+          {deleteError ? <Text accessibilityRole="alert" style={styles.externalNote}>{deleteError}</Text> : null}
+          {visibleContributions.map((item) => <View key={`contribution-${item.id}`} style={styles.externalCard}>
+            {item.has_media && item.media_content_type?.startsWith('image/') ? <ContributionImage id={item.id} /> : null}
+            <Text style={styles.externalSource}>{item.parsed.category || 'Contribution'} · {new Date(item.created_at).toLocaleString('fr-FR')}</Text>
+            <Text style={styles.externalTitle}>{item.parsed.title}</Text>
+            <Text style={styles.externalSource}>{item.parsed.body}</Text>
+            <Text style={styles.externalSource}>{item.has_media ? 'Média joint · ' : ''}Non vérifié · en attente de traitement</Text>
+            {item.submitted_by_id === userId ? <Pressable accessibilityRole="button" accessibilityLabel={`Supprimer ${item.parsed.title}`}
+              disabled={deletingId !== null} onPress={() => confirmDelete(item.id)} style={styles.deleteButton}>
+              <Ionicons name="trash-outline" size={16} color="#9a2637" />
+              <Text style={styles.deleteText}>{deletingId === item.id ? 'Suppression…' : 'Supprimer'}</Text>
+            </Pressable> : null}
+          </View>)}
+        </View> : null}
         {filter !== 'Vérifiés' ? <View style={styles.externalSection}>
           <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'mixed' ? 'sources multiples' : feedProvider === 'google_news' ? 'Google Actualités' : feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
           <Text style={styles.externalNote}>Articles externes non vérifiés. La date correspond à leur publication ou à leur détection selon la source.</Text>
@@ -132,6 +204,8 @@ const styles = StyleSheet.create({
   externalTitle: { color: palette.ink, fontSize: 14, fontWeight: '700' },
   externalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, marginTop: 8 },
   externalLink: { color: palette.ink, textDecorationLine: 'underline', fontWeight: '700', paddingVertical: 8 },
+  deleteButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: 5, padding: 8 },
+  deleteText: { color: '#9a2637', fontSize: 12, fontWeight: '700' },
   screen: { flex: 1, backgroundColor: palette.background },
   filtersWrap: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingVertical: 16, gap: 8 },
   listWrap: { paddingHorizontal: 16, paddingBottom: 120 },

@@ -29,3 +29,8 @@ class PublicPublicationRepository:
                       func.lower(self.view.c.titre_final).contains(term.lower(), autoescape=True)) for term in terms))
         ).order_by(self.view.c.horodatage_validation.desc(), self.view.c.id.desc()).limit(limit)
         return list(self.db.execute(statement).mappings())
+
+    def by_id(self, identifier):
+        statement = select(self.view).where(self.view.c.newsroom_id == self.newsroom_id,
+                                            self.view.c.id == identifier)
+        return self.db.execute(statement).mappings().first()

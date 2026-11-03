@@ -105,7 +105,7 @@ function errorMessage(payload: ApiError) {
   return 'La requête a échoué.';
 }
 
-async function request<T>(path: string, init: RequestInit = {}, canRefresh = true): Promise<T> {
+async function requestResponse(path: string, init: RequestInit = {}, canRefresh = true): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
   const sentToken = accessToken;
@@ -113,7 +113,7 @@ async function request<T>(path: string, init: RequestInit = {}, canRefresh = tru
 
   const response = await boundedFetch(`${API_URL}${path}`, { ...init, headers });
   if (response.status === 401 && canRefresh && refreshToken) {
-    if (sentToken !== accessToken && accessToken) return request<T>(path, init, false);
+    if (sentToken !== accessToken && accessToken) return requestResponse(path, init, false);
     if (!refreshInFlight) {
       const tokenToRefresh = refreshToken;
       refreshInFlight = (async () => {
@@ -131,7 +131,7 @@ async function request<T>(path: string, init: RequestInit = {}, canRefresh = tru
         return false;
       })().finally(() => { refreshInFlight = null; });
     }
-    if (await refreshInFlight) return request<T>(path, init, false);
+    if (await refreshInFlight) return requestResponse(path, init, false);
   }
 
   if (!response.ok) {
@@ -147,10 +147,23 @@ async function request<T>(path: string, init: RequestInit = {}, canRefresh = tru
     throw new Error(errorMessage(payload));
   }
 
+  return response;
+}
+
+export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await requestResponse(path, init);
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
-export function apiRequest<T>(path: string, init?: RequestInit) {
-  return request<T>(path, init);
+export async function editorialImageDataUrl(id: number, signal?: AbortSignal): Promise<string> {
+  const response = await requestResponse(`/editorial/contributions/${id}/media`, { signal });
+  const blob = await response.blob();
+  if (!blob.type.startsWith('image/')) throw new Error('Ce média n’est pas une image.');
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Image illisible.'));
+    reader.onerror = () => reject(new Error('Image illisible.'));
+    reader.readAsDataURL(blob);
+  });
 }

@@ -64,3 +64,28 @@ class MobilePublicationTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.post('/api/v1/contributions/signals', headers=self.headers,
                                           json={'content': 'Article', 'media_base64': 'invalid!'})
         self.assertEqual(response.status_code, 422)
+
+    async def test_only_author_can_delete_an_unprocessed_contribution(self):
+        image = b'\x89PNG\r\n\x1a\nphoto'
+        created = await self.client.post('/api/v1/contributions/signals', headers=self.headers,
+            json={'content': '[Sport] Titre\n\nTexte', 'media_base64': base64.b64encode(image).decode()})
+        self.assertEqual(created.status_code, 201, created.text)
+        identifier = created.json()['id']
+        path = f'/api/v1/contributions/{identifier}'
+        self.assertEqual((await self.client.delete(path)).status_code, 401)
+        other = make_account('JOURNALISTE', email='another@example.invalid')
+        other_headers = {'Authorization': 'Bearer ' + tokens_for(other).access_token}
+        self.assertEqual((await self.client.delete(path, headers=other_headers)).status_code, 404)
+        self.assertEqual((await self.client.delete(path, headers=self.headers)).status_code, 204)
+        self.assertEqual((await self.client.get(path + '/media', headers=self.headers)).status_code, 404)
+        queue = await self.client.get('/api/v1/editorial/contributions', headers=self.headers)
+        self.assertFalse(any(item['id'] == identifier for item in queue.json()))
+
+    async def test_prevents_deletion_when_follow_up_exists(self):
+        created = await self.client.post('/api/v1/contributions/signals', headers=self.headers, json={'content': 'Article'})
+        path = f"/api/v1/contributions/{created.json()['id']}"
+        followup = await self.client.post(path + '/information', headers=self.headers, json={'content': 'Complément'})
+        self.assertEqual(followup.status_code, 201)
+        self.assertEqual((await self.client.delete(path, headers=self.headers)).status_code, 409)
+        self.assertEqual((await self.client.delete(f"/api/v1/contributions/{followup.json()['id']}", headers=self.headers)).status_code, 204)
+        self.assertEqual((await self.client.delete(path, headers=self.headers)).status_code, 204)

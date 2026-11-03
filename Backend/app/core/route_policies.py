@@ -3,7 +3,7 @@ import re
 from .rbac import Permission as P
 
 PUBLIC_ROUTES=frozenset({('GET','/health'),('GET','/public/articles'),('GET','/public/sync'),('POST','/sms/citizen'),
-    ('GET','/public/gdelt'), ('GET','/public/news-image'),
+    ('GET','/public/gdelt'), ('GET','/public/news-image'), ('GET','/public/article'), ('GET','/public/sitemap.xml'),
     ('POST','/auth/register'),('POST','/auth/login'),('POST','/auth/refresh'),
     ('POST','/auth/password/forgot'),('POST','/auth/password/reset'),('POST','/auth/service-token')})
 # None means authentication only (own profile/session management).
@@ -40,6 +40,7 @@ POLICIES=[
     ('POST',r'/contributions/signals',P.CONTRIBUTION_ADD),
     ('POST',r'/contributions/[0-9]+/information',P.CONTRIBUTION_ADD),
     ('GET',r'/contributions/[0-9]+',P.CONTRIBUTION_ADD),
+    ('DELETE',r'/contributions/[0-9]+',P.CONTRIBUTION_ADD),
     ('GET',r'/contributions/[0-9]+/media',P.CONTRIBUTION_ADD),
     ('GET',r'/editorial/contributions',P.DRAFT_READ),
     ('GET',r'/editorial/contributions/[0-9]+/media',P.DRAFT_READ),

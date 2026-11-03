@@ -42,6 +42,29 @@ test('mobile registers with email/password and stores the returned session', asy
   assert.deepEqual(tokens, [{ access_token: 'access-session', refresh_token: 'refresh-session' }]);
 });
 
+test('mobile reads submitted articles in the editorial news list', async () => {
+  const calls = [];
+  const service = load(path.join(__dirname, '../src/services/mockData.ts'), {
+    './api': { apiRequest: async (path) => { calls.push(path); return [{ id: 1, content: '[Sport] Un titre\n\nUn texte', status: 'submitted' }]; } },
+  });
+  const articles = await service.getEditorialContributions();
+  const parsed = service.parseContribution(articles[0].content);
+  assert.equal(calls[0], '/editorial/contributions');
+  assert.equal(parsed.title, 'Un titre');
+  assert.equal(parsed.category, 'Sport');
+  assert.equal(parsed.body, 'Un texte');
+});
+
+test('mobile deletes a contribution through the authenticated API client', async () => {
+  let call;
+  const service = load(path.join(__dirname, '../src/services/mockData.ts'), {
+    './api': { apiRequest: async (path, init) => { call = { path, method: init.method }; } },
+  });
+  await service.deleteContribution(42);
+  assert.equal(call.path, '/contributions/42');
+  assert.equal(call.method, 'DELETE');
+});
+
 test('mobile forwards the chosen language and keeps source references without inventing a confidence score', async () => {
   const calls = [];
   const service = load(path.join(__dirname, '../src/services/mockData.ts'), {

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, defer
 from ....database import get_db
 from ....core.permissions import require_permission
 from ....core.rbac import Permission as P,authorize
-from ....core.errors import NotFoundError
+from ....core.errors import NotFoundError, ConflictError
 from ....models import User,Case,Evidence,Contribution,Claim,ClaimEvidence,Source,Draft,ResearchJob
 from ....repositories import CaseRepository
 from ....schemas.investigations import (CaseCreate,CaseRead,CaseUpdate,EvidenceCreate,EvidenceRead,
@@ -250,6 +250,23 @@ def own_submission(db,user,identifier):
 def submission(contribution_id: int,db: Session=Depends(get_db),
                user: User=Depends(require_permission(P.CONTRIBUTION_ADD))):
     return own_submission(db,user,contribution_id)
+
+
+@router.delete('/contributions/{contribution_id}', status_code=204, response_class=Response)
+def delete_submission(contribution_id: int, db: Session=Depends(get_db),
+                      user: User=Depends(require_permission(P.CONTRIBUTION_ADD))):
+    record = db.scalar(select(Contribution).options(defer(Contribution.media))
+                       .where(Contribution.id == contribution_id, Contribution.submitted_by_id == user.id)
+                       .with_for_update())
+    if record is None:
+        raise NotFoundError('Contribution introuvable.')
+    if record.status != 'submitted':
+        raise ConflictError('Cette contribution a déjà été traitée et ne peut plus être supprimée ici.')
+    if db.scalar(select(Contribution.id).where(Contribution.parent_id == contribution_id).limit(1)) is not None:
+        raise ConflictError('Cette contribution contient des informations complémentaires et ne peut pas être supprimée ici.')
+    db.delete(record)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.get('/contributions/{contribution_id}/media')

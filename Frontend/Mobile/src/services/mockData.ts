@@ -207,6 +207,28 @@ export async function publishArticle(payload: { title: string; body: string; cat
   return { ok: true, id: String(contribution.id), status: contribution.status, ...payload };
 }
 
+export type EditorialContribution = {
+  id: number; content: string; status: string; kind: string; created_at: string;
+  submitted_by_id: number; has_media: boolean; media_content_type: string | null;
+};
+export function getEditorialContributions() {
+  return apiRequest<EditorialContribution[]>('/editorial/contributions');
+}
+
+export function getCurrentUserId() {
+  return apiRequest<{ id: number }>('/auth/me');
+}
+
+export function deleteContribution(id: number) {
+  return apiRequest<void>(`/contributions/${id}`, { method: 'DELETE' });
+}
+
+export function parseContribution(content: string): { title: string; body: string; category: string } {
+  const match = /^\[([^\]]+)\]\s*([^\n]+)\n\n([\s\S]*)$/.exec(content);
+  return match ? { category: match[1], title: match[2].trim(), body: match[3].trim() }
+    : { category: '', title: content.slice(0, 120), body: content };
+}
+
 export async function getProfile() {
   const [account, stats] = await Promise.all([apiRequest<{
     id: number;
