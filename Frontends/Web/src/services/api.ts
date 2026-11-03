@@ -47,7 +47,7 @@ export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
   });
 }
 
-const API_URL = ((Constants.expoConfig?.extra?.apiUrl as string | undefined) || 'http://localhost:8000/api/v1').replace(/\/$/, '');
+const API_URL = ((Constants.expoConfig?.extra?.apiUrl as string | undefined) || 'http://127.0.0.1:18000/api/v1').replace(/\/$/, '');
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 

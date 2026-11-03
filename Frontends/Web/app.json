@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "scheme": "fahaimarinana",
     "extra": {
-      "apiUrl": "http://localhost:8000/api/v1"
+      "apiUrl": "http://127.0.0.1:18000/api/v1"
     },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
