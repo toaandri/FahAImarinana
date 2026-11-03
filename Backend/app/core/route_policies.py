@@ -3,11 +3,15 @@ import re
 from .rbac import Permission as P
 
 PUBLIC_ROUTES=frozenset({('GET','/health'),('GET','/public/articles'),('GET','/public/sync'),('POST','/sms/citizen'),
+    ('GET','/public/gdelt'),
     ('POST','/auth/register'),('POST','/auth/login'),('POST','/auth/refresh'),('POST','/auth/service-token')})
 # None means authentication only (own profile/session management).
 POLICIES=[
     ('PATCH',r'/auth/me/language',None),
     ('POST',r'/copilot/translate',P.RESEARCH_RUN),
+    ('POST',r'/copilot/credibility',P.RESEARCH_RUN),
+    ('POST',r'/copilot/precompute',P.RESEARCH_RUN),
+    ('GET',r'/copilot/precompute/[a-f0-9]{32}',P.RESEARCH_RUN),
     ('GET',r'/auth/me/photo',None),('PUT',r'/auth/me/photo',None),
     ('GET',r'/vision/(status|analyses(/[0-9]+)?)',P.ANALYSIS_WRITE),
     ('POST',r'/vision/video',P.ANALYSIS_WRITE),

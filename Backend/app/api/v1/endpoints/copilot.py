@@ -8,6 +8,8 @@ from ....models import Utilisateur
 from starlette.concurrency import run_in_threadpool
 from ....schemas import ChatMessageRead, ChatSessionCreate, ChatSessionRead, ResearchAnswer, ResearchQuestion
 from ....schemas.research import TranslationRequest, TranslationRead
+from ....schemas.credibility import CredibilityRequest, CredibilityResult
+from ....services.credibility import calculate_corroboration
 from ....services.translation import translate_answer
 from ....utils.languages import resolve_language
 from ....repositories import ArticleRepository, SignalRepository
@@ -57,6 +59,13 @@ def translate(payload: TranslationRequest, response: Response,
               user: Utilisateur = Depends(require_permission(P.RESEARCH_RUN))):
     response.headers['Cache-Control'] = 'no-store'
     return translate_answer(payload.text, payload.target_language)
+
+
+@router.post('/credibility', response_model=CredibilityResult)
+def credibility(payload: CredibilityRequest, response: Response,
+                user: Utilisateur = Depends(require_permission(P.RESEARCH_RUN))):
+    response.headers['Cache-Control'] = 'no-store'
+    return calculate_corroboration(payload)
 
 
 @router.post("/index/articles")

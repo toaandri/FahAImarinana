@@ -119,10 +119,10 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
   );
 }
 
-export function StoryCard({ title, source, credibility, image, label = 'Dernière information', onPress }: { title: string; source: string; credibility: number; image?: string; label?: string; onPress?: () => void }) {
+export function StoryCard({ title, source, status, image, label = 'Dernière information', onPress }: { title: string; source: string; status: string; image?: string; label?: string; onPress?: () => void }) {
   const { t } = useLanguage();
   return (
-    <Pressable onPress={onPress} style={styles.storyCard}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Analyser : ${title}`} onPress={onPress} style={styles.storyCard}>
       <View style={styles.storyContentRow}>
         <View style={styles.storyImageWrap}>
           {image ? <Image source={{ uri: image }} style={styles.storyImage} /> : <View style={styles.storyImagePlaceholder} />}
@@ -135,8 +135,7 @@ export function StoryCard({ title, source, credibility, image, label = 'Dernièr
         </View>
         <View style={styles.storyDetails}>
           <View style={styles.ringWrap}>
-          <CredibilityRingCore value={credibility} size={40} />
-          <Text style={styles.credibilityCaption}>{t('credibility')}</Text>
+          <Text style={styles.credibilityCaption}>{status}</Text>
           </View>
           <Text numberOfLines={2} style={styles.storySource}>{source}</Text>
         </View>

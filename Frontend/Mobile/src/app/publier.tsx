@@ -16,6 +16,7 @@ export default function PublierScreen() {
   const [media, setMedia] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [mediaError, setMediaError] = useState('');
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   async function pickMedia(mediaTypes: ImagePicker.MediaType[]) {
     setMediaError('');
@@ -142,11 +143,19 @@ export default function PublierScreen() {
 
         <Pressable
           style={styles.publishButton}
+          disabled={submitting}
+          accessibilityState={{ disabled: submitting, busy: submitting }}
           onPress={async () => {
+            if (submitting) return;
             if (!title.trim() || !body.trim()) {
               Alert.alert(t('incompleteArticle'), t('completeArticleHint'));
               return;
             }
+            if (media) {
+              setMediaError(t('articleMediaUnsupported'));
+              return;
+            }
+            setSubmitting(true);
             try {
               await publishArticle({ title: title.trim(), body: body.trim(), category });
               Alert.alert(t('articleSent'), t('articleSentMessage'));
@@ -154,9 +163,11 @@ export default function PublierScreen() {
               setBody('');
             } catch (error) {
               Alert.alert(t('sendFailed'), error instanceof Error ? error.message : t('unexpectedError'));
+            } finally {
+              setSubmitting(false);
             }
           }}
-        ><Text style={styles.publishText}>{t('submitArticle')}</Text></Pressable>
+        ><Text style={styles.publishText}>{submitting ? t('articleSending') : t('submitArticle')}</Text></Pressable>
       </ScrollView>
       <BottomTabs active="publier" />
     </SafeAreaView>

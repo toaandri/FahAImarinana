@@ -15,6 +15,7 @@ export default function PublishScreen() {
   const [source, setSource] = useState('');
   const [article, setArticle] = useState('');
   const [media, setMedia] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; article?: string; status?: string }>({});
 
   const pickMedia = async (type: 'image' | 'video') => {
@@ -40,6 +41,7 @@ export default function PublishScreen() {
   };
 
   const publish = async () => {
+    if (submitting) return;
     const nextErrors = {
       title: title.trim() ? undefined : 'Le titre est obligatoire.',
       article: article.trim() ? undefined : 'Le texte de votre article est obligatoire.',
@@ -48,6 +50,11 @@ export default function PublishScreen() {
       setErrors(nextErrors);
       return;
     }
+    if (media) {
+      setErrors({ status: 'L’envoi de médias n’est pas encore disponible. Retirez le média pour envoyer votre texte.' });
+      return;
+    }
+    setSubmitting(true);
     try {
       await submitContribution({ title: title.trim(), body: article.trim(), category, source: source.trim() });
       setErrors({ status: 'Votre contribution a été envoyée pour traitement éditorial.' });
@@ -56,6 +63,8 @@ export default function PublishScreen() {
       setSource('');
     } catch (error) {
       setErrors({ status: error instanceof Error ? error.message : 'Envoi impossible.' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -129,7 +138,7 @@ export default function PublishScreen() {
             multiline
             numberOfLines={7}
           />
-          <PrimaryButton label="PUBLIER" icon="send" onPress={publish} />
+          <PrimaryButton label="ENVOYER À LA RÉDACTION" icon="send" onPress={publish} loading={submitting} />
           {errors.status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="polite">{errors.status}</Text> : null}
         </View>
         {desktop ? (

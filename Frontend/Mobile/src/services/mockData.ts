@@ -1,6 +1,19 @@
 import { apiRequest, clearTokens, setTokens } from './api';
 
 export type ResponseLanguage = 'auto' | 'fr' | 'mg';
+export type SourceAssessment = { url: string; assessment: 'supports' | 'contradicts' | 'inconclusive' };
+export type Corroboration = { claim: string; corroboration_percent: number | null; supports: number; contradicts: number; inconclusive: number; source_groups: number; excluded_duplicates: number; limitation: string };
+export function calculateCorroboration(claim: string, sources: SourceAssessment[]) {
+  return apiRequest<Corroboration>('/copilot/credibility', { method: 'POST', body: JSON.stringify({ claim, sources }) });
+}
+
+export type GdeltArticle = { title: string; url: string; source: string; seen_at: string | null; image: string | null; excerpt: string; categories: string[] };
+export function articleAnalysisQuestion(item: { title: string; excerpt?: string; url?: string }) {
+  return `Analyse journalistique de ce contenu. Distingue les affirmations, les preuves disponibles, les éléments à vérifier et les limites ; ne conclus pas à sa fiabilité sans sources indépendantes. Tu ne disposes que du titre${item.excerpt ? ' et de l’extrait fourni' : ''}, ne prétends pas avoir lu un lien.\nTitre : ${item.title.slice(0, 350)}\n${item.excerpt ? `Extrait : ${item.excerpt.slice(0, 850)}\n` : ''}${item.url ? `Source : ${item.url.slice(0, 400)}` : ''}`;
+}
+export function getGdeltNews() {
+  return apiRequest<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss'; stale?: boolean }>('/public/gdelt?themes=1');
+}
 
 export async function getResponseLanguage() {
   const account = await apiRequest<{ response_language: ResponseLanguage }>('/auth/me');
@@ -25,7 +38,7 @@ export type NewsItem = {
   time: string;
   title: string;
   image?: string;
-  credibility: number;
+  credibility: number | null;
   summary: string;
   tags: string[];
 };
@@ -106,12 +119,13 @@ export async function getNewsList(filter = 'Tous'): Promise<NewsItem[]> {
     source: 'FANILO',
     time: new Date(article.horodatage_validation).toLocaleDateString('fr-FR'),
     title: article.titre_final,
-    credibility: article.statut_verification === 'Vrai' ? 100 : article.statut_verification === 'Trompeur' ? 50 : 0,
+    credibility: null,
     summary: article.corps_article,
     tags: [article.categorie],
   }));
   if (filter === 'Tous' || filter === 'Vérifiés') return items;
-  return items.filter((item) => item.tags.includes(filter));
+  const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  return items.filter((item) => item.tags.some((tag) => normalize(tag) === normalize(filter)));
 }
 
 export async function login(email: string, password: string) {
@@ -133,7 +147,7 @@ export async function sendMessageToAI(message: string, language?: ResponseLangua
   });
   return {
     message: message || 'Message reçu',
-    confidence: 0,
+    confidence: null,
     summary: answer.reponse,
     sources: answer.citations.map((citation) => [citation.titre, citation.url].filter(Boolean).join(' — ') || 'Source'),
   };
@@ -171,7 +185,7 @@ export async function getProfile() {
     email: account.email,
     publications: 0,
     verifications: 0,
-    credibility: 0,
+    credibility: null,
     photo: photo.photo,
     language: account.response_language,
   };

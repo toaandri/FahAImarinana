@@ -1,16 +1,18 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppShell, Card, Icon, InteractivePressable, PageTitle } from '../components/ui';
 import { colors, spacing } from '../theme';
 import { LanguageSelector } from '../components/LanguageSelector';
-import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, type ResponseLanguage } from '../services/api';
+import { CredibilityForm } from '../components/CredibilityForm';
+import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, type ResponseLanguage, type Corroboration } from '../services/api';
 
 type Attachment = { uri: string; name: string; type: 'image' | 'video' };
 
 export default function VerifyScreen() {
-  const [message, setMessage] = useState('');
+  const params = useLocalSearchParams<{ question?: string; analyze?: string }>();
+  const [message, setMessage] = useState(typeof params.question === 'string' ? params.question.slice(0, 2000) : '');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [status, setStatus] = useState('');
   const [language, setLanguage] = useState<ResponseLanguage>('auto');
@@ -19,6 +21,9 @@ export default function VerifyScreen() {
   const [result, setResult] = useState<ResearchResult | null>(null);
   const [question, setQuestion] = useState('');
   const [translation, setTranslation] = useState<string | null>(null);
+  const [statistics, setStatistics] = useState<Corroboration | null>(null);
+  const [analysisVersion, setAnalysisVersion] = useState(0);
+  const analyzedQuestion = useRef('');
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -28,6 +33,33 @@ export default function VerifyScreen() {
       .finally(() => { if (active) setLoadingLanguage(false); });
     return () => { active = false; };
   }, []));
+
+  useEffect(() => {
+    const submitted = typeof params.question === 'string' ? params.question.slice(0, 2000) : '';
+    if (loadingLanguage || params.analyze !== '1' || !submitted || analyzedQuestion.current === submitted) return;
+    let active = true;
+    Promise.resolve().then(async () => {
+      if (!active) return;
+      analyzedQuestion.current = submitted;
+      setBusy(true);
+      setStatus('');
+      try {
+        const answer = await sendMessageToAI(submitted, language);
+        if (!active) return;
+        setResult(answer);
+        setStatistics(null);
+        setAnalysisVersion((value) => value + 1);
+        setQuestion(submitted);
+        setTranslation(null);
+        setMessage('');
+      } catch (error) {
+        if (active) setStatus(error instanceof Error ? error.message : 'Analyse indisponible.');
+      } finally {
+        if (active) setBusy(false);
+      }
+    });
+    return () => { active = false; };
+  }, [params.question, params.analyze, loadingLanguage, language]);
 
   const pickMedia = async (type: 'image' | 'video') => {
     try {
@@ -70,6 +102,8 @@ export default function VerifyScreen() {
     try {
       const answer = await sendMessageToAI(submitted, language);
       setResult(answer);
+      setStatistics(null);
+      setAnalysisVersion((value) => value + 1);
       setQuestion(submitted);
       setTranslation(null);
       setMessage('');
@@ -111,6 +145,13 @@ export default function VerifyScreen() {
           </View> : null}
           <Card style={styles.resultCard}>
             <Text style={styles.resultTitle}>{language === 'mg' ? 'Valin’ny IA — mbola mila hamarinina' : 'Pré-analyse IA — à vérifier'}</Text>
+            {result ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
+              <Text style={styles.resultTitle}>Statistique de corroboration</Text>
+              <Text style={styles.resultText}>{statistics?.corroboration_percent == null
+                ? 'Preuves insuffisantes — renseignez les sources ci-dessous.'
+                : `${statistics.corroboration_percent} % des groupes conclusifs confirment l’affirmation.`}</Text>
+              {statistics ? <Text style={styles.resultText}>{statistics.supports} confirme(nt) · {statistics.contradicts} contredit(sent) · {statistics.inconclusive} non concluant(s)</Text> : null}
+            </View> : null}
             <Text selectable style={styles.resultText}>
               {translation ?? result?.reponse ?? 'Envoyez un message / Alefaso ny fanontanianao.'}
             </Text>
@@ -127,6 +168,7 @@ export default function VerifyScreen() {
               {busy ? 'En cours… / Eo am-pikarakarana…' : 'Une réponse IA doit être relue par un journaliste. / Mila hamarinina amin’ny mpanao gazety ny valin’ny IA.'}
             </Text>
           </Card>
+          {result ? <CredibilityForm key={`${analysisVersion}-${question}`} onResultChange={setStatistics} /> : null}
         </View>
 
         <View style={styles.composerArea}>
@@ -235,6 +277,7 @@ const styles = StyleSheet.create({
   resultCard: { gap: 18 },
   resultTitle: { color: colors.white, fontSize: 17, lineHeight: 24, fontWeight: '700' },
   resultText: { color: colors.white, fontSize: 16, lineHeight: 24 },
+  statistics: { padding: 12, borderWidth: 1, borderColor: colors.accent, borderRadius: 10, gap: 6 },
   sources: { gap: 12, marginTop: 16 },
   translationActions: { gap: 8 },
   translationButton: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, padding: 12, justifyContent: 'center' },

@@ -3,6 +3,18 @@ import Constants from 'expo-constants';
 type TokenResponse = { access_token: string; refresh_token: string };
 type ApiError = { detail?: string | Array<{ msg?: string }> };
 export type ResponseLanguage = 'auto' | 'fr' | 'mg';
+export type SourceAssessment = { url: string; assessment: 'supports' | 'contradicts' | 'inconclusive' };
+export type Corroboration = { claim: string; corroboration_percent: number | null; supports: number; contradicts: number; inconclusive: number; source_groups: number; excluded_duplicates: number; limitation: string };
+export function calculateCorroboration(claim: string, sources: SourceAssessment[]) {
+  return request<Corroboration>('/copilot/credibility', { method: 'POST', body: JSON.stringify({ claim, sources }) });
+}
+export type GdeltArticle = { title: string; url: string; source: string; seen_at: string | null; image: string | null; excerpt: string; categories: string[] };
+export function articleAnalysisQuestion(item: { title: string; excerpt?: string; url?: string }) {
+  return `Analyse journalistique de ce contenu. Distingue les affirmations, les preuves disponibles, les éléments à vérifier et les limites ; ne conclus pas à sa fiabilité sans sources indépendantes. Tu ne disposes que du titre${item.excerpt ? ' et de l’extrait fourni' : ''}, ne prétends pas avoir lu un lien.\nTitre : ${item.title.slice(0, 350)}\n${item.excerpt ? `Extrait : ${item.excerpt.slice(0, 850)}\n` : ''}${item.url ? `Source : ${item.url.slice(0, 400)}` : ''}`;
+}
+export function getGdeltNews() {
+  return request<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss'; stale?: boolean }>('/public/gdelt?themes=1');
+}
 export type ResearchResult = { reponse: string; citations: { titre?: string; url?: string }[]; chronologie: unknown[] };
 
 export async function getResponseLanguage() {
@@ -116,6 +128,7 @@ export function getArticles() {
   return request<Array<{
     id: number;
     titre_final: string;
+    corps_article: string;
     categorie: string;
     horodatage_validation: string;
   }>>('/public/articles');

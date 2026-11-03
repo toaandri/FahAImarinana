@@ -1,29 +1,20 @@
-<<<<<<< Updated upstream
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
-=======
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, Modal, ActivityIndicator } from 'react-native';
->>>>>>> Stashed changes
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { HeaderBar, BottomTabs, GlassCard } from '@/components/ui';
 import { palette } from '@/theme/theme';
-<<<<<<< Updated upstream
-import { getProfile, logout, saveProfilePhoto } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
-=======
 import { getProfile, logout, saveProfilePhoto, saveResponseLanguage, type ResponseLanguage } from '@/services/mockData';
 import { LanguageSelector } from '@/components/LanguageSelector';
->>>>>>> Stashed changes
 
 export default function ProfilScreen() {
   const { language, persistenceFailed, setLanguage, t } = useLanguage();
   const selectedLanguageName = t(language === 'fr' ? 'languageFrench' : language === 'en' ? 'languageEnglish' : 'languageMalagasy');
-  const languageLabel = t('languageSetting', { language: selectedLanguageName });
-  const [profile, setProfile] = useState({ name: '', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: 0 });
+  const languageLabel = t('interfaceLanguageSetting', { language: selectedLanguageName });
+  const [profile, setProfile] = useState({ name: '', email: 'adresse@email.mg', publications: 0, verifications: 0, credibility: null as number | null });
   const displayName = profile.name || t('profileName');
   const [profileError, setProfileError] = useState('');
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
@@ -35,44 +26,39 @@ export default function ProfilScreen() {
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
-  const [language, setLanguage] = useState<ResponseLanguage>('auto');
+  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>('auto');
   const [savingLanguage, setSavingLanguage] = useState(false);
   const [languageNotice, setLanguageNotice] = useState('');
 
   useFocusEffect(useCallback(() => {
     let active = true;
     setLoadingProfile(true);
+    setProfileError('');
     getProfile().then((saved) => {
       if (!active) return;
       setProfile(saved);
       setProfilePhoto(saved.photo);
-      setLanguage(saved.language);
+      setResponseLanguage(saved.language);
     }).catch((error) => {
-<<<<<<< Updated upstream
-      setProfileError(error instanceof Error ? error.message : '');
-    }).finally(() => setLoadingProfile(false));
-  }, []);
-=======
       if (!active) return;
-      Alert.alert('Profil indisponible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+      setProfileError(error instanceof Error ? error.message : t('unexpectedError'));
     }).finally(() => { if (active) setLoadingProfile(false); });
     return () => { active = false; };
-  }, []));
+  }, [t]));
 
   async function changeLanguage(value: ResponseLanguage) {
     setSavingLanguage(true);
     setLanguageNotice('');
     try {
       const saved = await saveResponseLanguage(value);
-      setLanguage(saved.language);
-      setLanguageNotice('Préférence de langue enregistrée. / Voatahiry ny teny nofidina.');
+      setResponseLanguage(saved.language);
+      setLanguageNotice(t('aiLanguageSaved'));
     } catch (error) {
-      setLanguageNotice(error instanceof Error ? error.message : 'Enregistrement impossible.');
+      setLanguageNotice(error instanceof Error ? error.message : t('aiLanguageSaveFailed'));
     } finally {
       setSavingLanguage(false);
     }
   }
->>>>>>> Stashed changes
 
   async function chooseProfilePhoto() {
     if (loadingProfile || savingPhoto) return;
@@ -95,7 +81,7 @@ export default function ProfilScreen() {
       }
       const saved = await saveProfilePhoto(imageBase64);
       setProfilePhoto(saved.photo);
-      setPhotoNotice('Photo de profil enregistrée.');
+      setPhotoNotice(t('profilePhotoSaved'));
     } catch (error) {
       setPhotoError(error instanceof Error ? error.message : t('photoSelectFailed'));
     } finally {
@@ -153,7 +139,7 @@ export default function ProfilScreen() {
           <View style={styles.statsRow}>
             <View style={styles.stat}><Text style={styles.statNumber}>{profile.publications}</Text><Text style={styles.statLabel}>{t('publications')}</Text></View>
             <View style={styles.stat}><Text style={styles.statNumber}>{profile.verifications}</Text><Text style={styles.statLabel}>{t('verifications')}</Text></View>
-            <View style={styles.stat}><Text style={styles.statNumber}>{profile.credibility}%</Text><Text style={styles.statLabel}>{t('credibility')}</Text></View>
+            <View style={styles.stat}><Text style={styles.statNumber}>{profile.credibility == null ? '—' : `${profile.credibility}%`}</Text><Text style={styles.statLabel}>{t('credibility')}</Text></View>
           </View>
         </GlassCard>
         {profileError ? <Text accessibilityRole="alert" style={styles.photoError}>{t('profileUnavailable')}: {profileError}</Text> : null}
@@ -161,7 +147,8 @@ export default function ProfilScreen() {
         {photoNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{photoNotice}</Text> : null}
 
         <GlassCard style={styles.menuCard}>
-<<<<<<< Updated upstream
+          <LanguageSelector value={responseLanguage} onChange={(value) => void changeLanguage(value)} disabled={loadingProfile || savingLanguage} />
+          {languageNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{languageNotice}</Text> : null}
           <View style={styles.menuRow}>
             <View style={styles.menuLeft}><Ionicons name="document-text-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('myPublications')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
@@ -187,21 +174,6 @@ export default function ProfilScreen() {
             <View style={styles.menuLeft}><Ionicons name="settings-outline" size={18} color={palette.mint} /><Text style={styles.menuLabel}>{t('settings')}</Text></View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </View>
-=======
-          <LanguageSelector value={language} onChange={(value) => void changeLanguage(value)} disabled={loadingProfile || savingLanguage} />
-          {languageNotice ? <Text accessibilityLiveRegion="polite" style={styles.photoNotice}>{languageNotice}</Text> : null}
-          {[
-            ['Mes publications', 'document-text-outline'],
-            ['Historique des vérifications', 'time-outline'],
-            ['Notifications', 'notifications-outline'],
-            ['Paramètres', 'settings-outline'],
-          ].map(([label, icon]) => (
-            <Pressable key={label} style={styles.menuRow}>
-              <View style={styles.menuLeft}><Ionicons name={icon as any} size={18} color={palette.mint} /><Text style={styles.menuLabel}>{label}</Text></View>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
-            </Pressable>
-          ))}
->>>>>>> Stashed changes
         </GlassCard>
         {persistenceFailed ? <Text accessibilityRole="alert" style={styles.photoError}>{t('languageSaveFailed')}</Text> : null}
 
