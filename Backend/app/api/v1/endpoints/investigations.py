@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends,Query
+from fastapi import APIRouter,Depends,HTTPException,Query
 from pydantic import BaseModel,ConfigDict,Field,HttpUrl
 from sqlalchemy import select,or_
 from sqlalchemy.orm import Session
@@ -13,8 +13,8 @@ from ....schemas.investigations import (CaseCreate,CaseRead,CaseUpdate,EvidenceC
 from ....schemas.editorial import DraftVersionRead
 from ....schemas.sources import SourceRead
 from ....services import investigations as service
-from ....core.rbac import Permission as P
 from typing import Literal
+from ....core.media import MAX_MEDIA_BASE64_LENGTH, MediaTooLargeError, decode_media_base64
 
 router=APIRouter(tags=['Dossiers et contributions'])
 
@@ -165,6 +165,8 @@ class Submission(BaseModel):
     model_config=ConfigDict(extra='forbid')
     content: str=Field(min_length=1,max_length=20000)
     reference_url: HttpUrl|None=Field(default=None,max_length=500)
+    media_base64: str|None=Field(default=None,min_length=1,max_length=MAX_MEDIA_BASE64_LENGTH)
+    media_content_type: str|None=Field(default=None,max_length=150,pattern=r'^(image|video)/[A-Za-z0-9][A-Za-z0-9.+-]*$')
 
 
 class ContributionRead(BaseModel):
@@ -175,12 +177,27 @@ class ContributionRead(BaseModel):
     status: str
 
 
+def decode_submission_media(payload: Submission):
+    if payload.media_base64 is None:
+        if payload.media_content_type is not None:
+            raise HTTPException(status_code=422,detail='Le type de média est fourni sans média.')
+        return None
+    try:
+        return decode_media_base64(payload.media_base64)
+    except MediaTooLargeError as error:
+        raise HTTPException(status_code=413,detail=str(error)) from None
+    except ValueError as error:
+        raise HTTPException(status_code=422,detail=str(error)) from None
+
+
 @router.post('/contributions/signals',response_model=ContributionRead,status_code=201)
 def submit_signal(payload: Submission,db: Session=Depends(get_db),
                   user: User=Depends(require_permission(P.CONTRIBUTION_ADD))):
+    media=decode_submission_media(payload)
     record=Contribution(submitted_by_id=user.id,kind='signal',content=payload.content,
-        reference_url=str(payload.reference_url) if payload.reference_url else None)
-    db.add(record); db.commit()
+        reference_url=str(payload.reference_url) if payload.reference_url else None,
+        media=media,media_content_type=payload.media_content_type)
+    db.add(record); db.commit(); db.refresh(record)
     return record
 
 
@@ -201,7 +218,9 @@ def submission(contribution_id: int,db: Session=Depends(get_db),
 def add_information(contribution_id: int,payload: Submission,db: Session=Depends(get_db),
                     user: User=Depends(require_permission(P.CONTRIBUTION_ADD))):
     parent=own_submission(db,user,contribution_id)
+    media=decode_submission_media(payload)
     record=Contribution(submitted_by_id=user.id,parent_id=parent.id,kind='information',content=payload.content,
-        reference_url=str(payload.reference_url) if payload.reference_url else None)
-    db.add(record); db.commit()
+        reference_url=str(payload.reference_url) if payload.reference_url else None,
+        media=media,media_content_type=payload.media_content_type)
+    db.add(record); db.commit(); db.refresh(record)
     return record

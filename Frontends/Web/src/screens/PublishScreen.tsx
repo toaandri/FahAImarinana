@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Field, Icon, InteractivePressable, PageTitle, PrimaryButton } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { submitContribution } from '../services/api';
+import { ContributionMediaTooLargeError, MAX_CONTRIBUTION_MEDIA_BYTES, submitContribution } from '../services/api';
 import { useI18n } from '../components/i18n';
 
 const categories = [
@@ -13,6 +13,8 @@ const categories = [
   { value: 'Économie', key: 'news.economy' },
 ] as const;
 
+type PublishMedia = ImagePicker.ImagePickerAsset & { type: 'image' | 'video' };
+
 export default function PublishScreen() {
   const { width } = useWindowDimensions();
   const desktop = width >= 1000;
@@ -21,7 +23,7 @@ export default function PublishScreen() {
   const [category, setCategory] = useState('Politique');
   const [source, setSource] = useState('');
   const [article, setArticle] = useState('');
-  const [media, setMedia] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [media, setMedia] = useState<PublishMedia | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; article?: string; status?: string }>({});
 
@@ -38,7 +40,12 @@ export default function PublishScreen() {
         quality: 1,
       });
       if (!result.canceled) {
-        setMedia(result.assets[0]);
+        const selected = result.assets[0];
+        if (selected.fileSize !== undefined && selected.fileSize > MAX_CONTRIBUTION_MEDIA_BYTES) {
+          setErrors((current) => ({ ...current, status: t('publish.mediaTooLarge') }));
+          return;
+        }
+        setMedia({ ...selected, type });
         setErrors((current) => ({ ...current, status: undefined }));
       }
     } catch (error) {
@@ -57,19 +64,19 @@ export default function PublishScreen() {
       setErrors(nextErrors);
       return;
     }
-    if (media) {
-      setErrors({ status: t('publish.mediaUnsupported') });
-      return;
-    }
     setSubmitting(true);
     try {
-      await submitContribution({ title: title.trim(), body: article.trim(), category, source: source.trim() });
+      await submitContribution({ title: title.trim(), body: article.trim(), category, source: source.trim(), media });
       setErrors({ status: t('publish.sent') });
       setTitle('');
       setArticle('');
       setSource('');
     } catch (error) {
-      setErrors({ status: error instanceof Error ? error.message : t('publish.failed') });
+      setErrors({
+        status: error instanceof ContributionMediaTooLargeError
+          ? t('publish.mediaTooLarge')
+          : error instanceof Error ? error.message : t('publish.failed'),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -193,6 +200,7 @@ function MediaCard({
         <Icon name="plus" color={colors.accent} size={19} />
         <Text style={styles.mediaActionText}>{t(type === 'image' ? 'common.addPhoto' : 'common.addVideo')}</Text>
       </InteractivePressable>
+      <Text style={styles.mediaLimit}>{t('publish.mediaLimit')}</Text>
     </View>
   );
 }
@@ -222,5 +230,6 @@ const styles = StyleSheet.create({
   removeButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
   mediaAction: { minHeight: 48, borderWidth: 1, borderColor: colors.accent, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   mediaActionText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
+  mediaLimit: { color: colors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   status: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12 },
 });

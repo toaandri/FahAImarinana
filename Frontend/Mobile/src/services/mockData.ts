@@ -191,11 +191,23 @@ export async function verifyContent(content: string) {
   };
 }
 
-export async function publishArticle(payload: { title: string; body: string; category: string }) {
+export async function publishArticle(payload: { title: string; body: string; category: string; media?: any }) {
+  let media_base64: string | undefined;
+  if (payload.media?.uri) {
+    const response = await fetch(payload.media.uri);
+    const blob = await response.blob();
+    media_base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
   const contribution = await apiRequest<{ id: number; status: string }>('/contributions/signals', {
     method: 'POST',
     body: JSON.stringify({
       content: `[${payload.category}] ${payload.title}\n\n${payload.body}`,
+      media_base64,
     }),
   });
   return { ok: true, id: String(contribution.id), status: contribution.status, ...payload };

@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Text, JSON, CheckConstraint, UniqueConstraint
+from sqlalchemy import Integer, String, Text, LargeBinary, JSON, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import Mapped,mapped_column
 from ..database.base import Base
 from .common import ScopedRecord,scope_args,scoped_fk
@@ -18,6 +18,8 @@ class Contribution(ScopedRecord,Base):
     kind: Mapped[str]=mapped_column(String(20))
     content: Mapped[str]=mapped_column(Text)
     reference_url: Mapped[str|None]=mapped_column(String(500))
+    media: Mapped[bytes|None]=mapped_column(LargeBinary,nullable=True)
+    media_content_type: Mapped[str|None]=mapped_column(String(150),nullable=True)
     status: Mapped[str]=mapped_column(String(20),default='submitted')
 
 
