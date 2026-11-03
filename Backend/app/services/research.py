@@ -7,6 +7,7 @@ from ..repositories import ResearchRepository
 from ..utils.text import tokenize as _tokenize
 logger = logging.getLogger(__name__)
 from ..integrations.ai.gemini import GeminiUnavailableError, research_web
+from ..integrations.ai.openrouter import OpenRouterUnavailableError, answer_question
 
 def index_certified_article(db: Session, article: ArticleCertifie, *, commit: bool = True) -> DocumentRecherche:
     set_scope(db, article.newsroom_id, article.dataset)
@@ -54,14 +55,29 @@ def search_knowledge_base(db: Session, question: str, limit: int = 5) -> list[di
     return results
 
 
-def build_research_answer(db: Session, question: str) -> tuple[str, list[dict], list[dict]]:
+def build_research_answer(db: Session, question: str, *, use_openrouter: bool = False) -> tuple[str, list[dict], list[dict]]:
+    results = None
+    if use_openrouter and get_settings().openrouter_api_key.get_secret_value().strip():
+        results = search_knowledge_base(db, question)
+        citations = [
+            {"titre": item["titre"], "url": item["url"], "date": item["date"], "extrait": item["extrait"]}
+            for item in results
+        ]
+        try:
+            return answer_question(question, citations), citations, sorted(
+                [{"date": item["date"], "titre": item["titre"], "extrait": item["extrait"]} for item in results],
+                key=lambda item: item["date"] or "",
+            )
+        except OpenRouterUnavailableError:
+            logger.warning("OpenRouter indisponible ; utilisation du repli de recherche.")
     if get_settings().gemini_api_key.get_secret_value():
         try:
             answer, citations = research_web(question)
             return answer, citations, []
         except GeminiUnavailableError:
             pass
-    results = search_knowledge_base(db, question)
+    if results is None:
+        results = search_knowledge_base(db, question)
     citations = [
         {"titre": item["titre"], "url": item["url"], "date": item["date"], "extrait": item["extrait"]}
         for item in results

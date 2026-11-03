@@ -103,6 +103,14 @@ structurés et le Copilot web avec Google Search. Sans clé, il conserve le mote
 et indique que les sorties restent des pré-analyses. L’IA ne peut jamais publier
 directement un article certifié.
 
+Pour utiliser OpenRouter dans le chatbot, renseigner `OPENROUTER_API_KEY` dans
+`Backend/.env` et redémarrer le backend. `OPENROUTER_MODEL` vaut par défaut
+[`openrouter/free`](https://openrouter.ai/openrouter/free) ; le délai est configurable
+avec `OPENROUTER_TIMEOUT_SECONDS` (45 secondes). La clé reste côté serveur.
+Le chatbot transmet la question et les extraits pertinents des documents certifiés
+à OpenRouter, sans recherche web en direct. En cas d’échec, il utilise Gemini si
+configuré, puis le moteur local. Les autres fonctions IA conservent leur fournisseur.
+
 Le [rapport d’inspection et le socle du connecteur Maharavo](Backend/MAHARAVO_INTEGRATION.md)
 distinguent le contrat backend proposé de l’interface externe, qui n’est pas documentée
 dans ce dépôt. Aucune connexion réelle à un moteur HTTP Maharavo n’est annoncée.

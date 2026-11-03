@@ -5,6 +5,7 @@ os.environ['DATABASE_URL'] = os.environ.get('FANILO_TEST_DATABASE_URL', 'sqlite:
 os.environ['ENVIRONMENT'] = 'test'
 os.environ['JWT_SECRET'] = 'isolated-test-secret-at-least-thirty-two-bytes'
 os.environ['GEMINI_API_KEY'] = ''
+os.environ['OPENROUTER_API_KEY'] = ''
 os.environ['AUTO_CREATE_TABLES'] = 'false'
 os.environ['ALLOW_PUBLIC_REGISTRATION'] = 'true'
 

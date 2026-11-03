@@ -50,7 +50,7 @@ def ask_copilot(db: Session, user: Utilisateur, session_id: int, question: str) 
         horodatage=now,
     )
     db.add(user_message)
-    answer, citations, chronology = build_research_answer(db, question)
+    answer, citations, chronology = build_research_answer(db, question, use_openrouter=True)
     assistant_message = MessageChat(
         session_id=session.id,
         role="assistant",

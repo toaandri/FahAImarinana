@@ -112,6 +112,8 @@ Un test parcourt OpenAPI pour vérifier que chaque opération privée a une poli
 
 ## Validation et publication
 
+<OPENROUTER_API_KEY>
+
 1. Le journaliste crée le dossier et le brouillon, éventuellement avec l'aide d'un compte IA.
 2. `GET /api/drafts/{id}/version` retourne la version du brouillon aux journalistes et éditeurs.
 3. `PATCH /api/drafts/{id}` exige `expected_version`. Toute modification incrémente la version et annule sa validation.

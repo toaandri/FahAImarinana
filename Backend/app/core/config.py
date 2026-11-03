@@ -40,6 +40,9 @@ class Settings(BaseModel):
     gemini_vision_model: str = Field(default='gemini-3.5-flash-lite', min_length=1, max_length=80,
                                     pattern=r'^[a-zA-Z0-9._-]+$')
     gemini_timeout_seconds: float = Field(default=45, gt=0, le=300)
+    openrouter_api_key: SecretStr = SecretStr("")
+    openrouter_model: str = Field(default="openrouter/free", min_length=1, max_length=200)
+    openrouter_timeout_seconds: float = Field(default=45, gt=0, le=300)
     sms_backend: Literal["simulation"] = "simulation"
     auth_requests_per_minute: int = Field(default=60,ge=1,le=10000)
     public_requests_per_minute: int = Field(default=60,ge=1,le=10000)
