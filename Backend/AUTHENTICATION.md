@@ -42,14 +42,11 @@ Le mot de passe est saisi au terminal. La CLI est une opération de confiance de
 
 Parcours normal :
 
-1. L'administrateur se connecte avec `POST /api/auth/login`.
-2. Il appelle `POST /api/admin/invitations` avec `email` et un rôle humain explicite.
-3. Il transmet lui-même le secret d'invitation au destinataire ; aucune messagerie n'est appelée automatiquement.
-4. Le destinataire utilise `POST /api/auth/register` avec `email`, `mot_de_passe` et `invitation_token`.
+1. Le visiteur utilise `POST /api/auth/register` avec `email` et `mot_de_passe`.
+2. Le backend crée le compte dans la rédaction par défaut avec le rôle `LECTEUR`.
+3. Le compte peut ensuite se connecter avec `POST /api/auth/login`.
 
-L'invitation est liée à l'email normalisé, à la rédaction, au dataset, à son émetteur et au rôle accordé. Elle expire après 48 heures par défaut et n'est utilisable qu'une fois. Le rôle et le périmètre ne sont jamais pris dans le corps libre de l'inscription. Une invitation dont l'émetteur n'est plus un administrateur actif est refusée.
-
-`ALLOW_PUBLIC_REGISTRATION` reste accepté comme ancienne variable, mais ne permet jamais de contourner les invitations. Sa valeur recommandée est false. Les réponses contenant des secrets portent `Cache-Control: no-store`.
+Les rôles éditoriaux restent provisionnés par la CLI opérateur. Les endpoints d'invitation restent disponibles pour les outils d'administration historiques, mais ne sont plus requis pour une inscription publique. Les réponses contenant des secrets portent `Cache-Control: no-store`.
 
 ## Sessions et jetons
 

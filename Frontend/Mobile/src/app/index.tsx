@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Logo } from '@/components/Logo';
 import { palette } from '@/theme/theme';
-import { login } from '@/services/mockData';
+import { login, requestPasswordReset, resetPassword } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
 
 const socialProviders = [
@@ -24,11 +24,15 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [status, setStatus] = useState('');
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryRequested, setRecoveryRequested] = useState(false);
+  const [recoveryToken, setRecoveryToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const handleLogin = async () => {
     const normalizedEmail = email.trim();
     const nextEmailError = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ? '' : t('invalidEmail');
-    const nextPasswordError = password.length >= 8 ? '' : t('invalidPassword');
+    const nextPasswordError = recovering || password.length >= 8 ? '' : t('invalidPassword');
     setEmailError(nextEmailError);
     setPasswordError(nextPasswordError);
     setStatus('');
@@ -36,8 +40,28 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(normalizedEmail, password);
-      router.replace('/home');
+      if (recovering) {
+        if (recoveryRequested) {
+          if (recoveryToken.length < 20 || newPassword.length < 8) {
+            setStatus(t('recoveryInvalid'));
+            return;
+          }
+          const result = await resetPassword(recoveryToken.trim(), newPassword);
+          setStatus(result.message || t('recoverySuccess'));
+          setRecovering(false);
+          setRecoveryRequested(false);
+          setRecoveryToken('');
+          setNewPassword('');
+        } else {
+          const result = await requestPasswordReset(normalizedEmail);
+          setRecoveryRequested(true);
+          if (result.reset_token) setRecoveryToken(result.reset_token);
+          setStatus(result.message || t('recoverySent'));
+        }
+      } else {
+        await login(normalizedEmail, password);
+        router.replace('/home');
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : t('loginFailed'));
     } finally {
@@ -85,7 +109,7 @@ export default function LoginScreen() {
                 {emailError ? <Text style={styles.error} accessibilityRole="alert">{emailError}</Text> : null}
               </View>
 
-              <View style={styles.fieldWrap}>
+              {!recovering ? <View style={styles.fieldWrap}>
                 <View style={[styles.inputRow, passwordError ? styles.inputRowError : null]}>
                   <Ionicons name="lock-closed-outline" size={24} color={palette.text} accessibilityElementsHidden importantForAccessibility="no" />
                   <TextInput
@@ -113,14 +137,30 @@ export default function LoginScreen() {
                   </Pressable>
                 </View>
                 {passwordError ? <Text style={styles.error} accessibilityRole="alert">{passwordError}</Text> : null}
-              </View>
+              </View> : null}
+              {recovering && recoveryRequested ? (
+                <>
+                  <View style={styles.fieldWrap}>
+                    <View style={styles.inputRow}>
+                      <Ionicons name="key-outline" size={24} color={palette.text} accessibilityElementsHidden importantForAccessibility="no" />
+                      <TextInput value={recoveryToken} onChangeText={setRecoveryToken} style={styles.input} placeholder={t('recoveryToken')} placeholderTextColor={palette.textMuted} accessibilityLabel={t('recoveryToken')} autoCapitalize="none" />
+                    </View>
+                  </View>
+                  <View style={styles.fieldWrap}>
+                    <View style={styles.inputRow}>
+                      <Ionicons name="lock-closed-outline" size={24} color={palette.text} accessibilityElementsHidden importantForAccessibility="no" />
+                      <TextInput value={newPassword} onChangeText={setNewPassword} style={styles.input} placeholder={t('newPassword')} placeholderTextColor={palette.textMuted} accessibilityLabel={t('newPassword')} secureTextEntry />
+                    </View>
+                  </View>
+                </>
+              ) : null}
 
               <Pressable
                 accessibilityRole="button"
-                onPress={() => Alert.alert(t('forgotPassword'), t('recoveryUnavailable'))}
+                onPress={() => { setRecovering((value) => !value); setRecoveryRequested(false); setStatus(''); setPasswordError(''); }}
                 style={styles.forgotButton}
               >
-                <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
+                <Text style={styles.forgotText}>{recovering ? t('backToLogin') : t('forgotPassword')}</Text>
               </Pressable>
 
               <Pressable
@@ -130,7 +170,7 @@ export default function LoginScreen() {
                 onPress={() => { void handleLogin(); }}
                 style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed, loading && styles.primaryButtonDisabled]}
               >
-                <Text style={styles.primaryButtonText}>{loading ? t('loginLoading') : t('loginTitle')}</Text>
+                <Text style={styles.primaryButtonText}>{loading ? t('loginLoading') : recovering ? t('recoverPassword') : t('loginTitle')}</Text>
               </Pressable>
               {status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="assertive">{status}</Text> : null}
 
@@ -146,7 +186,7 @@ export default function LoginScreen() {
                     key={provider.label}
                     accessibilityRole="button"
                     accessibilityLabel={`${t('continueWith')} ${provider.label}`}
-                    onPress={() => Alert.alert(provider.label, t('socialNotConfigured', { provider: provider.label }))}
+                    onPress={() => setStatus(t('socialNotConfigured', { provider: provider.label }))}
                     style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed, width < 360 && styles.socialButtonNarrow]}
                   >
                     <Ionicons name={provider.icon} size={22} color={palette.text} />

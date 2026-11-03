@@ -34,7 +34,7 @@ class Settings(BaseModel):
     refresh_expire_days: int = Field(default=30,ge=1,le=90)
     invitation_expire_hours: int = Field(default=48,ge=1,le=168)
     allow_public_registration: bool = False
-    frontend_origins: str = "http://localhost:3000,http://localhost:5173"
+    frontend_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082,http://localhost:19006,http://127.0.0.1:19006"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-3.8-flash"
     gemini_vision_model: str = Field(default='gemini-3.5-flash-lite', min_length=1, max_length=80,

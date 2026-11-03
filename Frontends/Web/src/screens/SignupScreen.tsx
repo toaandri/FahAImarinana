@@ -7,7 +7,6 @@ import { register } from '../services/api';
 import { useI18n } from '../components/i18n';
 
 type FormErrors = {
-  invitationToken?: string;
   email?: string;
   password?: string;
   passwordConfirmation?: string;
@@ -19,7 +18,6 @@ export default function SignupScreen() {
   const { t } = useI18n();
   const { width } = useWindowDimensions();
   const narrow = width < 360;
-  const [invitationToken, setInvitationToken] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -31,7 +29,6 @@ export default function SignupScreen() {
     const normalizedEmail = email.trim();
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
     const nextErrors: FormErrors = {
-      invitationToken: invitationToken.trim() ? undefined : t('signup.invitationRequired'),
       email: emailValid ? undefined : t('login.invalidEmail'),
       password: password.length >= 8 ? undefined : t('login.invalidPassword'),
       passwordConfirmation: passwordConfirmation === password ? undefined : t('signup.passwordMismatch'),
@@ -45,7 +42,7 @@ export default function SignupScreen() {
     setSubmitting(true);
     setErrors({});
     try {
-      await register(normalizedEmail, password, invitationToken.trim());
+      await register(normalizedEmail, password);
       router.replace('/actualites');
     } catch (error) {
       setErrors({ status: error instanceof Error ? error.message : t('signup.failed') });
@@ -72,22 +69,7 @@ export default function SignupScreen() {
           <Text style={[styles.heading, narrow && styles.headingNarrow]} accessibilityRole="header">
             {t('signup.heading')}
           </Text>
-          <View style={styles.invitationNotice}>
-            <Icon name="information-outline" color={colors.accent} size={20} />
-            <Text style={styles.noticeText}>
-              {t('signup.notice')}
-            </Text>
-          </View>
           <View style={styles.fields}>
-            <Field
-              label={t('signup.invitation')}
-              value={invitationToken}
-              onChangeText={(value) => updateField('invitationToken', () => setInvitationToken(value))}
-              placeholder={t('signup.invitationPlaceholder')}
-              error={errors.invitationToken}
-              autoCapitalize="none"
-              style={styles.field}
-            />
             <Field
               label={t('login.email')}
               value={email}
@@ -186,18 +168,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 8 },
-  invitationNotice: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: 8,
-    marginBottom: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.deep,
-  },
-  noticeText: { flex: 1, color: colors.muted, fontSize: 14, lineHeight: 20 },
   fields: { gap: 12 },
   field: { marginBottom: 4 },
   showPassword: {

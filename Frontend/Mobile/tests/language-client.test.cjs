@@ -18,7 +18,7 @@ function load(filename, modules, globals = {}) {
   return module.exports;
 }
 
-test('mobile registers with the invitation token and stores the returned session', async () => {
+test('mobile registers with email/password and stores the returned session', async () => {
   const calls = [];
   const tokens = [];
   const service = load(path.join(__dirname, '../src/services/mockData.ts'), {
@@ -32,11 +32,11 @@ test('mobile registers with the invitation token and stores the returned session
     },
   });
 
-  await service.register('user@example.test', 'password123', 'invite-code');
+  await service.register('user@example.test', 'password123');
 
   assert.deepEqual(calls, [{
     route: '/auth/register',
-    body: { email: 'user@example.test', mot_de_passe: 'password123', invitation_token: 'invite-code' },
+    body: { email: 'user@example.test', mot_de_passe: 'password123' },
   }]);
   assert.deepEqual(tokens, [{ access_token: 'access-session', refresh_token: 'refresh-session' }]);
 });

@@ -47,13 +47,42 @@ export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
   });
 }
 
-const API_URL = ((Constants.expoConfig?.extra?.apiUrl as string | undefined) || 'http://127.0.0.1:18000/api/v1').replace(/\/$/, '');
+const API_URL = (
+  (typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL : undefined)
+  || (Constants.expoConfig?.extra?.apiUrl as string | undefined)
+  || 'http://127.0.0.1:18000/api/v1'
+).replace(/\/$/, '');
+const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+
+function persistTokens(tokens: TokenResponse | null) {
+  if (typeof globalThis.localStorage === 'undefined') return;
+  if (tokens) globalThis.localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
+  else globalThis.localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
+function restoreTokens() {
+  if (typeof globalThis.localStorage === 'undefined') return;
+  try {
+    const stored = globalThis.localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!stored) return;
+    const tokens = JSON.parse(stored) as Partial<TokenResponse>;
+    if (typeof tokens.access_token === 'string' && typeof tokens.refresh_token === 'string') {
+      accessToken = tokens.access_token;
+      refreshToken = tokens.refresh_token;
+    }
+  } catch {
+    globalThis.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
+}
+
+restoreTokens();
 
 export function clearTokens() {
   accessToken = null;
   refreshToken = null;
+  persistTokens(null);
 }
 
 function message(payload: ApiError) {
@@ -78,6 +107,7 @@ async function request<T>(path: string, init: RequestInit = {}, canRefresh = tru
       const tokens = (await refreshed.json()) as TokenResponse;
       accessToken = tokens.access_token;
       refreshToken = tokens.refresh_token;
+      persistTokens(tokens);
       return request<T>(path, init, false);
     }
     clearTokens();
@@ -99,20 +129,18 @@ export function login(email: string, password: string) {
   }).then((tokens) => {
     accessToken = tokens.access_token;
     refreshToken = tokens.refresh_token;
+    persistTokens(tokens);
   });
 }
 
-export function register(email: string, password: string, invitationToken: string) {
+export function register(email: string, password: string) {
   return request<TokenResponse>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({
-      email,
-      mot_de_passe: password,
-      invitation_token: invitationToken,
-    }),
+    body: JSON.stringify({ email, mot_de_passe: password }),
   }).then((tokens) => {
     accessToken = tokens.access_token;
     refreshToken = tokens.refresh_token;
+    persistTokens(tokens);
   });
 }
 
@@ -120,10 +148,39 @@ export function logout() {
   return request<void>('/auth/logout', { method: 'POST' }).finally(clearTokens);
 }
 
+export function updateProfile(name: string, email: string) {
+  return request<{ name: string; email: string; role: string }>('/auth/me', {
+    method: 'PATCH', body: JSON.stringify({ name, email }),
+  });
+}
+
+export function getProfileStats() {
+  return request<{ publications: number; verifications: number; credibility: number | null }>('/auth/me/stats');
+}
+
+export function getNotifications() {
+  return request<{ id: string; title: string; message: string; created_at: string; read: boolean }[]>('/auth/notifications');
+}
+
+export function requestPasswordReset(email: string) {
+  return request<{ message: string; reset_token?: string }>('/auth/password/forgot', {
+    method: 'POST', body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(resetToken: string, newPassword: string) {
+  return request<{ message: string }>('/auth/password/reset', {
+    method: 'POST', body: JSON.stringify({ reset_token: resetToken, new_password: newPassword }),
+  });
+}
+
 export async function getProfile() {
-  const profile = await request<{ email: string; role: string; response_language: ResponseLanguage }>('/auth/me');
+  const [profile, stats] = await Promise.all([
+    request<{ name: string; email: string; role: string; response_language: ResponseLanguage }>('/auth/me'),
+    getProfileStats(),
+  ]);
   const photo = await request<{ photo: string | null }>('/auth/me/photo');
-  return { ...profile, photo: photo.photo };
+  return { ...profile, ...stats, photo: photo.photo };
 }
 
 export function saveProfilePhoto(imageBase64: string) {

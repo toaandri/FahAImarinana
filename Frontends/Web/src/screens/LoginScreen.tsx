@@ -3,7 +3,7 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
 import { colors } from '../theme';
-import { login } from '../services/api';
+import { login, requestPasswordReset, resetPassword } from '../services/api';
 import { useI18n } from '../components/i18n';
 
 type Mode = 'login' | 'recovery';
@@ -28,6 +28,9 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [recoveryRequested, setRecoveryRequested] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; status?: string }>(() => ({
     status: Array.isArray(routeStatus) ? routeStatus[0] : routeStatus,
   }));
@@ -41,7 +44,9 @@ export default function LoginScreen() {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     const nextErrors = {
       email: emailValid ? undefined : t('login.invalidEmail'),
-      password: mode === 'recovery' || password.length >= 8 ? undefined : t('login.invalidPassword'),
+      password: mode === 'recovery'
+        ? (recoveryRequested && newPassword.length < 8 ? t('login.invalidPassword') : undefined)
+        : (password.length >= 8 ? undefined : t('login.invalidPassword')),
     };
     if (nextErrors.email || nextErrors.password) {
       setErrors(nextErrors);
@@ -54,8 +59,30 @@ export default function LoginScreen() {
       } catch (error) {
         setErrors({ status: error instanceof Error ? error.message : t('login.failed') });
       }
+    } else if (recoveryRequested) {
+      if (resetToken.length < 20 || newPassword.length < 8) {
+        setErrors({ status: t('login.resetInvalid') });
+        return;
+      }
+      try {
+        await resetPassword(resetToken.trim(), newPassword);
+        setErrors({ status: t('login.resetSuccess') });
+        setMode('login');
+        setRecoveryRequested(false);
+        setResetToken('');
+        setNewPassword('');
+      } catch (error) {
+        setErrors({ status: error instanceof Error ? error.message : t('login.failed') });
+      }
     } else {
-      setErrors({ status: t('login.recoveryUnavailable') });
+      try {
+        const result = await requestPasswordReset(email.trim());
+        setRecoveryRequested(true);
+        if (result.reset_token) setResetToken(result.reset_token);
+        setErrors({ status: result.message });
+      } catch (error) {
+        setErrors({ status: error instanceof Error ? error.message : t('login.failed') });
+      }
     }
   };
 
@@ -105,8 +132,14 @@ export default function LoginScreen() {
                 }
               />
             ) : null}
+            {mode === 'recovery' && recoveryRequested ? (
+              <>
+                <Field label={t('login.resetToken')} value={resetToken} onChangeText={setResetToken} placeholder={t('login.resetTokenPlaceholder')} style={styles.field} />
+                <Field label={t('login.newPassword')} value={newPassword} onChangeText={setNewPassword} placeholder={t('login.passwordPlaceholder')} secureTextEntry style={styles.field} />
+              </>
+            ) : null}
             {mode === 'login' ? (
-              <InteractivePressable accessibilityRole="button" onPress={() => { setMode('recovery'); setErrors({}); }} style={styles.textLinkHitbox}>
+              <InteractivePressable accessibilityRole="button" onPress={() => { setMode('recovery'); setRecoveryRequested(false); setErrors({}); }} style={styles.textLinkHitbox}>
                 <Text style={styles.link}>{t('login.forgot')}</Text>
               </InteractivePressable>
             ) : null}

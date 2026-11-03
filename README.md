@@ -52,7 +52,7 @@ leurs responsabilités, les migrations et les commandes de test sont décrits da
 
 Une base existante doit être sauvegardée puis adoptée explicitement avec Alembic
 avant le premier démarrage de cette version ; voir la procédure dans ce document.
-L'inscription exige une invitation nominative à usage unique, dans tous les environnements. Les SMS restent simulés.
+L’inscription est ouverte avec email et mot de passe ; les nouveaux comptes reçoivent le rôle LECTEUR. Les SMS restent simulés.
 
 La [documentation de persistance](Backend/PERSISTENCE.md) décrit les treize entités,
 les relations SQLAlchemy, les migrations, les fixtures et la séparation privé/public.

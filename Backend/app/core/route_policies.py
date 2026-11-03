@@ -4,7 +4,8 @@ from .rbac import Permission as P
 
 PUBLIC_ROUTES=frozenset({('GET','/health'),('GET','/public/articles'),('GET','/public/sync'),('POST','/sms/citizen'),
     ('GET','/public/gdelt'),
-    ('POST','/auth/register'),('POST','/auth/login'),('POST','/auth/refresh'),('POST','/auth/service-token')})
+    ('POST','/auth/register'),('POST','/auth/login'),('POST','/auth/refresh'),
+    ('POST','/auth/password/forgot'),('POST','/auth/password/reset'),('POST','/auth/service-token')})
 # None means authentication only (own profile/session management).
 POLICIES=[
     ('PATCH',r'/auth/me/language',None),
@@ -15,7 +16,8 @@ POLICIES=[
     ('GET',r'/auth/me/photo',None),('PUT',r'/auth/me/photo',None),
     ('GET',r'/vision/(status|analyses(/[0-9]+)?)',P.ANALYSIS_WRITE),
     ('POST',r'/vision/video',P.ANALYSIS_WRITE),
-    ('GET',r'/auth/me',None),('GET',r'/auth/sessions',None),('DELETE',r'/auth/sessions/[a-f0-9]{32}',None),
+    ('GET',r'/auth/me',None),('PATCH',r'/auth/me',None),('GET',r'/auth/me/stats',None),('GET',r'/auth/notifications',None),
+    ('GET',r'/auth/sessions',None),('DELETE',r'/auth/sessions/[a-f0-9]{32}',None),
     ('POST',r'/auth/(logout|logout-all|password)',None),
     ('GET',r'/admin/users',P.USERS_MANAGE),('PATCH',r'/admin/users/[0-9]+',P.USERS_MANAGE),
     ('POST',r'/admin/(invitations|service-accounts)',P.USERS_MANAGE),

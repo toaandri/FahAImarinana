@@ -49,7 +49,7 @@ Le moteur SQLAlchemy reste synchrone. FastAPI exécute les endpoints synchrones 
 - Une ressemblance lexicale produit une piste non confirmée (`concorde=false`, `officielle=false`). Ce changement corrige une fausse affirmation de vérification.
 - Les mots de passe dépassant 72 octets UTF-8 sont rejetés avec 422. L'email est normalisé avant la recherche de doublon. Les emails restent des chaînes pour préserver les clients existants.
 - Les alertes WebSocket exigent désormais un JWT : correction nécessaire de l'accès public aux alertes privées. Les clients utilisent `Authorization: Bearer <jeton>` ou les sous-protocoles `['bearer', jeton]` ; le serveur sélectionne `bearer`. Aucun jeton dans l'URL. Les diffusions donnent `sent_count`, sans numéro de téléphone. La réponse HTTP autorisée conserve son champ historique `sent`.
-- L’inscription exige une invitation nominative à usage unique. La CLI opérateur permet de créer le premier administrateur.
+- L’inscription publique crée un compte LECTEUR avec email et mot de passe. La CLI opérateur permet de créer les rôles éditoriaux.
 
 ## Configuration
 

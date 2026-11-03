@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ActivityIndicator, Image, Modal, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Card, Field, Icon, InteractivePressable, PageTitle, PrimaryButton, ProfileRow } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { getProfile, logout, saveProfilePhoto } from '../services/api';
+import { getNotifications, getProfile, logout, saveProfilePhoto, updateProfile } from '../services/api';
 import { InterfaceLanguageSelector } from '../components/InterfaceLanguageSelector';
 import { useI18n } from '../components/i18n';
 
@@ -21,8 +21,10 @@ export default function ProfileScreen() {
   const { t } = useI18n();
   const desktop = width >= 1200;
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState('[Nom de l’utilisateur]');
-  const [email, setEmail] = useState('[adresse@email.mg]');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [stats, setStats] = useState({ publications: 0, verifications: 0, credibility: null as number | null });
+  const [notifications, setNotifications] = useState<{ title: string; message: string }[]>([]);
   const [notice, setNotice] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -36,9 +38,11 @@ export default function ProfileScreen() {
     setLoadingProfile(true);
     getProfile().then((profile) => {
       if (!active) return;
-      setName(profile.role);
+      setName(profile.name || profile.role);
       setEmail(profile.email);
       setPhoto(profile.photo);
+      setStats({ publications: profile.publications, verifications: profile.verifications, credibility: profile.credibility });
+      getNotifications().then((items) => { if (active) setNotifications(items); }).catch(() => undefined);
     }).catch((error) => { if (active) setNotice(error instanceof Error ? error.message : t('profile.unavailable')); })
       .finally(() => { if (active) setLoadingProfile(false); });
     return () => { active = false; };
@@ -69,9 +73,16 @@ export default function ProfileScreen() {
     }
   }
 
-  const saveProfile = () => {
-    setEditing(false);
-    setNotice(t('profile.savedSessionOnly'));
+  const saveProfile = async () => {
+    try {
+      const saved = await updateProfile(name, email);
+      setName(saved.name);
+      setEmail(saved.email);
+      setEditing(false);
+      setNotice(t('profile.photoSaved'));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : t('profile.unavailable'));
+    }
   };
 
   const handleLogout = async () => {
@@ -136,9 +147,9 @@ export default function ProfileScreen() {
             </InteractivePressable>
           )}
           <View style={[styles.stats, width < 360 && styles.statsCompact]}>
-            <Stat value="[0]" label={t('profile.publications')} compact={width < 360} />
-            <Stat value="[0]" label={t('profile.verifications')} compact={width < 360} />
-            <Stat value="[0] %" label={t('profile.credibility')} compact={width < 360} />
+            <Stat value={String(stats.publications)} label={t('profile.publications')} compact={width < 360} />
+            <Stat value={String(stats.verifications)} label={t('profile.verifications')} compact={width < 360} />
+            <Stat value={stats.credibility == null ? '—' : `${stats.credibility}%`} label={t('profile.credibility')} compact={width < 360} />
           </View>
         </Card>
 
@@ -149,7 +160,9 @@ export default function ProfileScreen() {
               key={item.label}
               icon={item.icon}
               label={t(item.label)}
-              onPress={() => setNotice(`${t(item.label)} : ${t('profile.sectionUnavailable')}`)}
+              onPress={() => item.label === 'profile.notifications'
+                ? setNotice(notifications.length ? notifications.map((notification) => `${notification.title} : ${notification.message}`).join('\n') : 'Aucune notification.')
+                : setNotice(`${t(item.label)} : ${t('profile.sectionUnavailable')}`)}
             />
           ))}
           <PrimaryButton

@@ -9,7 +9,6 @@ import { register } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
 
 type FormErrors = {
-  invitation?: string;
   email?: string;
   password?: string;
   confirmation?: string;
@@ -19,7 +18,6 @@ type FormErrors = {
 export default function SignupScreen() {
   const { t } = useLanguage();
   const { width } = useWindowDimensions();
-  const [invitation, setInvitation] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -30,7 +28,6 @@ export default function SignupScreen() {
   const submit = async () => {
     const normalizedEmail = email.trim();
     const nextErrors: FormErrors = {
-      invitation: invitation.trim() ? undefined : t('invitationRequired'),
       email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ? undefined : t('invalidEmail'),
       password: password.length >= 8 ? undefined : t('invalidPassword'),
       confirmation: confirmation === password ? undefined : t('passwordMismatch'),
@@ -43,7 +40,7 @@ export default function SignupScreen() {
     setSubmitting(true);
     setErrors({});
     try {
-      await register(normalizedEmail, password, invitation.trim());
+      await register(normalizedEmail, password);
       router.replace('/home');
     } catch (error) {
       setErrors({ status: error instanceof Error ? error.message : t('signupFailed') });
@@ -71,22 +68,7 @@ export default function SignupScreen() {
             </Pressable>
 
             <Text accessibilityRole="header" style={styles.heading}>{t('signupHeading')}</Text>
-            <View style={styles.invitationNotice}>
-              <Ionicons name="information-circle-outline" size={21} color={palette.mint} accessibilityElementsHidden importantForAccessibility="no" />
-              <Text style={styles.noticeText}>{t('invitationNotice')}</Text>
-            </View>
-
             <View style={styles.form}>
-              <AuthInput
-                icon="ticket-outline"
-                value={invitation}
-                onChangeText={(value) => update('invitation', setInvitation, value)}
-                placeholder={t('invitationCode')}
-                accessibilityLabel={t('invitationCode')}
-                error={errors.invitation}
-                autoCapitalize="none"
-                returnKeyType="next"
-              />
               <AuthInput
                 icon="mail-outline"
                 value={email}
@@ -210,7 +192,6 @@ const styles = StyleSheet.create({
   main: { width: '100%', maxWidth: 520, alignSelf: 'center' },
   logoWrap: { minHeight: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   heading: { color: palette.text, fontSize: 24, lineHeight: 32, fontFamily: 'Montserrat_700Bold_Italic', marginBottom: 12 },
-  invitationNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 11, marginBottom: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', backgroundColor: 'rgba(255,255,255,0.08)' },
   noticeText: { flex: 1, color: palette.text, fontSize: 13, lineHeight: 19 },
   form: { width: '100%' },
   fieldWrap: { marginBottom: 14 },

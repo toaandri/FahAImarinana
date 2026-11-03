@@ -114,14 +114,14 @@ export async function getLatestNews(): Promise<NewsItem[]> {
 }
 
 export async function getNewsList(filter = 'Tous'): Promise<NewsItem[]> {
-  const articles = await apiRequest<Array<{
+  const articles = await apiRequest<{
     id: number;
     titre_final: string;
     corps_article: string;
     categorie: string;
     statut_verification: string;
     horodatage_validation: string;
-  }>>('/public/articles');
+  }[]>('/public/articles');
 
   const items = articles.map((article) => ({
     id: String(article.id),
@@ -146,14 +146,10 @@ export async function login(email: string, password: string) {
   return { ok: true };
 }
 
-export async function register(email: string, password: string, invitationToken: string) {
+export async function register(email: string, password: string) {
   const tokens = await apiRequest<{ access_token: string; refresh_token: string }>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({
-      email,
-      mot_de_passe: password,
-      invitation_token: invitationToken,
-    }),
+    body: JSON.stringify({ email, mot_de_passe: password }),
   });
   setTokens(tokens);
   return { ok: true };
@@ -162,7 +158,7 @@ export async function register(email: string, password: string, invitationToken:
 export async function sendMessageToAI(message: string, language?: ResponseLanguage) {
   const answer = await apiRequest<{
     reponse: string;
-    citations: Array<{ titre?: string; url?: string }>;
+    citations: { titre?: string; url?: string }[];
   }>('/copilot/research', {
     method: 'POST',
     body: JSON.stringify({ question: message, language }),
@@ -195,22 +191,43 @@ export async function publishArticle(payload: { title: string; body: string; cat
 }
 
 export async function getProfile() {
-  const account = await apiRequest<{
+  const [account, stats] = await Promise.all([apiRequest<{
     id: number;
+    name: string;
     email: string;
     role: string;
     response_language: ResponseLanguage;
-  }>('/auth/me');
+  }>('/auth/me'), apiRequest<{ publications: number; verifications: number; credibility: number | null }>('/auth/me/stats')]);
   const photo = await apiRequest<{ photo: string | null }>('/auth/me/photo');
   return {
-    name: account.role,
+    name: account.name || account.role,
     email: account.email,
-    publications: 0,
-    verifications: 0,
-    credibility: null,
+    ...stats,
     photo: photo.photo,
     language: account.response_language,
   };
+}
+
+export function updateProfile(name: string, email: string) {
+  return apiRequest<{ name: string; email: string; role: string }>('/auth/me', {
+    method: 'PATCH', body: JSON.stringify({ name, email }),
+  });
+}
+
+export function getNotifications() {
+  return apiRequest<{ id: string; title: string; message: string; created_at: string; read: boolean }[]>('/auth/notifications');
+}
+
+export function requestPasswordReset(email: string) {
+  return apiRequest<{ message: string; reset_token?: string }>('/auth/password/forgot', {
+    method: 'POST', body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(resetToken: string, newPassword: string) {
+  return apiRequest<{ message: string }>('/auth/password/reset', {
+    method: 'POST', body: JSON.stringify({ reset_token: resetToken, new_password: newPassword }),
+  });
 }
 
 export function saveProfilePhoto(imageBase64: string) {

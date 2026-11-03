@@ -18,6 +18,7 @@ if (__DEV__ && ['localhost', '127.0.0.1'].includes(backendUrl.hostname) && metro
   backendUrl.hostname = metroHost;
 }
 const API_URL = backendUrl.toString().replace(/\/$/, '');
+const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
@@ -25,11 +26,33 @@ let refreshToken: string | null = null;
 export function setTokens(tokens: TokenResponse | null) {
   accessToken = tokens?.access_token ?? null;
   refreshToken = tokens?.refresh_token ?? null;
+  void persistTokens(tokens);
 }
 
 export function clearTokens() {
   setTokens(null);
   setVideoReport(null);
+}
+
+async function persistTokens(tokens: TokenResponse | null) {
+  const value = tokens ? JSON.stringify(tokens) : null;
+  if (typeof globalThis.localStorage === 'undefined') return;
+  if (value) globalThis.localStorage.setItem(TOKEN_STORAGE_KEY, value);
+  else globalThis.localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
+export async function restoreTokens() {
+  try {
+    const value = globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY);
+    if (!value) return;
+    const tokens = JSON.parse(value) as Partial<TokenResponse>;
+    if (typeof tokens.access_token === 'string' && typeof tokens.refresh_token === 'string') {
+      accessToken = tokens.access_token;
+      refreshToken = tokens.refresh_token;
+    }
+  } catch {
+    await persistTokens(null);
+  }
 }
 
 async function boundedFetch(url: string, init: RequestInit): Promise<Response> {

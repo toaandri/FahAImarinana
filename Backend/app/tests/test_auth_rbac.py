@@ -104,31 +104,23 @@ class AuthRBACTests(unittest.TestCase):
                     with self.subTest(role=role):
                         with self.assertRaises(ForbiddenError): call()
 
-    def test_controlled_single_use_invitation_and_password_hash(self):
+    def test_open_registration_and_password_hash(self):
         body={'email':'invited@example.invalid','mot_de_passe':'password123'}
-        self.assertEqual(self.client.post('/api/auth/register',json=body).status_code,403)
-        self.assertEqual(self.client.post('/api/auth/register',json={**body,'role':'EDITEUR'}).status_code,422)
-        secret=self.invite(body['email'])
-        self.assertEqual(self.client.post('/api/auth/register',json={**body,'email':'wrong@example.invalid','invitation_token':secret}).status_code,403)
-        result=self.client.post('/api/auth/register',json={**body,'invitation_token':secret})
+        result=self.client.post('/api/auth/register',json=body)
         self.assertEqual(result.status_code,201,result.text)
         self.assertEqual(result.headers['cache-control'],'no-store')
-        self.assertEqual(self.client.post('/api/auth/register',json={**body,'invitation_token':secret}).status_code,403)
+        self.assertEqual(self.client.post('/api/auth/register',json={**body,'role':'EDITEUR'}).status_code,422)
+        self.assertEqual(self.client.post('/api/auth/register',json=body).status_code,409)
         with system_session() as db:
             user=db.scalar(select(User).where(User.email==body['email']))
-            self.assertEqual(user.role,'JOURNALISTE')
+            self.assertEqual(user.role,'LECTEUR')
             self.assertTrue(user.mot_de_passe_hash.startswith('scrypt$'))
             self.assertTrue(password_matches(body['mot_de_passe'],user.mot_de_passe_hash))
-            self.assertIsNotNone(db.get(Invitation,secret.split('.')[0]).consumed_at)
 
-    def test_expired_invitation_and_non_admin_invitation_are_denied(self):
+    def test_non_admin_invitation_management_is_denied(self):
         for role in Role:
             if role!=Role.ADMINISTRATEUR:
                 self.assertEqual(self.req(role,'POST','/admin/invitations',{'email':'new@example.invalid','role':'LECTEUR'}).status_code,403)
-        secret=self.invite('expired@example.invalid')
-        with system_session() as db:
-            db.get(Invitation,secret.split('.')[0]).expires_at=now()-timedelta(seconds=1); db.commit()
-        self.assertEqual(self.client.post('/api/auth/register',json={'email':'expired@example.invalid','mot_de_passe':'password123','invitation_token':secret}).status_code,403)
 
     def test_refresh_rotation_and_reuse_revokes_the_family(self):
         result=self.client.post('/api/auth/login',json={'email':'journaliste@example.invalid','mot_de_passe':'password123'})
@@ -231,6 +223,7 @@ class AuthRBACTests(unittest.TestCase):
         for path,methods in self.app.openapi()['paths'].items():
             relative=path.removeprefix('/api/v1')
             relative=re.sub(r'\{session_id\}','a'*32 if relative.startswith('/auth/') else '1',relative)
+            relative=re.sub(r'\{job_id\}','a'*32 if relative.startswith('/copilot/precompute/') else '1',relative)
             relative=re.sub(r'\{key\}','research_result_limit',relative)
             relative=re.sub(r'\{[^}]+\}','1',relative)
             for method in methods:

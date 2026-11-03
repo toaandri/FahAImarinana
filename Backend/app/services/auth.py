@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import secrets
 from uuid import uuid4
+from jose import jwt, JWTError
 from sqlalchemy import select
 from ..core.config import get_settings
 from ..core.errors import AuthenticationError,ConflictError,ForbiddenError,NotFoundError
@@ -49,23 +50,18 @@ def issue_tokens(db,user,*,user_agent=''):
 
 
 def register_user(db,payload,*,user_agent=''):
-    if not payload.invitation_token:
-        raise ForbiddenError('Une invitation nominative est requise.')
-    identifier=secret_id(payload.invitation_token)
-    invitation=db.scalar(select(Invitation).where(Invitation.id==identifier).with_for_update()
-                         .execution_options(authentication_lookup=True))
-    if (invitation is None or not hmac.compare_digest(invitation.token_hash,secret_hash(payload.invitation_token))
-        or invitation.consumed_at is not None or utc(invitation.expires_at)<=now() or invitation.email!=payload.email):
-        raise ForbiddenError('Invitation invalide, expirée ou déjà utilisée.')
-    set_scope(db,invitation.newsroom_id,invitation.dataset)
+    settings=get_settings()
+    set_scope(db,settings.default_newsroom_id,settings.default_dataset)
     if UserRepository(db).by_email(payload.email):
         raise ConflictError('Email déjà utilisé.')
-    newsroom=db.scalar(select(Newsroom).where(Newsroom.id==invitation.newsroom_id))
-    inviter=UserRepository(db).get_for_auth(invitation.invited_by_id)
-    if newsroom.status!='active' or inviter is None or not inviter.actif or inviter.status!='active' or inviter.role!='ADMINISTRATEUR':
-        raise ForbiddenError('Cette invitation ne peut plus être utilisée.')
-    user=User(email=payload.email,mot_de_passe_hash=password_hash(payload.mot_de_passe),role=invitation.role)
-    invitation.consumed_at=now()
+    newsroom=db.scalar(select(Newsroom).where(
+        Newsroom.id==settings.default_newsroom_id,
+        Newsroom.dataset==settings.default_dataset,
+        Newsroom.status=='active',
+    ))
+    if newsroom is None:
+        raise ForbiddenError('La rédaction par défaut est indisponible.')
+    user=User(email=payload.email,mot_de_passe_hash=password_hash(payload.mot_de_passe),role='LECTEUR')
     db.add(user); db.flush()
     return issue_tokens(db,user,user_agent=user_agent)
 
@@ -133,3 +129,41 @@ def change_password(db,user,payload):
     user.mot_de_passe_hash=password_hash(payload.new_password)
     user.auth_version+=1
     revoke_all(db,user,reason='password_changed')
+
+def update_profile(db,user,payload):
+    email = payload.email.strip().lower()
+    existing = UserRepository(db).by_email(email)
+    if existing is not None and existing.id != user.id:
+        raise ConflictError('Email déjà utilisé.')
+    user.name = payload.name.strip()
+    user.email = email
+    db.commit()
+    return user
+
+def request_password_reset(db, payload):
+    user = UserRepository(db).get_active_by_email(payload.email)
+    if user is None:
+        return {'message': 'Si ce compte existe, un lien de récupération sera envoyé.'}
+    settings = get_settings()
+    token = jwt.encode({'sub': str(user.id), 'type': 'password_reset',
+                        'exp': now() + timedelta(minutes=15)},
+                       settings.jwt_secret.get_secret_value(), algorithm='HS256')
+    return {'message': 'Jeton de récupération généré pour le canal de notification configuré.',
+            'reset_token': token}
+
+def reset_password(db, payload):
+    settings = get_settings()
+    try:
+        claims = jwt.decode(payload.reset_token, settings.jwt_secret.get_secret_value(),
+                            algorithms=['HS256'])
+        if claims.get('type') != 'password_reset':
+            raise ValueError('type')
+        user = UserRepository(db).get_for_auth(int(claims['sub']))
+    except (JWTError, KeyError, TypeError, ValueError):
+        raise AuthenticationError('Jeton de récupération invalide ou expiré.') from None
+    if user is None or not user.actif or user.status != 'active':
+        raise AuthenticationError('Compte inactif.')
+    user.mot_de_passe_hash = password_hash(payload.new_password)
+    user.auth_version += 1
+    revoke_all(db, user, reason='password_reset')
+    return {'message': 'Mot de passe réinitialisé.'}

@@ -15,6 +15,7 @@ class User(ScopedRecord, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120), default='', server_default='')
     mot_de_passe_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(30), default="LECTEUR")
     actif: Mapped[bool] = mapped_column(Boolean, default=True)

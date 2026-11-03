@@ -26,7 +26,7 @@ class Credentials(BaseModel):
 
 
 class UserCreate(Credentials):
-    invitation_token: str|None=Field(default=None,max_length=256)
+    pass
 
 
 class LoginRequest(Credentials):
@@ -92,11 +92,28 @@ class PasswordChange(BaseModel):
     current_password: str=Field(max_length=1024)
     new_password: str=Field(min_length=8,max_length=1024)
 
+class PasswordResetRequest(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    email: str=Field(min_length=3,max_length=255)
+    _email=field_validator('email')(Credentials.normalize_email.__func__)
+
+class PasswordReset(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    reset_token: str=Field(min_length=20,max_length=2048)
+    new_password: str=Field(min_length=8,max_length=1024)
+
+class ProfileUpdate(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    name: str=Field(min_length=1,max_length=120)
+    email: str=Field(min_length=3,max_length=255)
+    _email=field_validator('email')(Credentials.normalize_email.__func__)
+
 
 class AccountRead(BaseModel):
     model_config=ConfigDict(from_attributes=True)
     id: int
     email: str
+    name: str
     role: str
     account_type: str
     status: str

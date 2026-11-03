@@ -1,9 +1,11 @@
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { palette } from '@/theme/theme';
 import { LanguageProvider } from '@/i18n/LanguageProvider';
+import { restoreTokens } from '@/services/api';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -12,8 +14,13 @@ export default function RootLayout() {
     Montserrat_800ExtraBold: require('@expo-google-fonts/montserrat/800ExtraBold/Montserrat_800ExtraBold.ttf'),
     Montserrat_800ExtraBold_Italic: require('@expo-google-fonts/montserrat/800ExtraBold_Italic/Montserrat_800ExtraBold_Italic.ttf'),
   });
+  const [authReady, setAuthReady] = useState(false);
 
-  if (!loaded) {
+  useEffect(() => {
+    restoreTokens().finally(() => setAuthReady(true));
+  }, []);
+
+  if (!loaded || !authReady) {
     return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   }
 

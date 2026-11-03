@@ -6,6 +6,11 @@ module.exports = defineConfig([
   expoConfig,
   {
     ignores: ['dist/*'],
+    languageOptions: {
+      globals: {
+        __dirname: 'readonly',
+      },
+    },
     rules: {
       'no-restricted-syntax': [
         'error',
