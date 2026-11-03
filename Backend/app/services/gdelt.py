@@ -25,6 +25,9 @@ GOOGLE_NEWS_URLS = (
     'https://news.google.com/rss/search?q=Madagascar+finance&hl=fr&gl=MG&ceid=MG:fr',
     'https://news.google.com/rss/search?q=Madagascar+soci%C3%A9t%C3%A9&hl=fr&gl=MG&ceid=MG:fr',
     'https://news.google.com/rss/search?q=Madagascar+social&hl=fr&gl=MG&ceid=MG:fr',
+    'https://news.google.com/rss/search?q=Madagascar+culture&hl=fr&gl=MG&ceid=MG:fr',
+    'https://news.google.com/rss/search?q=Madagascar+environnement&hl=fr&gl=MG&ceid=MG:fr',
+    'https://news.google.com/rss/search?q=Madagascar+technologie&hl=fr&gl=MG&ceid=MG:fr',
 )
 RSS_URLS = ('https://www.madagascar-tribune.com/spip.php?page=backend',
             'https://www.france24.com/fr/tag/madagascar/rss')
@@ -43,6 +46,10 @@ TOPIC_TERMS = {
     'Société': ('societe', 'social', 'sociale', 'sociaux', 'education', 'sante', 'ecole', 'hopital', 'population', 'justice',
                 'environnement', 'climat', 'inondation', 'cyclone', 'police', 'culture',
                 'community', 'health', 'school', 'education', 'climate', 'fahasalamana', 'sekoly', 'universite', 'etudiants', 'maladie', 'medecin'),
+    'Finance': ('finance', 'financier', 'financiere', 'banque', 'bancaire', 'credit', 'bourse', 'microfinance', 'financial', 'bank'),
+    'Culture': ('culture', 'culturel', 'culturelle', 'musique', 'musicien', 'artiste', 'festival', 'cinema', 'spectacle', 'litterature', 'kanto'),
+    'Environnement': ('environnement', 'climat', 'cyclone', 'inondation', 'biodiversite', 'foret', 'deforestation', 'pollution', 'climate', 'tontolo'),
+    'Technologie': ('technologie', 'technologique', 'numerique', 'internet', 'informatique', 'telecommunication', 'innovation', 'technology', 'digital'),
 }
 
 
@@ -113,14 +120,29 @@ def _rss_fallback(urls=RSS_URLS):
     with httpx.Client(timeout=5, follow_redirects=False) as client:
         for url in urls:
             try:
-                with client.stream('GET', url, headers={'User-Agent': 'FahAImarinana/1.0'}) as response:
-                    response.raise_for_status()
-                    parts, size = [], 0
-                    for chunk in response.iter_bytes():
-                        size += len(chunk)
-                        if size > 1024 * 1024:
-                            raise ValueError('RSS response too large')
-                        parts.append(chunk)
+                current = url
+                original = urlsplit(url)
+                for _ in range(4):
+                    with client.stream('GET', current, headers={'User-Agent': 'FahAImarinana/1.0'}) as response:
+                        if response.status_code in (301, 302, 303, 307, 308):
+                            target = urljoin(current, response.headers.get('location', ''))
+                            parsed = urlsplit(target)
+                            if (not response.headers.get('location') or parsed.scheme != original.scheme
+                                or parsed.hostname != original.hostname or parsed.port != original.port
+                                or parsed.username or parsed.password):
+                                raise ValueError('Unsafe RSS redirect')
+                            current = target
+                            continue
+                        response.raise_for_status()
+                        parts, size = [], 0
+                        for chunk in response.iter_bytes():
+                            size += len(chunk)
+                            if size > 1024 * 1024:
+                                raise ValueError('RSS response too large')
+                            parts.append(chunk)
+                        break
+                else:
+                    raise ValueError('Too many RSS redirects')
                 root = ElementTree.fromstring(b''.join(parts))
                 results, seen = [], set()
                 for item in root.findall('./channel/item'):
@@ -228,18 +250,18 @@ def latest_news():
             gdelt_items = []
         google_feeds = _google_news()
         google_available = any(google_feeds)
-        feeds = ([gdelt_items] if gdelt_items else []) + google_feeds
+        try:
+            press_items = _rss_fallback()['articles']
+        except (IntegrationUnavailableError, httpx.HTTPError):
+            press_items = []
+        feeds = ([gdelt_items] if gdelt_items else []) + google_feeds + ([press_items] if press_items else [])
         items = _merge_feeds(feeds)
         if items:
-            provider = 'mixed' if gdelt_items and google_available else ('gdelt' if gdelt_items else 'google_news')
+            available = sum(bool(items) for items in (gdelt_items, google_available, press_items))
+            provider = 'mixed' if available > 1 else ('gdelt' if gdelt_items else 'google_news' if google_available else 'rss')
             _cached = {'articles': items, 'fetched_at': datetime.now(timezone.utc).isoformat(), 'provider': provider}
             _expires = time.monotonic() + 300
             return _cached
-        try:
-            _cached = _rss_fallback()
-            _expires = time.monotonic() + 300
-            return _cached
-        except (IntegrationUnavailableError, httpx.HTTPError):
-            if _cached is not None:
-                return {**_cached, 'stale': True}
-            raise IntegrationUnavailableError('Actualités momentanément indisponibles.') from None
+        if _cached is not None:
+            return {**_cached, 'stale': True}
+        raise IntegrationUnavailableError('Actualités momentanément indisponibles.') from None

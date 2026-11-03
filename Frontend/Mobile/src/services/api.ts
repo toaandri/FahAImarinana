@@ -23,6 +23,15 @@ if (__DEV__ && ['localhost', '127.0.0.1'].includes(backendUrl.hostname)) {
   if (reachableHost) backendUrl.hostname = reachableHost;
 }
 const API_URL = backendUrl.toString().replace(/\/$/, '');
+export function newsImageUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' && parsed.host === 'www.madagascar-tribune.com' && parsed.pathname.startsWith('/IMG/')) {
+      return `${API_URL}/public/news-image?url=${encodeURIComponent(url)}`;
+    }
+  } catch { /* Keep the original URL for the image component to handle. */ }
+  return url;
+}
 const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
 
 let accessToken: string | null = null;

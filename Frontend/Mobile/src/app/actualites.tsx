@@ -3,9 +3,15 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Linking } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { HeaderBar, BottomTabs, TagChip } from '@/components/ui';
-import { articleAnalysisQuestion, getNewsList, getGdeltNews, type GdeltArticle } from '@/services/mockData';
+import { articleAnalysisQuestion, getNewsList, getGdeltNews, interleaveNewsWithImages, type GdeltArticle } from '@/services/mockData';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
+
+function NewsImage({ uri }: { uri: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (!uri || failed) return <View style={styles.externalImagePlaceholder}><Text style={styles.externalImagePlaceholderText}>Image indisponible</Text></View>;
+  return <Image source={{ uri }} style={styles.externalImage} resizeMode="cover" onError={() => setFailed(true)} />;
+}
 
 export default function ActualitesScreen() {
   const { t } = useLanguage();
@@ -24,6 +30,10 @@ export default function ActualitesScreen() {
     { value: 'Sport', key: 'sport' },
     { value: 'Société', key: 'society' },
     { value: 'Économie', key: 'economy' },
+    { value: 'Finance', key: 'finance' },
+    { value: 'Culture', key: 'culture' },
+    { value: 'Environnement', key: 'environment' },
+    { value: 'Technologie', key: 'technology' },
   ] as const;
 
   useEffect(() => {
@@ -36,7 +46,7 @@ export default function ActualitesScreen() {
     return () => { active = false; };
   }, [filter]);
 
-  const visibleExternal = filter === 'Tous' ? gdelt : gdelt.filter((item) => (item.categories || []).includes(filter));
+  const visibleExternal = interleaveNewsWithImages(filter === 'Tous' ? gdelt : gdelt.filter((item) => (item.categories || []).includes(filter)));
 
   function loadFeed() {
     setFeedLoading(true);
@@ -67,7 +77,7 @@ export default function ActualitesScreen() {
 
       <ScrollView contentContainerStyle={styles.listWrap}>
         {filter !== 'Vérifiés' ? <View style={styles.externalSection}>
-          <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'mixed' ? 'GDELT et Google Actualités' : feedProvider === 'google_news' ? 'Google Actualités' : feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
+          <Text style={styles.externalHeading}>Actualités Madagascar · {feedProvider === 'mixed' ? 'sources multiples' : feedProvider === 'google_news' ? 'Google Actualités' : feedProvider === 'rss' ? 'presse' : 'GDELT'}</Text>
           <Text style={styles.externalNote}>Articles externes non vérifiés. La date correspond à leur publication ou à leur détection selon la source.</Text>
           <Text style={styles.externalNote}>Thèmes attribués automatiquement à partir du contenu disponible.</Text>
           {feedStale ? <Text style={styles.externalNote}>Derniers articles disponibles ; actualisation momentanément indisponible.</Text> : null}
@@ -76,7 +86,7 @@ export default function ActualitesScreen() {
           {gdeltError ? <Pressable accessibilityRole="button" onPress={loadFeed}><Text style={styles.externalNote}>Réessayer</Text></Pressable> : null}
           {!feedLoading && !gdeltError && visibleExternal.length === 0 ? <Text style={styles.externalNote}>Aucun article externe dans ce thème pour le moment.</Text> : null}
           {visibleExternal.map((item) => <View key={item.url} style={styles.externalCard}>
-            {item.image ? <Image source={{ uri: item.image }} style={styles.externalImage} resizeMode="cover" /> : null}
+            <NewsImage uri={item.image} />
             <Text style={styles.externalSource}>{item.source}{item.seen_at ? ` · ${new Date(item.seen_at).toLocaleString('fr-FR')}` : ''}</Text>
             <Text style={styles.externalTitle}>{item.title}</Text>
             {item.categories?.length ? <Text style={styles.externalSource}>{item.categories.join(' · ')}</Text> : null}
@@ -116,6 +126,8 @@ const styles = StyleSheet.create({
   externalNote: { color: '#fff', fontSize: 12, lineHeight: 18 },
   externalCard: { backgroundColor: palette.headerTint, padding: 12, borderRadius: 12, gap: 6 },
   externalImage: { width: '100%', height: 170, borderRadius: 8 },
+  externalImagePlaceholder: { width: '100%', height: 100, borderRadius: 8, backgroundColor: '#d9e4df', justifyContent: 'center', alignItems: 'center' },
+  externalImagePlaceholderText: { color: palette.ink, fontSize: 12 },
   externalSource: { color: palette.ink, fontSize: 11 },
   externalTitle: { color: palette.ink, fontSize: 14, fontWeight: '700' },
   externalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, marginTop: 8 },

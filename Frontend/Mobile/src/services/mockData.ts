@@ -1,4 +1,4 @@
-import { apiRequest, clearTokens, setTokens } from './api';
+import { apiRequest, clearTokens, setTokens, newsImageUrl } from './api';
 
 export type ResponseLanguage = 'auto' | 'fr' | 'mg';
 export type SourceAssessment = { url: string; assessment: 'supports' | 'contradicts' | 'inconclusive' };
@@ -17,11 +17,22 @@ export function getPrecompute(jobId: string) {
   return apiRequest<PrecomputeJob>(`/copilot/precompute/${jobId}`);
 }
 export type GdeltArticle = { title: string; url: string; source: string; seen_at: string | null; image: string | null; excerpt: string; categories: string[] };
+export function interleaveNewsWithImages(articles: GdeltArticle[]): GdeltArticle[] {
+  const illustrated = articles.filter((article) => !!article.image);
+  const other = articles.filter((article) => !article.image);
+  const result: GdeltArticle[] = [];
+  for (let index = 0; index < Math.max(illustrated.length, other.length); index++) {
+    if (illustrated[index]) result.push(illustrated[index]);
+    if (other[index]) result.push(other[index]);
+  }
+  return result;
+}
 export function articleAnalysisQuestion(item: { title: string; excerpt?: string; url?: string }) {
   return `Analyse journalistique de ce contenu. Distingue les affirmations, les preuves disponibles, les éléments à vérifier et les limites ; ne conclus pas à sa fiabilité sans sources indépendantes. Tu ne disposes que du titre${item.excerpt ? ' et de l’extrait fourni' : ''}, ne prétends pas avoir lu un lien.\nTitre : ${item.title.slice(0, 350)}\n${item.excerpt ? `Extrait : ${item.excerpt.slice(0, 850)}\n` : ''}${item.url ? `Source : ${item.url.slice(0, 400)}` : ''}`;
 }
-export function getGdeltNews() {
-  return apiRequest<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss' | 'google_news' | 'mixed'; stale?: boolean }>('/public/gdelt?themes=1');
+export async function getGdeltNews() {
+  const feed = await apiRequest<{ articles: GdeltArticle[]; fetched_at: string; provider: 'gdelt' | 'rss' | 'google_news' | 'mixed'; stale?: boolean }>('/public/gdelt?themes=1');
+  return { ...feed, articles: feed.articles.map((item) => ({ ...item, image: item.image ? newsImageUrl(item.image) : null })) };
 }
 
 export async function getResponseLanguage() {

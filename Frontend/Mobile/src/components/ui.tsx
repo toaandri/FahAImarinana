@@ -119,7 +119,7 @@ export function BottomTabs({ active = 'home' }: { active?: 'home' | 'actus' | 'd
   );
 }
 
-export function StoryCard({ title, source, status, image, label = 'Dernière information', onPress }: { title: string; source: string; status: string; image?: string; label?: string; onPress?: () => void }) {
+export function StoryCard({ title, source, status, image, analysis, label = 'Dernière information', onPress }: { title: string; source: string; status: string; image?: string; analysis?: { state: 'loading' | 'done' | 'unavailable'; coherence?: number | null; reason?: string }; label?: string; onPress?: () => void }) {
   const { t } = useLanguage();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Analyser : ${title}`} onPress={onPress} style={styles.storyCard}>
@@ -136,6 +136,11 @@ export function StoryCard({ title, source, status, image, label = 'Dernière inf
         <View style={styles.storyDetails}>
           <View style={styles.ringWrap}>
           <Text style={styles.credibilityCaption}>{status}</Text>
+          <Text style={styles.credibilityCaption}>Fiabilité</Text>
+          <Text style={styles.credibilityCaption}>Non calculée</Text>
+          <Text style={styles.credibilityCaption}>Cohérence des sources</Text>
+          <Text style={styles.storyMetric}>{analysis?.state === 'loading' || !analysis ? '…' : analysis.coherence == null ? '—' : `${analysis.coherence} %`}</Text>
+          <Text style={styles.credibilityCaption}>{analysis?.state === 'loading' || !analysis ? 'Analyse IA…' : analysis.state === 'unavailable' ? 'Analyse indisponible' : analysis.coherence == null ? analysis.reason || 'Sources insuffisantes' : 'IA · à vérifier'}</Text>
           </View>
           <Text numberOfLines={2} style={styles.storySource}>{source}</Text>
         </View>
@@ -185,9 +190,10 @@ const styles = StyleSheet.create({
   storyContentRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8 },
   storyBadge: { position: 'absolute', top: 8, left: 8, maxWidth: '90%', backgroundColor: 'rgba(17,21,25,0.55)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 },
   storyBadgeText: { color: '#fff', fontSize: 10, fontFamily: 'Montserrat_600SemiBold_Italic' },
-  storyDetails: { width: 60, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  storyDetails: { width: 78, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
   ringWrap: { alignItems: 'center' },
-  credibilityCaption: { color: '#fff', fontSize: 8, marginTop: 4, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  credibilityCaption: { color: '#fff', fontSize: 9, marginTop: 4, textAlign: 'center', fontFamily: 'Montserrat_600SemiBold_Italic' },
+  storyMetric: { color: palette.mint, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   storyImageWrap: { flex: 1, width: '100%', maxWidth: 303, height: 189, alignSelf: 'flex-start', borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end' },
   storyImage: StyleSheet.absoluteFill,
   storyImagePlaceholder: { ...StyleSheet.absoluteFill, backgroundColor: '#31545A' },

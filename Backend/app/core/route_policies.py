@@ -3,7 +3,7 @@ import re
 from .rbac import Permission as P
 
 PUBLIC_ROUTES=frozenset({('GET','/health'),('GET','/public/articles'),('GET','/public/sync'),('POST','/sms/citizen'),
-    ('GET','/public/gdelt'),
+    ('GET','/public/gdelt'), ('GET','/public/news-image'),
     ('POST','/auth/register'),('POST','/auth/login'),('POST','/auth/refresh'),
     ('POST','/auth/password/forgot'),('POST','/auth/password/reset'),('POST','/auth/service-token')})
 # None means authentication only (own profile/session management).

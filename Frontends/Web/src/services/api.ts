@@ -50,7 +50,7 @@ export function translateAnswer(text: string, targetLanguage: 'fr' | 'mg') {
 const API_URL = (
   (typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL : undefined)
   || (Constants.expoConfig?.extra?.apiUrl as string | undefined)
-  || 'http://127.0.0.1:18000/api/v1'
+  || 'http://127.0.0.1:8000/api/v1'
 ).replace(/\/$/, '');
 const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
 let accessToken: string | null = null;

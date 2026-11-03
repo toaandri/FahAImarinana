@@ -109,20 +109,23 @@ def _factcheck_leads(title):
 
 def _public_candidates(article):
     results, errors = [], []
-    for name, provider in [('gdelt', lambda: _gdelt_leads(article['title'])),
-                           ('factcheck', lambda: _factcheck_leads(article['title']))]:
-        try:
-            results.extend(provider())
-        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
-            errors.append(name + '_indisponible')
+    providers = [('gdelt', lambda: _gdelt_leads(article['title'])),
+                 ('factcheck', lambda: _factcheck_leads(article['title']))]
+    providers.extend(('rss', lambda url=url: [
+        {**item, 'origin': 'rss', 'date': item.get('seen_at')}
+        for item in gdelt._rss_fallback((url,))['articles']
+    ]) for url in gdelt.RSS_URLS)
+    # Each provider has its own bounded timeout; running them together avoids
+    # making users wait for the sum of all slow or unavailable feeds.
+    with ThreadPoolExecutor(max_workers=len(providers), thread_name_prefix='preanalyse-sources') as pool:
+        pending = [(name, pool.submit(provider)) for name, provider in providers]
+        for name, future in pending:
+            try:
+                results.extend(future.result())
+            except (IntegrationUnavailableError, httpx.HTTPError, ValueError, TypeError, AttributeError):
+                errors.append(name + '_indisponible')
     if not get_settings().google_fact_check_api_key.get_secret_value().strip():
         errors.append('factcheck_non_configure')
-    for url in gdelt.RSS_URLS:
-        try:
-            feed = gdelt._rss_fallback((url,))
-            results.extend({**item, 'origin': 'rss', 'date': item.get('seen_at')} for item in feed['articles'])
-        except (IntegrationUnavailableError, httpx.HTTPError, ValueError):
-            errors.append('rss_indisponible')
     return results, errors
 
 
