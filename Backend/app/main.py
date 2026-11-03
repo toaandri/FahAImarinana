@@ -46,9 +46,15 @@ def create_app() -> FastAPI:
     application.add_middleware(AuthorizationMiddleware)
     application.add_middleware(RateLimitMiddleware,auth_limit=settings.auth_requests_per_minute,
                                public_limit=settings.public_requests_per_minute)
+    origin_regex = None
+    if settings.environment != "production":
+        origin_regex = (
+            r'https?://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+            r'|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$'
+        )
     application.add_middleware(
         CORSMiddleware, allow_origins=settings.allowed_origins,
-        allow_origin_regex=r'https?://(localhost|127\.0\.0\.1)(:\d+)?$',
+        allow_origin_regex=origin_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["*"],
     )

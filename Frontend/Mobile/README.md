@@ -10,9 +10,17 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-Le mobile appelle le backend via `expo.extra.apiUrl` dans [app.json](./app.json).
-La valeur par défaut est `http://localhost:8000/api/v1`; sur un appareil physique,
-remplacez-la par l’adresse IP accessible de la machine qui exécute le backend.
+Le mobile appelle le backend via `EXPO_PUBLIC_API_URL` ou `expo.extra.apiUrl` dans
+[app.json](./app.json). En développement, l’adresse locale est automatiquement
+remplacée par l’hôte LAN d’Expo pour le Mobile Web. Sur un appareil physique,
+utilisez l’adresse IP accessible de la machine qui exécute le backend, par exemple :
+
+```text
+EXPO_PUBLIC_API_URL=http://192.168.1.10:18000/api/v1
+```
+
+Le backend doit écouter sur `0.0.0.0`, le port `18000` doit être autorisé dans le
+pare-feu Windows, et les deux appareils doivent être sur le même réseau Wi-Fi.
 
 En mode hackathon, Docker charge automatiquement des données fictives dans la
 rédaction `demo`. Utilisez `journaliste.demo@example.invalid` ou
@@ -21,7 +29,7 @@ rédaction `demo`. Utilisez `journaliste.demo@example.invalid` ou
 2. Start the app
 
    ```bash
-   npx expo start
+   npx expo start --web --host lan --port 8082
    ```
 
 In the output, you'll find options to open the app in a

@@ -13,9 +13,14 @@ type ApiError = {
 const configuredUrl = process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl;
 const backendUrl = new URL(configuredUrl || 'http://localhost:8000/api/v1');
 const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
-if (__DEV__ && ['localhost', '127.0.0.1'].includes(backendUrl.hostname) && metroHost &&
-    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(metroHost)) {
-  backendUrl.hostname = metroHost;
+const isPrivateHost = (host: string) => ['localhost', '127.0.0.1'].includes(host)
+  || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+if (__DEV__ && ['localhost', '127.0.0.1'].includes(backendUrl.hostname)) {
+  const browserHost = typeof location !== 'undefined' ? location.hostname : undefined;
+  const reachableHost = browserHost && isPrivateHost(browserHost) && !['localhost', '127.0.0.1'].includes(browserHost)
+    ? browserHost
+    : metroHost && isPrivateHost(metroHost) ? metroHost : undefined;
+  if (reachableHost) backendUrl.hostname = reachableHost;
 }
 const API_URL = backendUrl.toString().replace(/\/$/, '');
 const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
