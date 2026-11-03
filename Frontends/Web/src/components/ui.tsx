@@ -16,6 +16,7 @@ import {
   type PressableProps,
 } from 'react-native';
 import { colors, spacing } from '../theme';
+import { useI18n } from './i18n';
 
 export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -158,37 +159,39 @@ export function Brand({ large = false, compact = false }: { large?: boolean; com
 }
 
 const navigation = [
-  { section: 'Découvrir', label: 'Accueil', icon: 'home-outline', href: '/' },
-  { section: 'Découvrir', label: 'Actualités', icon: 'newspaper-variant-outline', href: '/actualites' },
-  { section: 'Participer', label: 'Discuter', icon: 'message-processing-outline', href: '/verifier' },
-  { section: 'Participer', label: 'Publier', icon: 'plus', href: '/publier' },
-  { section: 'Compte', label: 'Profil', icon: 'account-outline', href: '/profil' },
+  { section: 'navigation.discover', label: 'navigation.home', icon: 'home-outline', href: '/' },
+  { section: 'navigation.discover', label: 'navigation.news', icon: 'newspaper-variant-outline', href: '/actualites' },
+  { section: 'navigation.participate', label: 'navigation.discuss', icon: 'message-processing-outline', href: '/verifier' },
+  { section: 'navigation.participate', label: 'navigation.publish', icon: 'plus', href: '/publier' },
+  { section: 'navigation.account', label: 'navigation.profile', icon: 'account-outline', href: '/profil' },
 ] as const;
 
 export function TopNav({ active, onNavigate }: { active?: string; onNavigate?: () => void }) {
+  const { t } = useI18n();
   const sections = [...new Set(navigation.map((item) => item.section))];
 
   return (
     <View
       role="navigation"
-      accessibilityLabel="Navigation principale"
+      accessibilityLabel={t('navigation.main')}
       style={styles.nav}
     >
       {sections.map((section) => (
         <View key={section} style={styles.navSection}>
-          <Text style={styles.navSectionLabel}>{section}</Text>
+          <Text style={styles.navSectionLabel}>{t(section)}</Text>
           <View style={styles.navItems}>
             {navigation.filter((item) => item.section === section).map((item) => {
               const selected = active === item.href;
               const isChat = item.href === '/verifier';
               const color = selected || isChat ? colors.accent : colors.muted;
+              const label = t(item.label);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   asChild
                   accessibilityRole="link"
-                  accessibilityLabel={item.label}
+                  accessibilityLabel={label}
                   aria-current={selected ? 'page' : undefined}
                 >
                   <InteractivePressable
@@ -207,7 +210,7 @@ export function TopNav({ active, onNavigate }: { active?: string; onNavigate?: (
                       { color },
                       selected && styles.navLabelSelected,
                     ]}>
-                      {item.label}
+                      {label}
                     </Text>
                   </InteractivePressable>
                 </Link>
@@ -233,6 +236,7 @@ function MobileNavigation({
   onNavigate: () => void;
   onCloseComplete: () => void;
 }) {
+  const { t } = useI18n();
   const reduceMotion = useContext(ReduceMotionContext);
   const [progress] = useState(() => new Animated.Value(open && reduceMotion ? 1 : 0));
 
@@ -257,7 +261,7 @@ function MobileNavigation({
   return (
     <Animated.View
       role="region"
-      accessibilityLabel="Menu de navigation"
+      accessibilityLabel={t('navigation.menu')}
       style={[
         styles.mobileNavigation,
         { paddingHorizontal: horizontalPadding, opacity: progress },
@@ -278,12 +282,13 @@ export function AppShell({
   children: ReactNode;
   fillHeight?: boolean;
 }) {
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const desktop = width >= 1200;
   const horizontalPadding = width >= 1200 ? 48 : width >= 768 ? 32 : width < 360 ? 16 : 20;
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [navigationMounted, setNavigationMounted] = useState(false);
-  const activeLabel = navigation.find((item) => item.href === active)?.label ?? 'Menu';
+  const activeLabel = t(navigation.find((item) => item.href === active)?.label ?? 'navigation.main');
   const closeMobileNavigation = useCallback(() => setNavigationOpen(false), []);
   const completeMobileNavigationExit = useCallback(() => setNavigationMounted(false), []);
   const toggleNavigation = () => {
@@ -298,8 +303,8 @@ export function AppShell({
   return (
     <View style={[styles.app, desktop && styles.appDesktop]}>
       {desktop ? (
-        <View role="complementary" accessibilityLabel="Navigation latérale" style={styles.sidebar}>
-          <Link href="/" asChild accessibilityRole="link" accessibilityLabel="FAH AI MARINANA, accueil">
+        <View role="complementary" accessibilityLabel={t('navigation.sidebar')} style={styles.sidebar}>
+          <Link href="/" asChild accessibilityRole="link" accessibilityLabel={t('navigation.homeBrand')}>
             <InteractivePressable style={styles.sidebarBrand}>
               <Text style={styles.sidebarBrandText}>
                 FAH <Text style={styles.sidebarBrandAccent}>AI</Text> MARINANA
@@ -309,7 +314,7 @@ export function AppShell({
           <TopNav active={active} />
           <View style={styles.sidebarStatus}>
             <View style={styles.onlineDot} />
-            <Text style={styles.sidebarStatusText}>En ligne</Text>
+            <Text style={styles.sidebarStatusText}>{t('navigation.online')}</Text>
           </View>
         </View>
       ) : (
@@ -323,7 +328,7 @@ export function AppShell({
               </View>
               <InteractivePressable
                 accessibilityRole="button"
-                accessibilityLabel={navigationOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+                accessibilityLabel={t(navigationOpen ? 'navigation.close' : 'navigation.open')}
                 accessibilityState={{ expanded: navigationOpen }}
                 aria-expanded={navigationOpen}
                 onPress={toggleNavigation}
@@ -392,10 +397,11 @@ export function PrimaryButton({
   loading?: boolean;
   outline?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <InteractivePressable
       accessibilityRole="button"
-      accessibilityLabel={loading ? `${label}, chargement` : label}
+      accessibilityLabel={loading ? `${label}, ${t('common.loading')}` : label}
       accessibilityState={{ disabled, busy: loading }}
       aria-busy={loading}
       disabled={disabled || loading}
@@ -477,17 +483,18 @@ export function Field({
 
 export function CredibilityBadge({
   value,
-  caption = 'Crédibilité',
+  caption,
 }: {
   value: string;
   caption?: string;
 }) {
+  const { t } = useI18n();
   return (
     <View style={styles.credibilityRow}>
       <View style={styles.scoreBox}>
         <Text style={styles.score}>{value}</Text>
       </View>
-      <Text style={styles.credibilityCaption}>{caption}</Text>
+      <Text style={styles.credibilityCaption}>{caption ?? t('profile.credibility')}</Text>
     </View>
   );
 }

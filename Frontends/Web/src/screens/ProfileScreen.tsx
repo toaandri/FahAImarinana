@@ -1,22 +1,24 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { ActivityIndicator, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, Modal, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppShell, Card, Field, Icon, InteractivePressable, PageTitle, PrimaryButton, ProfileRow } from '../components/ui';
 import { colors, spacing } from '../theme';
-import { getProfile, logout, saveProfilePhoto, saveResponseLanguage, type ResponseLanguage } from '../services/api';
-import { LanguageSelector } from '../components/LanguageSelector';
+import { getProfile, logout, saveProfilePhoto } from '../services/api';
+import { InterfaceLanguageSelector } from '../components/InterfaceLanguageSelector';
+import { useI18n } from '../components/i18n';
 
 const profileLinks = [
-  { icon: 'file-document-outline', label: 'Mes publications' },
-  { icon: 'history', label: 'Historique des vérifications' },
-  { icon: 'bell-outline', label: 'Notifications' },
-  { icon: 'cog-outline', label: 'Paramètres' },
+  { icon: 'file-document-outline', label: 'profile.myPublications' },
+  { icon: 'history', label: 'profile.history' },
+  { icon: 'bell-outline', label: 'profile.notifications' },
+  { icon: 'cog-outline', label: 'profile.settings' },
 ] as const;
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const { t } = useI18n();
   const desktop = width >= 1200;
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('[Nom de l’utilisateur]');
@@ -28,8 +30,7 @@ export default function ProfileScreen() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [photoNotice, setPhotoNotice] = useState('');
-  const [language, setLanguage] = useState<ResponseLanguage>('auto');
-  const [savingLanguage, setSavingLanguage] = useState(false);
+  const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
   useFocusEffect(useCallback(() => {
     let active = true;
     setLoadingProfile(true);
@@ -38,24 +39,10 @@ export default function ProfileScreen() {
       setName(profile.role);
       setEmail(profile.email);
       setPhoto(profile.photo);
-      setLanguage(profile.response_language);
-    }).catch((error) => { if (active) setNotice(error instanceof Error ? error.message : 'Profil indisponible.'); })
+    }).catch((error) => { if (active) setNotice(error instanceof Error ? error.message : t('profile.unavailable')); })
       .finally(() => { if (active) setLoadingProfile(false); });
     return () => { active = false; };
-  }, []));
-
-  async function changeLanguage(value: ResponseLanguage) {
-    setSavingLanguage(true);
-    try {
-      const saved = await saveResponseLanguage(value);
-      setLanguage(saved.language);
-      setNotice('Préférence de langue enregistrée. / Voatahiry ny teny nofidina.');
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Enregistrement impossible.');
-    } finally {
-      setSavingLanguage(false);
-    }
-  }
+  }, [t]));
 
   async function choosePhoto() {
     if (loadingProfile || savingPhoto) return;
@@ -68,15 +55,15 @@ export default function ProfileScreen() {
       });
       if (result.canceled) return;
       const imageBase64 = result.assets[0].base64;
-      if (!imageBase64) throw new Error('Impossible de lire cette photo. Choisissez une autre image.');
+      if (!imageBase64) throw new Error(t('profile.photoUnavailable'));
       if (imageBase64.length > 4 * Math.ceil((2 * 1024 * 1024) / 3)) {
-        throw new Error('La photo dépasse 2 Mio. Choisissez une image plus petite.');
+        throw new Error(t('profile.photoTooLarge'));
       }
       const saved = await saveProfilePhoto(imageBase64);
       setPhoto(saved.photo);
-      setPhotoNotice('Photo de profil enregistrée.');
+      setPhotoNotice(t('profile.photoSaved'));
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : 'Impossible d’enregistrer cette photo.');
+      setPhotoError(error instanceof Error ? error.message : t('profile.photoSaveFailed'));
     } finally {
       setSavingPhoto(false);
     }
@@ -84,7 +71,7 @@ export default function ProfileScreen() {
 
   const saveProfile = () => {
     setEditing(false);
-    setNotice('Modifications conservées dans cette session. La sauvegarde du profil n’est pas encore connectée.');
+    setNotice(t('profile.savedSessionOnly'));
   };
 
   const handleLogout = async () => {
@@ -94,25 +81,26 @@ export default function ProfileScreen() {
       await logout();
       router.replace('/connexion');
     } catch (error) {
-      const details = error instanceof Error ? error.message : 'Le serveur n’a pas confirmé la déconnexion.';
+      const details = error instanceof Error ? error.message : t('profile.logoutError');
       router.replace({
         pathname: '/connexion',
-        params: { status: `La session locale a été fermée, mais la déconnexion serveur n’a pas été confirmée. ${details}` },
+        params: { statusKey: 'profile.logoutServerError', details },
       });
     } finally {
       setLoggingOut(false);
+      setLogoutConfirmationOpen(false);
     }
   };
 
   return (
     <AppShell active="/profil">
-      <PageTitle>Profil</PageTitle>
+      <PageTitle>{t('profile.title')}</PageTitle>
       <View style={[styles.columns, desktop && styles.columnsDesktop]}>
         <Card style={styles.profileCard}>
           <View style={styles.identity}>
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel={photo ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
+              accessibilityLabel={t(photo ? 'profile.changePhoto' : 'profile.addPhoto')}
               accessibilityState={{ disabled: loadingProfile || savingPhoto, busy: savingPhoto }}
               disabled={loadingProfile || savingPhoto}
               onPress={choosePhoto}
@@ -133,9 +121,9 @@ export default function ProfileScreen() {
           </View>
           {editing ? (
             <View>
-              <Field label="Nom" value={name} onChangeText={setName} placeholder="Votre nom" />
-              <Field label="Adresse email" value={email} onChangeText={setEmail} placeholder="adresse@email.mg" keyboardType="email-address" autoCapitalize="none" />
-              <PrimaryButton label="Enregistrer" onPress={saveProfile} />
+              <Field label={t('profile.name')} value={name} onChangeText={setName} placeholder={t('profile.namePlaceholder')} />
+              <Field label={t('profile.email')} value={email} onChangeText={setEmail} placeholder={t('login.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" />
+              <PrimaryButton label={t('profile.save')} onPress={saveProfile} />
             </View>
           ) : (
             <InteractivePressable
@@ -144,36 +132,69 @@ export default function ProfileScreen() {
               style={styles.editButton}
             >
               <Icon name="pencil-outline" color={colors.white} />
-              <Text style={styles.editText}>Modifier le profil</Text>
+              <Text style={styles.editText}>{t('profile.edit')}</Text>
             </InteractivePressable>
           )}
           <View style={[styles.stats, width < 360 && styles.statsCompact]}>
-            <Stat value="[0]" label="Publications" compact={width < 360} />
-            <Stat value="[0]" label="Vérifications" compact={width < 360} />
-            <Stat value="[0] %" label="Crédibilité" compact={width < 360} />
+            <Stat value="[0]" label={t('profile.publications')} compact={width < 360} />
+            <Stat value="[0]" label={t('profile.verifications')} compact={width < 360} />
+            <Stat value="[0] %" label={t('profile.credibility')} compact={width < 360} />
           </View>
         </Card>
 
         <View style={styles.links}>
-          <LanguageSelector value={language} onChange={(value) => void changeLanguage(value)} disabled={loadingProfile || savingLanguage} />
+          <InterfaceLanguageSelector />
           {profileLinks.map((item) => (
             <ProfileRow
               key={item.label}
               icon={item.icon}
-              label={item.label}
-              onPress={() => setNotice(`${item.label} : cette section sera disponible lorsque le service sera connecté.`)}
+              label={t(item.label)}
+              onPress={() => setNotice(`${t(item.label)} : ${t('profile.sectionUnavailable')}`)}
             />
           ))}
           <PrimaryButton
-            label="Se déconnecter"
+            label={t('profile.logout')}
             icon="logout"
             outline
             loading={loggingOut}
-            onPress={() => void handleLogout()}
+            onPress={() => setLogoutConfirmationOpen(true)}
           />
           {notice ? <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text> : null}
         </View>
       </View>
+      <Modal
+        visible={logoutConfirmationOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => { if (!loggingOut) setLogoutConfirmationOpen(false); }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View role="alertdialog" accessibilityLabel={t('profile.logoutTitle')} style={styles.confirmation}>
+            <Text style={styles.confirmationTitle}>{t('profile.logoutTitle')}</Text>
+            <Text style={styles.confirmationText}>{t('profile.logoutPrompt')}</Text>
+            <View style={styles.confirmationActions}>
+              <InteractivePressable
+                accessibilityRole="button"
+                disabled={loggingOut}
+                onPress={() => setLogoutConfirmationOpen(false)}
+                style={[styles.confirmationButton, styles.cancelButton, loggingOut && styles.disabledButton]}
+              >
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              </InteractivePressable>
+              <InteractivePressable
+                accessibilityRole="button"
+                disabled={loggingOut}
+                accessibilityState={{ disabled: loggingOut, busy: loggingOut }}
+                onPress={() => void handleLogout()}
+                style={[styles.confirmationButton, styles.confirmButton, loggingOut && styles.disabledButton]}
+              >
+                {loggingOut ? <ActivityIndicator size="small" color={colors.deep} /> : null}
+                <Text style={styles.confirmText}>{loggingOut ? t('profile.loggingOut') : t('profile.logoutConfirm')}</Text>
+              </InteractivePressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </AppShell>
   );
 }
@@ -210,4 +231,15 @@ const styles = StyleSheet.create({
   statLabelCompact: { fontSize: 14, lineHeight: 20, marginTop: 0 },
   links: { flex: 1, gap: 8 },
   notice: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 8 },
+  modalBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.55)' },
+  confirmation: { width: '100%', maxWidth: 420, gap: 16, padding: 24, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  confirmationTitle: { color: colors.white, fontSize: 20, lineHeight: 28, fontWeight: '700' },
+  confirmationText: { color: colors.muted, fontSize: 16, lineHeight: 24 },
+  confirmationActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
+  confirmationButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
+  cancelButton: { borderColor: colors.border },
+  confirmButton: { borderColor: colors.accent, backgroundColor: colors.accent },
+  cancelText: { color: colors.white, fontSize: 15, fontWeight: '700' },
+  confirmText: { color: colors.deep, fontSize: 15, fontWeight: '700' },
+  disabledButton: { opacity: 0.5 },
 });

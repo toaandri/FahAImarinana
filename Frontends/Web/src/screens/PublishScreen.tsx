@@ -4,12 +4,19 @@ import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native
 import { AppShell, Field, Icon, InteractivePressable, PageTitle, PrimaryButton } from '../components/ui';
 import { colors, spacing } from '../theme';
 import { submitContribution } from '../services/api';
+import { useI18n } from '../components/i18n';
 
-const categories = ['Politique', 'Société', 'Sport', 'Économie'];
+const categories = [
+  { value: 'Politique', key: 'news.politics' },
+  { value: 'Société', key: 'news.society' },
+  { value: 'Sport', key: 'news.sport' },
+  { value: 'Économie', key: 'news.economy' },
+] as const;
 
 export default function PublishScreen() {
   const { width } = useWindowDimensions();
   const desktop = width >= 1200;
+  const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Politique');
   const [source, setSource] = useState('');
@@ -22,7 +29,7 @@ export default function PublishScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        setErrors((current) => ({ ...current, status: 'Autorisez l’accès à votre photothèque pour joindre un média.' }));
+        setErrors((current) => ({ ...current, status: t('publish.mediaPermission') }));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -36,33 +43,33 @@ export default function PublishScreen() {
       }
     } catch (error) {
       console.error('Échec de la sélection du média.', error);
-      setErrors((current) => ({ ...current, status: 'Impossible d’ouvrir la photothèque. Réessayez.' }));
+      setErrors((current) => ({ ...current, status: t('publish.mediaPickError') }));
     }
   };
 
   const publish = async () => {
     if (submitting) return;
     const nextErrors = {
-      title: title.trim() ? undefined : 'Le titre est obligatoire.',
-      article: article.trim() ? undefined : 'Le texte de votre article est obligatoire.',
+      title: title.trim() ? undefined : t('publish.titleRequired'),
+      article: article.trim() ? undefined : t('publish.articleRequired'),
     };
     if (nextErrors.title || nextErrors.article) {
       setErrors(nextErrors);
       return;
     }
     if (media) {
-      setErrors({ status: 'L’envoi de médias n’est pas encore disponible. Retirez le média pour envoyer votre texte.' });
+      setErrors({ status: t('publish.mediaUnsupported') });
       return;
     }
     setSubmitting(true);
     try {
       await submitContribution({ title: title.trim(), body: article.trim(), category, source: source.trim() });
-      setErrors({ status: 'Votre contribution a été envoyée pour traitement éditorial.' });
+      setErrors({ status: t('publish.sent') });
       setTitle('');
       setArticle('');
       setSource('');
     } catch (error) {
-      setErrors({ status: error instanceof Error ? error.message : 'Envoi impossible.' });
+      setErrors({ status: error instanceof Error ? error.message : t('publish.failed') });
     } finally {
       setSubmitting(false);
     }
@@ -70,38 +77,38 @@ export default function PublishScreen() {
 
   return (
     <AppShell active="/publier">
-      <PageTitle>Publier un article</PageTitle>
+      <PageTitle>{t('publish.title')}</PageTitle>
       <View style={[styles.columns, desktop && styles.columnsDesktop]}>
         <View style={styles.formColumn}>
           <Field
-            label="Titre"
+            label={t('publish.articleTitle')}
             value={title}
             onChangeText={(value) => {
               setTitle(value);
               setErrors((current) => ({ ...current, title: undefined, status: undefined }));
             }}
-            placeholder="Le titre de votre article"
+            placeholder={t('publish.titlePlaceholder')}
             error={errors.title}
           />
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Catégorie</Text>
+            <Text style={styles.label}>{t('publish.category')}</Text>
             <View style={styles.categories} accessibilityRole="radiogroup">
               {categories.map((item) => {
-                const selected = category === item;
+                const selected = category === item.value;
                 return (
                   <InteractivePressable
-                    key={item}
+                    key={item.value}
                     accessibilityRole="radio"
-                    accessibilityLabel={`Catégorie : ${item}`}
+                    accessibilityLabel={`${t('publish.category')} : ${t(item.key)}`}
                     accessibilityState={{ checked: selected }}
                     aria-checked={selected}
                     onPress={() => {
-                      setCategory(item);
+                      setCategory(item.value);
                       setErrors((current) => ({ ...current, status: undefined }));
                     }}
                     style={[styles.category, width < 480 && styles.categorySmall, selected && styles.categorySelected]}
                   >
-                    <Text style={[styles.categoryText, selected && styles.categoryTextSelected]}>{item}</Text>
+                    <Text style={[styles.categoryText, selected && styles.categoryTextSelected]}>{t(item.key)}</Text>
                   </InteractivePressable>
                 );
               })}
@@ -118,27 +125,27 @@ export default function PublishScreen() {
             />
           ) : null}
           <Field
-            label="Source (facultatif)"
+            label={t('publish.sourceOptional')}
             value={source}
             onChangeText={(value) => {
               setSource(value);
               setErrors((current) => ({ ...current, status: undefined }));
             }}
-            placeholder="Adresse ou nom de la source"
+            placeholder={t('publish.sourcePlaceholder')}
           />
           <Field
-            label="Votre article"
+            label={t('publish.article')}
             value={article}
             onChangeText={(value) => {
               setArticle(value);
               setErrors((current) => ({ ...current, article: undefined, status: undefined }));
             }}
-            placeholder="Écrivez ou collez votre article..."
+            placeholder={t('publish.articlePlaceholder')}
             error={errors.article}
             multiline
             numberOfLines={7}
           />
-          <PrimaryButton label="ENVOYER À LA RÉDACTION" icon="send" onPress={publish} loading={submitting} />
+          <PrimaryButton label={t('publish.submit')} icon="send" onPress={publish} loading={submitting} />
           {errors.status ? <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="polite">{errors.status}</Text> : null}
         </View>
         {desktop ? (
@@ -165,6 +172,7 @@ function MediaCard({
   onPick: (type: 'image' | 'video') => void;
   onRemove: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <View style={styles.mediaCard}>
       <View style={styles.mediaPlaceholder}>
@@ -173,26 +181,26 @@ function MediaCard({
         ) : null}
         <View style={styles.mediaAccent} />
         <Text style={styles.mediaPrompt}>
-          {media ? media.fileName ?? (media.type === 'video' ? 'Vidéo jointe' : 'Photo jointe') : '+ Ajouter un média'}
+          {media ? media.fileName ?? (media.type === 'video' ? t('publish.attachVideo') : t('publish.attachPhoto')) : t('publish.addMedia')}
         </Text>
         {media ? (
-          <InteractivePressable accessibilityRole="button" accessibilityLabel="Supprimer le média" onPress={onRemove} style={styles.removeButton}>
+          <InteractivePressable accessibilityRole="button" accessibilityLabel={t('publish.removeMedia')} onPress={onRemove} style={styles.removeButton}>
             <Icon name="close" />
           </InteractivePressable>
         ) : null}
       </View>
       <View style={styles.mediaActions}>
-        <InteractivePressable accessibilityRole="button" accessibilityLabel="Ajouter une photo" onPress={() => onPick('image')} style={styles.mediaAction}>
+        <InteractivePressable accessibilityRole="button" accessibilityLabel={t('common.addPhoto')} onPress={() => onPick('image')} style={styles.mediaAction}>
           <Icon name="image-outline" color={colors.accent} size={19} />
-          <Text style={styles.mediaActionText}>Photo</Text>
+          <Text style={styles.mediaActionText}>{t('common.photo')}</Text>
         </InteractivePressable>
         <Text style={styles.slash}>/</Text>
-        <InteractivePressable accessibilityRole="button" accessibilityLabel="Ajouter une vidéo" onPress={() => onPick('video')} style={styles.mediaAction}>
+        <InteractivePressable accessibilityRole="button" accessibilityLabel={t('common.addVideo')} onPress={() => onPick('video')} style={styles.mediaAction}>
           <Icon name="video-outline" color={colors.accent} size={19} />
-          <Text style={styles.mediaActionText}>Vidéo</Text>
+          <Text style={styles.mediaActionText}>{t('common.video')}</Text>
         </InteractivePressable>
       </View>
-      <Text style={styles.credibility}>— % Crédibilité</Text>
+      <Text style={styles.credibility}>{t('publish.credibility')}</Text>
     </View>
   );
 }

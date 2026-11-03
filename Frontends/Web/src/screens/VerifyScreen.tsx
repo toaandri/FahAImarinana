@@ -7,11 +7,13 @@ import { colors, spacing } from '../theme';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { CredibilityForm } from '../components/CredibilityForm';
 import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResearchResult, startPrecompute, type ResponseLanguage, type Corroboration } from '../services/api';
+import { useI18n } from '../components/i18n';
 
 type Attachment = { uri: string; name: string; type: 'image' | 'video' };
 
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{ question?: string; analyze?: string; article_url?: string }>();
+  const { t } = useI18n();
   const [message, setMessage] = useState(typeof params.question === 'string' ? params.question.slice(0, 2000) : '');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [status, setStatus] = useState('');
@@ -35,10 +37,10 @@ export default function VerifyScreen() {
     let active = true;
     setLoadingLanguage(true);
     getResponseLanguage().then((value) => { if (active) setLanguage(value); })
-      .catch((error) => { if (active) setStatus(error instanceof Error ? error.message : 'Préférence indisponible.'); })
+      .catch((error) => { if (active) setStatus(error instanceof Error ? error.message : t('verify.aiLanguageUnavailable')); })
       .finally(() => { if (active) setLoadingLanguage(false); });
     return () => { active = false; };
-  }, []));
+  }, [t]));
 
   useEffect(() => {
     const submitted = typeof params.question === 'string' ? params.question.slice(0, 2000) : '';
@@ -59,19 +61,19 @@ export default function VerifyScreen() {
         setTranslation(null);
         setMessage('');
       } catch (error) {
-        if (active) setStatus(error instanceof Error ? error.message : 'Analyse indisponible.');
+        if (active) setStatus(error instanceof Error ? error.message : t('verify.analysisUnavailable'));
       } finally {
         if (active) setBusy(false);
       }
     });
     return () => { active = false; };
-  }, [params.question, params.analyze, loadingLanguage, language]);
+  }, [params.question, params.analyze, loadingLanguage, language, t]);
 
   const pickMedia = async (type: 'image' | 'video') => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        setStatus('Autorisez l’accès à votre photothèque pour joindre un média.');
+        setStatus(t('verify.permission'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -83,23 +85,23 @@ export default function VerifyScreen() {
       const asset = result.assets[0];
       setAttachments((current) => [
         ...current,
-        { uri: asset.uri, name: asset.fileName ?? (type === 'image' ? 'Photo' : 'Vidéo'), type },
+        { uri: asset.uri, name: asset.fileName ?? t(type === 'image' ? 'common.photo' : 'common.video'), type },
       ]);
       setStatus('');
     } catch (error) {
       console.error('Échec de la sélection du média.', error);
-      setStatus('Impossible d’ouvrir la photothèque. Réessayez.');
+      setStatus(t('verify.pickError'));
     }
   };
 
   const sendMessage = async () => {
     if (busy || loadingLanguage) return;
     if (attachments.length) {
-      setStatus('Ce dialogue vérifie le texte. Retirez les pièces jointes et décrivez votre question.');
+      setStatus(t('verify.attachmentsUnsupported'));
       return;
     }
     if (message.trim().length < 3) {
-      setStatus('Écrivez une question d’au moins trois caractères.');
+      setStatus(t('verify.questionRequired'));
       return;
     }
     const submitted = message.trim();
@@ -114,7 +116,7 @@ export default function VerifyScreen() {
       setTranslation(null);
       setMessage('');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Réponse indisponible.');
+      setStatus(error instanceof Error ? error.message : t('verify.answerUnavailable'));
     } finally {
       setBusy(false);
     }
@@ -127,9 +129,9 @@ export default function VerifyScreen() {
     try {
       const translated = await translateAnswer(result.reponse, target);
       setTranslation(translated.text);
-      setStatus('Traduction automatique à relire. / Dikanteny mandeha ho azy, mila averina vakina.');
+      setStatus(t('verify.translationNotice'));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Traduction indisponible.');
+      setStatus(error instanceof Error ? error.message : t('verify.translationUnavailable'));
     } finally {
       setBusy(false);
     }
@@ -138,40 +140,44 @@ export default function VerifyScreen() {
   return (
     <AppShell active="/verifier">
       <View style={styles.content}>
-        <PageTitle>Vérifier une information</PageTitle>
+        <PageTitle>{t('verify.title')}</PageTitle>
         <LanguageSelector value={language} onChange={setLanguage} disabled={busy || loadingLanguage} />
         <View style={styles.conversation}>
           <View style={styles.aiMessage}>
             <Text style={styles.messageText}>
-              {language === 'mg' ? 'AI • Salama! Alefaso ny fanontanianao, hanampy anao hanamarina ny vaovao aho.' : 'AI • Bonjour ! Posez une question pour préparer votre vérification journalistique.'}
+              {t('verify.greeting')}
             </Text>
           </View>
           {question ? <View style={styles.userMessage}>
             <Text style={styles.userMessageText}>{question}</Text>
           </View> : null}
           <Card style={styles.resultCard}>
-            <Text style={styles.resultTitle}>{language === 'mg' ? 'Valin’ny IA — mbola mila hamarinina' : 'Pré-analyse IA — à vérifier'}</Text>
+            <Text style={styles.resultTitle}>{t('verify.preAnalysis')}</Text>
             {result ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
-              <Text style={styles.resultTitle}>{statisticsProvisional ? 'Statistique IA provisoire' : 'Statistique de corroboration'}</Text>
+              <Text style={styles.resultTitle}>{t(statisticsProvisional ? 'verify.provisional' : 'verify.corroboration')}</Text>
               <Text style={styles.resultText}>{statistics?.corroboration_percent == null
-                ? 'Preuves insuffisantes — renseignez les sources ci-dessous.'
-                : `${statistics.corroboration_percent} % des groupes conclusifs confirment l’affirmation.`}</Text>
-              {statistics ? <Text style={styles.resultText}>{statistics.supports} confirme(nt) · {statistics.contradicts} contredit(sent) · {statistics.inconclusive} non concluant(s)</Text> : null}
+                ? t('verify.insufficient')
+                : `${statistics.corroboration_percent}${t('verify.confirmPercent')}`}</Text>
+              {statistics ? <Text style={styles.resultText}>{t('verify.evidenceCounts', {
+                supports: statistics.supports,
+                contradicts: statistics.contradicts,
+                inconclusive: statistics.inconclusive,
+              })}</Text> : null}
             </View> : null}
             <Text selectable style={styles.resultText}>
-              {translation ?? result?.reponse ?? 'Envoyez un message / Alefaso ny fanontanianao.'}
+              {translation ?? result?.reponse ?? t('verify.sendPrompt')}
             </Text>
             <View style={styles.sources}>
               {result?.citations.map((source, index) => <Text selectable key={index} style={styles.source}>{[source.titre, source.url].filter(Boolean).join(' — ')}</Text>)}
-              {result && !result.citations.length ? <Text style={styles.source}>Aucune source retournée / Tsy nisy loharano nomena.</Text> : null}
+              {result && !result.citations.length ? <Text style={styles.source}>{t('verify.noSources')}</Text> : null}
             </View>
             {result ? <View style={styles.translationActions}>
-              <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => void translate('mg')} style={styles.translationButton}><Text style={styles.source}>Adika amin’ny teny malagasy</Text></InteractivePressable>
-              <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => void translate('fr')} style={styles.translationButton}><Text style={styles.source}>Traduire en français</Text></InteractivePressable>
-              {translation ? <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => { setTranslation(null); setStatus(''); }} style={styles.translationButton}><Text style={styles.source}>Voir l’original / Teny niandohana</Text></InteractivePressable> : null}
+              <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => void translate('mg')} style={styles.translationButton}><Text style={styles.source}>{t('verify.translateMg')}</Text></InteractivePressable>
+              <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => void translate('fr')} style={styles.translationButton}><Text style={styles.source}>{t('verify.translateFr')}</Text></InteractivePressable>
+              {translation ? <InteractivePressable accessibilityRole="button" disabled={busy} onPress={() => { setTranslation(null); setStatus(''); }} style={styles.translationButton}><Text style={styles.source}>{t('verify.original')}</Text></InteractivePressable> : null}
             </View> : null}
             <Text style={styles.disclaimer}>
-              {busy ? 'En cours… / Eo am-pikarakarana…' : 'Une réponse IA doit être relue par un journaliste. / Mila hamarinina amin’ny mpanao gazety ny valin’ny IA.'}
+              {busy ? t('verify.working') : t('verify.disclaimer')}
             </Text>
           </Card>
           {result ? <CredibilityForm key={`${analysisVersion}-${question}`} articleUrl={params.analyze === '1' && question === params.question ? params.article_url : undefined} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
@@ -190,7 +196,7 @@ export default function VerifyScreen() {
                   <Text style={styles.attachmentName} numberOfLines={1}>{item.name}</Text>
                   <InteractivePressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Supprimer ${item.name}`}
+                    accessibilityLabel={t('verify.removeAttachment', { name: item.name })}
                     onPress={() => {
                       setAttachments((current) => current.filter((_, i) => i !== index));
                       setStatus('');
@@ -206,7 +212,7 @@ export default function VerifyScreen() {
           <View style={styles.composer}>
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel="Joindre une photo"
+              accessibilityLabel={t('verify.attachPhoto')}
               onPress={() => void pickMedia('image')}
               style={styles.composerIcon}
             >
@@ -214,14 +220,14 @@ export default function VerifyScreen() {
             </InteractivePressable>
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel="Joindre une vidéo"
+              accessibilityLabel={t('verify.attachVideo')}
               onPress={() => void pickMedia('video')}
               style={styles.composerIcon}
             >
               <Icon name="video-outline" />
             </InteractivePressable>
             <TextInput
-              accessibilityLabel="Écrire un message"
+              accessibilityLabel={t('verify.writeMessage')}
               value={message}
               editable={!busy}
               maxLength={2000}
@@ -229,7 +235,7 @@ export default function VerifyScreen() {
                 setMessage(value);
                 setStatus('');
               }}
-              placeholder={language === 'mg' ? 'Soraty eto ny fanontanianao…' : 'Écrire un message…'}
+              placeholder={t('verify.placeholder')}
               placeholderTextColor={colors.muted}
               style={styles.composerInput}
               returnKeyType="send"
@@ -237,7 +243,7 @@ export default function VerifyScreen() {
             />
             <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel="Envoyer le message"
+              accessibilityLabel={t('verify.sendMessage')}
               onPress={sendMessage}
               disabled={busy || loadingLanguage}
               style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}

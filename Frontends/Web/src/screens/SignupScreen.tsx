@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-n
 import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
 import { colors } from '../theme';
 import { register } from '../services/api';
+import { useI18n } from '../components/i18n';
 
 type FormErrors = {
   invitationToken?: string;
@@ -15,6 +16,7 @@ type FormErrors = {
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const narrow = width < 360;
   const [invitationToken, setInvitationToken] = useState('');
@@ -29,10 +31,10 @@ export default function SignupScreen() {
     const normalizedEmail = email.trim();
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
     const nextErrors: FormErrors = {
-      invitationToken: invitationToken.trim() ? undefined : 'Saisissez le code d’invitation fourni par un administrateur.',
-      email: emailValid ? undefined : 'Saisissez une adresse email valide.',
-      password: password.length >= 8 ? undefined : 'Le mot de passe doit contenir au moins 8 caractères.',
-      passwordConfirmation: passwordConfirmation === password ? undefined : 'Les mots de passe ne correspondent pas.',
+      invitationToken: invitationToken.trim() ? undefined : t('signup.invitationRequired'),
+      email: emailValid ? undefined : t('login.invalidEmail'),
+      password: password.length >= 8 ? undefined : t('login.invalidPassword'),
+      passwordConfirmation: passwordConfirmation === password ? undefined : t('signup.passwordMismatch'),
     };
 
     if (Object.values(nextErrors).some(Boolean)) {
@@ -46,7 +48,7 @@ export default function SignupScreen() {
       await register(normalizedEmail, password, invitationToken.trim());
       router.replace('/actualites');
     } catch (error) {
-      setErrors({ status: error instanceof Error ? error.message : 'Inscription impossible.' });
+      setErrors({ status: error instanceof Error ? error.message : t('signup.failed') });
     } finally {
       setSubmitting(false);
     }
@@ -68,39 +70,39 @@ export default function SignupScreen() {
             </InteractivePressable>
           </Link>
           <Text style={[styles.heading, narrow && styles.headingNarrow]} accessibilityRole="header">
-            Créez votre compte
+            {t('signup.heading')}
           </Text>
           <View style={styles.invitationNotice}>
             <Icon name="information-outline" color={colors.accent} size={20} />
             <Text style={styles.noticeText}>
-              L’inscription nécessite un code d’invitation fourni par un administrateur.
+              {t('signup.notice')}
             </Text>
           </View>
           <View style={styles.fields}>
             <Field
-              label="Code d’invitation"
+              label={t('signup.invitation')}
               value={invitationToken}
               onChangeText={(value) => updateField('invitationToken', () => setInvitationToken(value))}
-              placeholder="Votre code d’invitation"
+              placeholder={t('signup.invitationPlaceholder')}
               error={errors.invitationToken}
               autoCapitalize="none"
               style={styles.field}
             />
             <Field
-              label="Adresse email"
+              label={t('login.email')}
               value={email}
               onChangeText={(value) => updateField('email', () => setEmail(value))}
-              placeholder="adresse@email.mg"
+              placeholder={t('login.emailPlaceholder')}
               error={errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.field}
             />
             <Field
-              label="Mot de passe"
+              label={t('login.password')}
               value={password}
               onChangeText={(value) => updateField('password', () => setPassword(value))}
-              placeholder="Au moins 8 caractères"
+              placeholder={t('signup.passwordPlaceholder')}
               error={errors.password}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
@@ -108,27 +110,27 @@ export default function SignupScreen() {
               right={
                 <InteractivePressable
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? 'Masquer les mots de passe' : 'Afficher les mots de passe'}
+                  accessibilityLabel={t(showPassword ? 'login.hidePassword' : 'login.showPassword')}
                   onPress={() => setShowPassword((value) => !value)}
                   style={styles.showPassword}
                 >
                   <Icon name={showPassword ? 'eye-off-outline' : 'eye-outline'} color={colors.muted} size={19} />
-                  <Text style={styles.showPasswordText}>{showPassword ? 'Masquer' : 'Afficher'}</Text>
+                  <Text style={styles.showPasswordText}>{showPassword ? t('login.hidePassword') : t('login.showPassword')}</Text>
                 </InteractivePressable>
               }
             />
             <Field
-              label="Confirmer le mot de passe"
+              label={t('signup.confirmPassword')}
               value={passwordConfirmation}
               onChangeText={(value) => updateField('passwordConfirmation', () => setPasswordConfirmation(value))}
-              placeholder="Saisissez à nouveau le mot de passe"
+              placeholder={t('signup.confirmPlaceholder')}
               error={errors.passwordConfirmation}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               style={styles.field}
             />
             <PrimaryButton
-              label="S’INSCRIRE"
+              label={t('signup.submit')}
               icon="arrow-right"
               onPress={submit}
               loading={submitting}
@@ -140,10 +142,10 @@ export default function SignupScreen() {
             ) : null}
           </View>
           <View style={styles.account}>
-            <Text style={styles.accountText}>Vous avez déjà un compte ?</Text>
+            <Text style={styles.accountText}>{t('signup.hasAccount')}</Text>
             <Link href="/connexion" asChild>
               <InteractivePressable accessibilityRole="link" style={styles.textLinkHitbox}>
-                <Text style={styles.link}>Retour à la connexion</Text>
+                <Text style={styles.link}>{t('signup.back')}</Text>
               </InteractivePressable>
             </Link>
           </View>

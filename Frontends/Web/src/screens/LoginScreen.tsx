@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-n
 import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
 import { colors } from '../theme';
 import { login } from '../services/api';
+import { useI18n } from '../components/i18n';
 
 type Mode = 'login' | 'recovery';
 const socialProviders = [
@@ -14,7 +15,12 @@ const socialProviders = [
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { status: routeStatus } = useLocalSearchParams<{ status?: string | string[] }>();
+  const { t } = useI18n();
+  const { status: routeStatus, statusKey, details } = useLocalSearchParams<{
+    status?: string | string[];
+    statusKey?: string | string[];
+    details?: string | string[];
+  }>();
   const { width } = useWindowDimensions();
   const narrow = width < 360;
   const horizontalPadding = narrow ? 16 : 24;
@@ -25,12 +31,17 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; status?: string }>(() => ({
     status: Array.isArray(routeStatus) ? routeStatus[0] : routeStatus,
   }));
+  const logoutErrorDetails = Array.isArray(details) ? details[0] : details;
+  const logoutErrorKey = Array.isArray(statusKey) ? statusKey[0] : statusKey;
+  const statusMessage = errors.status ?? (logoutErrorKey === 'profile.logoutServerError'
+    ? t('profile.logoutServerError', { error: logoutErrorDetails ?? t('profile.logoutError') })
+    : undefined);
 
   const submit = async () => {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     const nextErrors = {
-      email: emailValid ? undefined : 'Saisissez une adresse email valide.',
-      password: mode === 'recovery' || password.length >= 8 ? undefined : 'Le mot de passe doit contenir au moins 8 caractères.',
+      email: emailValid ? undefined : t('login.invalidEmail'),
+      password: mode === 'recovery' || password.length >= 8 ? undefined : t('login.invalidPassword'),
     };
     if (nextErrors.email || nextErrors.password) {
       setErrors(nextErrors);
@@ -41,16 +52,16 @@ export default function LoginScreen() {
         await login(email.trim(), password);
         router.replace('/actualites');
       } catch (error) {
-        setErrors({ status: error instanceof Error ? error.message : 'Connexion impossible.' });
+        setErrors({ status: error instanceof Error ? error.message : t('login.failed') });
       }
     } else {
-      setErrors({ status: 'Cette fonctionnalité sera disponible lorsque le service sera connecté.' });
+      setErrors({ status: t('login.recoveryUnavailable') });
     }
   };
 
   const heading = mode === 'login'
-    ? 'Connectez-vous à votre espace'
-    : 'Réinitialisez votre mot de passe';
+    ? t('login.heading')
+    : t('login.recoveryHeading');
 
   return (
     <ScrollView role="main" contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
@@ -63,10 +74,10 @@ export default function LoginScreen() {
           <Text style={[styles.heading, narrow && styles.headingNarrow]} accessibilityRole="header">{heading}</Text>
           <View style={styles.fields}>
             <Field
-              label="Adresse email"
+              label={t('login.email')}
               value={email}
               onChangeText={(value) => { setEmail(value); setErrors((current) => ({ ...current, email: undefined })); }}
-              placeholder="adresse@email.mg"
+              placeholder={t('login.emailPlaceholder')}
               error={errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -74,39 +85,39 @@ export default function LoginScreen() {
             />
             {mode !== 'recovery' ? (
               <Field
-                label="Mot de passe"
+                label={t('login.password')}
                 value={password}
                 onChangeText={(value) => { setPassword(value); setErrors((current) => ({ ...current, password: undefined })); }}
-                placeholder="••••••••"
+                placeholder={t('login.passwordPlaceholder')}
                 error={errors.password}
                 secureTextEntry={!showPassword}
                 style={styles.field}
                 right={
                   <InteractivePressable
                     accessibilityRole="button"
-                    accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    accessibilityLabel={t(showPassword ? 'login.hidePassword' : 'login.showPassword')}
                     onPress={() => setShowPassword((value) => !value)}
                     style={styles.showPassword}
                   >
                     <Icon name={showPassword ? 'eye-off-outline' : 'eye-outline'} color={colors.muted} size={19} />
-                    <Text style={styles.showPasswordText}>{showPassword ? 'Masquer' : 'Afficher'}</Text>
+                    <Text style={styles.showPasswordText}>{showPassword ? t('login.hidePassword') : t('login.showPassword')}</Text>
                   </InteractivePressable>
                 }
               />
             ) : null}
             {mode === 'login' ? (
               <InteractivePressable accessibilityRole="button" onPress={() => { setMode('recovery'); setErrors({}); }} style={styles.textLinkHitbox}>
-                <Text style={styles.link}>Mot de passe oublié ?</Text>
+                <Text style={styles.link}>{t('login.forgot')}</Text>
               </InteractivePressable>
             ) : null}
             <PrimaryButton
-              label={mode === 'login' ? 'SE CONNECTER' : 'RÉINITIALISER'}
+              label={mode === 'login' ? t('login.submit') : t('login.recover')}
               icon="arrow-right"
               onPress={submit}
             />
-            {errors.status ? (
+            {statusMessage ? (
               <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-                {errors.status}
+                {statusMessage}
               </Text>
             ) : null}
           </View>
@@ -115,7 +126,7 @@ export default function LoginScreen() {
             <>
               <View style={styles.socialDivider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.socialIntro}>ou se connecter avec</Text>
+                <Text style={styles.socialIntro}>{t('login.social')}</Text>
                 <View style={styles.dividerLine} />
               </View>
               <View style={[styles.socials, narrow && styles.socialsNarrow]}>
@@ -123,27 +134,27 @@ export default function LoginScreen() {
                   <InteractivePressable
                     key={provider.label}
                     accessibilityRole="button"
-                    accessibilityLabel={`Continuer avec ${provider.label}`}
-                    onPress={() => setErrors({ status: `La connexion avec ${provider.label} n’est pas configurée.` })}
+                    accessibilityLabel={`${t('login.social')} ${provider.label}`}
+                    onPress={() => setErrors({ status: t('login.notConfigured', { provider: provider.label }) })}
                     style={[styles.socialButton, narrow && styles.socialButtonNarrow]}
                   >
                     <Icon name={provider.icon} color={colors.white} size={19} />
-                    <Text style={styles.socialText}>{provider.label}</Text>
+                    <Text style={styles.socialText}>{t(`login.${provider.label.toLowerCase()}` as 'login.google' | 'login.apple' | 'login.facebook')}</Text>
                   </InteractivePressable>
                 ))}
               </View>
               <View style={styles.account}>
-                <Text style={styles.accountText}>Vous n’avez pas de compte ?</Text>
+                <Text style={styles.accountText}>{t('login.noAccount')}</Text>
                 <Link href="/inscription" asChild>
                   <InteractivePressable accessibilityRole="link" style={styles.textLinkHitbox}>
-                    <Text style={styles.link}>Inscrivez-vous ici</Text>
+                    <Text style={styles.link}>{t('login.signUp')}</Text>
                   </InteractivePressable>
                 </Link>
               </View>
             </>
           ) : (
             <InteractivePressable accessibilityRole="button" onPress={() => { setMode('login'); setErrors({}); }} style={styles.textLinkHitbox}>
-              <Text style={styles.link}>Retour à la connexion</Text>
+              <Text style={styles.link}>{t('login.back')}</Text>
             </InteractivePressable>
           )}
         </View>
