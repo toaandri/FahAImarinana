@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Alert, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,6 +7,7 @@ import { HeaderBar, BottomTabs, GlassCard, TagChip } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { publishArticle } from '@/services/mockData';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { analyzePublicationMedia, type PublicationAnalysis } from '@/services/vision';
 
 export default function PublierScreen() {
   const { t } = useLanguage();
@@ -17,6 +18,22 @@ export default function PublierScreen() {
   const [mediaError, setMediaError] = useState('');
   const [mediaLoading, setMediaLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [analysis, setAnalysis] = useState<PublicationAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+
+  useEffect(() => {
+    setAnalysis(null);
+    setAnalysisError('');
+    if (!media) { setAnalyzing(false); return; }
+    const controller = new AbortController();
+    setAnalyzing(true);
+    analyzePublicationMedia(media, controller.signal)
+      .then((result) => { if (!controller.signal.aborted) setAnalysis(result); })
+      .catch((error) => { if (!controller.signal.aborted) setAnalysisError(error instanceof Error ? error.message : 'Analyse indisponible.'); })
+      .finally(() => { if (!controller.signal.aborted) setAnalyzing(false); });
+    return () => controller.abort();
+  }, [media]);
 
   async function pickMedia(mediaTypes: ImagePicker.MediaType[]) {
     setMediaError('');
@@ -131,12 +148,24 @@ export default function PublierScreen() {
             </View>
           </View>
           <View style={styles.mediaDetails}>
-            <Text style={styles.credibility}>—%</Text>
-            <Text style={styles.credibilityLabel}>{t('credibility')}</Text>
+            <Text style={styles.credibility}>—</Text>
+            <Text style={styles.credibilityLabel}>Véracité non évaluée</Text>
             <Text style={styles.source}>{t('source')}</Text>
           </View>
         </GlassCard>
         {mediaError ? <Text accessibilityRole="alert" style={styles.mediaError}>{mediaError}</Text> : null}
+        {media ? <GlassCard style={styles.analysisCard}>
+          <Text style={styles.analysisTitle}>Analyse du média</Text>
+          {analyzing ? <Text style={styles.analysisText} accessibilityLiveRegion="polite">Analyse en cours…</Text> : null}
+          {analysisError ? <Text style={styles.mediaError} accessibilityRole="alert">{analysisError}</Text> : null}
+          {analysis ? <>
+            {analysis.summary ? <Text style={styles.analysisText}>{analysis.summary}</Text> : null}
+            {analysis.labels.length ? <Text style={styles.analysisText}>Éléments détectés : {analysis.labels.join(' · ')}</Text> : null}
+            {analysis.text ? <Text selectable style={styles.analysisText}>Texte détecté : {analysis.text}</Text> : null}
+            {!analysis.labels.length && !analysis.text && !analysis.summary ? <Text style={styles.analysisText}>Aucun élément détecté.</Text> : null}
+            <Text style={styles.analysisText}>{analysis.notice}</Text>
+          </> : null}
+        </GlassCard> : null}
 
         <Text style={styles.bodyLabel}>{t('articleBody')}</Text>
         <TextInput value={body} onChangeText={setBody} multiline placeholder={t('articlePlaceholder')} placeholderTextColor="rgba(255,255,255,0.5)" style={styles.bodyInput} />
@@ -193,6 +222,9 @@ const styles = StyleSheet.create({
   mediaAction: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(14,24,31,0.48)', borderRadius: 14, paddingHorizontal: 8, paddingVertical: 5 },
   mediaActionText: { color: '#fff', fontFamily: 'Montserrat_600SemiBold_Italic', fontSize: 9 },
   mediaError: { marginTop: 8, color: '#ffd0d0', fontSize: 12, fontFamily: 'Montserrat_600SemiBold_Italic' },
+  analysisCard: { marginTop: 10, padding: 12, gap: 6 },
+  analysisTitle: { color: palette.mint, fontSize: 14, fontWeight: '700' },
+  analysisText: { color: '#fff', fontSize: 12, lineHeight: 18 },
   mediaDetails: { width: 48, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
   credibility: { width: 36, height: 36, borderRadius: 18, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', color: '#fff', textAlign: 'center', textAlignVertical: 'center', fontSize: 10, fontFamily: 'Montserrat_700Bold_Italic' },
   credibilityLabel: { color: '#fff', fontSize: 7, fontFamily: 'Montserrat_600SemiBold_Italic' },

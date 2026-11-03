@@ -11,6 +11,23 @@ MAX_BASE64_CHARS = 4 * ((MAX_VIDEO_BYTES + 2) // 3)
 REVIEW_NOTICE = 'Pré-analyse visuelle IA : contexte et affirmations à vérifier par un journaliste. Aucune validation éditoriale.'
 
 
+class ImageAnalysisRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    image_base64: str = Field(min_length=16, max_length=MAX_BASE64_CHARS, repr=False)
+
+    @field_validator('image_base64')
+    @classmethod
+    def valid_image(cls, value):
+        from ..core.media import detect_media_type
+        try:
+            raw = base64.b64decode(value, validate=True)
+        except (ValueError, binascii.Error):
+            raise ValueError('Encodage image base64 invalide.') from None
+        if len(raw) > MAX_VIDEO_BYTES or detect_media_type(raw) not in ('image/jpeg', 'image/png', 'image/gif', 'image/webp'):
+            raise ValueError('Une image JPEG, PNG, GIF ou WebP de 4 Mio maximum est requise.')
+        return value
+
+
 class VideoClipRequest(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
     capture_id: UUID

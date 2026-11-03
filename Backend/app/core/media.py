@@ -10,6 +10,26 @@ class MediaTooLargeError(ValueError):
     pass
 
 
+def detect_media_type(media: bytes) -> str | None:
+    """Identify common camera/gallery formats when the mobile client omits MIME."""
+    if media.startswith(b'\xff\xd8\xff'):
+        return 'image/jpeg'
+    if media.startswith(b'\x89PNG\r\n\x1a\n'):
+        return 'image/png'
+    if media.startswith((b'GIF87a', b'GIF89a')):
+        return 'image/gif'
+    if media[:4] == b'RIFF' and media[8:12] == b'WEBP':
+        return 'image/webp'
+    if media[4:8] == b'ftyp':
+        brand = media[8:12]
+        if brand in (b'heic', b'heix', b'hevc', b'hevx', b'mif1', b'msf1'):
+            return 'image/heic'
+        if brand == b'qt  ':
+            return 'video/quicktime'
+        return 'video/mp4'
+    return None
+
+
 def decode_media_base64(value: str) -> bytes:
     try:
         media = base64.b64decode(value, validate=True)

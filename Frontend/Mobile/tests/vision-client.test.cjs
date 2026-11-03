@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 function loadService(name, modules, extra = {}) {
+  modules = { 'react-native': { Platform: { OS: 'web' } }, 'expo-secure-store': {}, './media': {}, ...modules };
   const filename = path.join(__dirname, '../src/services', name + '.ts');
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
@@ -17,6 +18,81 @@ function loadService(name, modules, extra = {}) {
     process: { env: {} }, __DEV__: true, ...extra }, { filename });
   return module.exports;
 }
+
+test('native session is restored securely before an analysis request', async () => {
+  let stored = null;
+  let authorization;
+  const secureStore = {
+    setItemAsync: async (_key, value) => { stored = value; },
+    getItemAsync: async () => stored,
+    deleteItemAsync: async () => { stored = null; },
+  };
+  const modules = {
+    'react-native': { Platform: { OS: 'android' } },
+    'expo-secure-store': secureStore,
+    'expo-constants': { __esModule: true, default: {} },
+    './video-session': { setVideoReport() {} },
+  };
+  const first = loadService('api', modules);
+  first.setTokens({ access_token: 'access-test', refresh_token: 'refresh-test' });
+  await first.restoreTokens();
+  const second = loadService('api', modules, { fetch: async (_url, init) => {
+    authorization = init.headers.get('Authorization');
+    return Response.json({});
+  } });
+  await second.restoreTokens();
+  await second.apiRequest('/copilot/precompute');
+  assert.equal(authorization, 'Bearer access-test');
+});
+
+test('publication image is sent to the private analysis endpoint', async () => {
+  let call;
+  const service = loadService('vision', {
+    'expo-file-system': { File: class {} },
+    './media': { readMediaBase64: async () => 'cGljdHVyZQ==' },
+    './api': { apiRequest: async (path, options) => {
+      call = { path, body: JSON.parse(options.body) };
+      return { labels: ['Tree'], text: '', notice: 'À vérifier' };
+    } },
+  });
+  const result = await service.analyzePublicationMedia({ uri: 'file:///photo.png', type: 'image' });
+  assert.equal(call.path, '/vision/image');
+  assert.equal(call.body.image_base64, 'cGljdHVyZQ==');
+  assert.equal(result.labels[0], 'Tree');
+  assert.equal(result.score, undefined);
+});
+
+test('native publication media uses local filesystem and checks size before reading', async () => {
+  let reads = 0;
+  class FakeFile {
+    constructor(uri) { this.exists = true; this.size = uri.includes('large') ? 101 : 100; }
+    async base64() { reads++; return 'cGljdHVyZQ=='; }
+  }
+  const media = loadService('media', { 'expo-file-system': { File: FakeFile }, 'react-native': { Platform: { OS: 'android' } } });
+  assert.equal(await media.readMediaBase64('file:///photo.png', 100), 'cGljdHVyZQ==');
+  await assert.rejects(media.readMediaBase64('file:///large.png', 100), /dépasse/);
+  assert.equal(reads, 1);
+});
+
+test('simultaneous expired requests share one refresh and retain the new session', async () => {
+  let refreshCalls = 0;
+  const api = loadService('api', {
+    'expo-constants': { __esModule: true, default: {} },
+    './video-session': { setVideoReport() {} },
+  }, { fetch: async (url, init) => {
+    if (url.endsWith('/auth/refresh')) {
+      refreshCalls++;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return Response.json({ access_token: 'new-access', refresh_token: 'new-refresh' });
+    }
+    return init.headers.get('Authorization') === 'Bearer new-access'
+      ? Response.json({ ok: true }) : Response.json({ detail: 'expired' }, { status: 401 });
+  } });
+  api.setTokens({ access_token: 'expired', refresh_token: 'old-refresh' });
+  const responses = await Promise.all([api.apiRequest('/auth/me'), api.apiRequest('/copilot/precompute')]);
+  assert.equal(refreshCalls, 1);
+  assert.ok(responses.every((response) => response.ok));
+});
 
 test('physical phone resolves localhost against the private Metro host and sends only the session token', async () => {
   const requests = [];

@@ -79,6 +79,8 @@ export function CredibilityForm({ articleUrl, onResultChange }: { articleUrl?: s
       setError('Indiquez une affirmation précise et au moins une adresse de source.');
       return;
     }
+    // A pending AI suggestion must not overwrite a result requested by the user.
+    dirty.current = true;
     setBusy(true);
     setError('');
     setResult(null);
@@ -145,7 +147,7 @@ export function CredibilityForm({ articleUrl, onResultChange }: { articleUrl?: s
         <Text style={styles.score}>{result.corroboration_percent === null ? 'Preuves insuffisantes' : `${result.corroboration_percent} % de sources concordantes`}</Text>
         <Text style={styles.note}>{result.supports} confirme(nt) · {result.contradicts} contredit(sent) · {result.inconclusive} non concluant(s)</Text>
         <Text style={styles.note}>{result.source_groups} groupe(s) de domaines · {result.excluded_duplicates} source(s) regroupée(s)</Text>
-        {result.corroboration_percent === null ? <Text style={styles.note}>Il faut au moins deux groupes de sources conclusifs pour calculer cet indice.</Text> : null}
+        {result.corroboration_percent === null ? <Text style={styles.note}>Il faut au moins deux domaines indépendants classés « Confirme » ou « Contredit ». Les sources « Non concluant » et les articles d’un même domaine ne suffisent pas.</Text> : null}
         <Text style={styles.note}>{result.limitation}</Text>
       </View> : null}
     </View>

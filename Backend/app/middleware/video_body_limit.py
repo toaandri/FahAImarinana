@@ -20,7 +20,7 @@ class VideoBodyLimitMiddleware:
             limit = MAX_CONTRIBUTION_BODY_BYTES
             too_large = 'Le média dépasse la taille maximale de 100 Mo.'
             timeout = 600
-        elif route == ('POST', '/vision/video'):
+        elif route in (('POST', '/vision/video'), ('POST', '/vision/image')):
             limit = 6 * 1024 * 1024
             too_large = 'Le clip dépasse la taille autorisée.'
             timeout = 30

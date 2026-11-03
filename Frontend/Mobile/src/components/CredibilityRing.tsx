@@ -9,7 +9,7 @@ type CredibilityRingProps = {
   label?: string;
 };
 
-export function CredibilityRing({ value = 0, size = 60, label }: CredibilityRingProps) {
+export function CredibilityRing({ value = null, size = 60, label }: CredibilityRingProps) {
   const numericValue = value ?? 0;
   const radius = size / 2 - 5;
   const circumference = 2 * Math.PI * radius;
@@ -33,7 +33,7 @@ export function CredibilityRing({ value = 0, size = 60, label }: CredibilityRing
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <Text style={[styles.value, { fontSize: Math.max(12, size * 0.3) }]}>{value == null ? '—' : Math.round(numericValue)}%</Text>
+      <Text style={[styles.value, { fontSize: Math.max(12, size * 0.23) }]}>{value == null ? '—' : `${numericValue} %`}</Text>
       {label ? <Text style={styles.label}>{label}</Text> : null}
     </View>
   );

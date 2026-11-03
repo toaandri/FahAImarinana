@@ -1,7 +1,8 @@
-from fastapi import APIRouter,Depends,HTTPException,Query
+from fastapi import APIRouter,Depends,HTTPException,Query,Response
+from datetime import datetime
 from pydantic import BaseModel,ConfigDict,Field,HttpUrl
 from sqlalchemy import select,or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from ....database import get_db
 from ....core.permissions import require_permission
 from ....core.rbac import Permission as P,authorize
@@ -14,7 +15,7 @@ from ....schemas.editorial import DraftVersionRead
 from ....schemas.sources import SourceRead
 from ....services import investigations as service
 from typing import Literal
-from ....core.media import MAX_MEDIA_BASE64_LENGTH, MediaTooLargeError, decode_media_base64
+from ....core.media import MAX_MEDIA_BASE64_LENGTH, MediaTooLargeError, decode_media_base64, detect_media_type
 
 router=APIRouter(tags=['Dossiers et contributions'])
 
@@ -177,6 +178,13 @@ class ContributionRead(BaseModel):
     status: str
 
 
+class EditorialContributionRead(ContributionRead):
+    submitted_by_id: int
+    created_at: datetime
+    has_media: bool
+    media_content_type: str | None
+
+
 def decode_submission_media(payload: Submission):
     if payload.media_base64 is None:
         if payload.media_content_type is not None:
@@ -196,9 +204,39 @@ def submit_signal(payload: Submission,db: Session=Depends(get_db),
     media=decode_submission_media(payload)
     record=Contribution(submitted_by_id=user.id,kind='signal',content=payload.content,
         reference_url=str(payload.reference_url) if payload.reference_url else None,
-        media=media,media_content_type=payload.media_content_type)
+        media=media,media_content_type=payload.media_content_type or (detect_media_type(media) if media else None))
     db.add(record); db.commit(); db.refresh(record)
     return record
+
+
+@router.get('/editorial/contributions', response_model=list[EditorialContributionRead])
+def editorial_contributions(db: Session=Depends(get_db),
+                            user: User=Depends(require_permission(P.DRAFT_READ)),
+                            limit: int=Query(default=50, ge=1, le=200),
+                            offset: int=Query(default=0, ge=0)):
+    rows = db.execute(select(Contribution, Contribution.media.is_not(None).label('has_media'))
+        .options(defer(Contribution.media)).order_by(Contribution.created_at.desc(), Contribution.id.desc())
+        .limit(limit).offset(offset)).all()
+    return [EditorialContributionRead(id=record.id, kind=record.kind, content=record.content,
+            status=record.status, submitted_by_id=record.submitted_by_id, created_at=record.created_at,
+            has_media=has_media, media_content_type=record.media_content_type) for record, has_media in rows]
+
+
+def _contribution_media_response(record: Contribution):
+    if record.media is None:
+        raise NotFoundError('Aucun média pour cette contribution.')
+    return Response(content=record.media, media_type=record.media_content_type or 'application/octet-stream',
+                    headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff',
+                             'Content-Disposition': 'attachment'})
+
+
+@router.get('/editorial/contributions/{contribution_id}/media')
+def editorial_contribution_media(contribution_id: int, db: Session=Depends(get_db),
+                                 user: User=Depends(require_permission(P.DRAFT_READ))):
+    record = db.scalar(select(Contribution).where(Contribution.id == contribution_id))
+    if record is None:
+        raise NotFoundError('Contribution introuvable.')
+    return _contribution_media_response(record)
 
 
 def own_submission(db,user,identifier):
@@ -214,6 +252,12 @@ def submission(contribution_id: int,db: Session=Depends(get_db),
     return own_submission(db,user,contribution_id)
 
 
+@router.get('/contributions/{contribution_id}/media')
+def submission_media(contribution_id: int, db: Session=Depends(get_db),
+                     user: User=Depends(require_permission(P.CONTRIBUTION_ADD))):
+    return _contribution_media_response(own_submission(db, user, contribution_id))
+
+
 @router.post('/contributions/{contribution_id}/information',response_model=ContributionRead,status_code=201)
 def add_information(contribution_id: int,payload: Submission,db: Session=Depends(get_db),
                     user: User=Depends(require_permission(P.CONTRIBUTION_ADD))):
@@ -221,6 +265,6 @@ def add_information(contribution_id: int,payload: Submission,db: Session=Depends
     media=decode_submission_media(payload)
     record=Contribution(submitted_by_id=user.id,parent_id=parent.id,kind='information',content=payload.content,
         reference_url=str(payload.reference_url) if payload.reference_url else None,
-        media=media,media_content_type=payload.media_content_type)
+        media=media,media_content_type=payload.media_content_type or (detect_media_type(media) if media else None))
     db.add(record); db.commit(); db.refresh(record)
     return record

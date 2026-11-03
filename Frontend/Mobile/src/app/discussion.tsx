@@ -6,7 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { HeaderBar } from '@/components/ui';
 import { palette } from '@/theme/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { getResponseLanguage, sendMessageToAI, translateAnswer, startPrecompute, type ResponseLanguage, type Corroboration } from '@/services/mockData';
+import { getResponseLanguage, sendMessageToAI, translateAnswer, type ResponseLanguage, type Corroboration } from '@/services/mockData';
 import { CredibilityForm } from '@/components/CredibilityForm';
 
 export default function DiscussionScreen() {
@@ -26,11 +26,8 @@ export default function DiscussionScreen() {
   const [analysisVersion, setAnalysisVersion] = useState(0);
   const analyzedQuestion = useRef('');
   const [statisticsProvisional, setStatisticsProvisional] = useState(false);
-  useEffect(() => {
-    if (params.analyze === '1' && typeof params.article_url === 'string') {
-      void startPrecompute(params.article_url).catch(() => {});
-    }
-  }, [params.analyze, params.article_url]);
+  const articleUrl = params.analyze === '1' && typeof params.article_url === 'string'
+    && (!question || question === params.question) ? params.article_url : undefined;
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -54,7 +51,7 @@ export default function DiscussionScreen() {
         const result = await sendMessageToAI(submitted, language);
         if (!active) return;
         setAnswer(result.summary);
-        setStatistics(null);
+        if (!articleUrl) setStatistics(null);
         setAnalysisVersion((value) => value + 1);
         setOriginal(result.summary);
         setSources(result.sources);
@@ -131,7 +128,7 @@ export default function DiscussionScreen() {
           <View style={styles.resultTop}>
             <View style={styles.resultTextWrap}>
               <Text style={styles.resultTitle}>{t('aiPreAnalysis')}</Text>
-              {answer ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
+              {answer || articleUrl ? <View accessibilityLiveRegion="polite" style={styles.statistics}>
                 <Text style={styles.resultTitle}>{statisticsProvisional ? 'Statistique IA provisoire' : 'Statistique de corroboration'}</Text>
                 <Text style={styles.resultSummary}>{statistics?.corroboration_percent == null
                   ? 'Preuves insuffisantes — renseignez les sources ci-dessous.'
@@ -151,7 +148,7 @@ export default function DiscussionScreen() {
           {busy ? <Text accessibilityLiveRegion="polite" style={styles.source}>{t('aiWorking')}</Text> : null}
           {status ? <Text accessibilityLiveRegion="polite" style={styles.source}>{status}</Text> : null}
         </View>
-        {answer ? <CredibilityForm key={`${analysisVersion}-${question}`} articleUrl={params.analyze === '1' && question === params.question ? params.article_url : undefined} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
+        {answer || articleUrl ? <CredibilityForm key={articleUrl || `${analysisVersion}-${question}`} articleUrl={articleUrl} onResultChange={(value, provisional) => { setStatistics(value); setStatisticsProvisional(!!provisional); }} /> : null}
       </ScrollView>
 
       <View style={styles.inputBar}>

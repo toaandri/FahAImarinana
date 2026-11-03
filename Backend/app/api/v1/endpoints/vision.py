@@ -1,5 +1,5 @@
 from uuid import UUID, uuid4
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ....core.config import get_settings
@@ -7,10 +7,18 @@ from ....core.permissions import require_permission
 from ....core.rbac import Permission as P
 from ....database import get_db
 from ....models import User, MediaAnalysis
-from ....schemas.vision import VideoClipRequest, VideoAnalysisRead, MAX_VIDEO_BYTES
+from ....schemas.vision import VideoClipRequest, VideoAnalysisRead, ImageAnalysisRequest, MAX_VIDEO_BYTES
 from ....services.vision import analyze_clip, own_analysis
 
 router = APIRouter(prefix='/vision', tags=['Gemini Vision — vidéo privée'])
+
+
+@router.post('/image')
+def image(payload: ImageAnalysisRequest, response: Response,
+          user: User = Depends(require_permission(P.ANALYSIS_WRITE))):
+    from ....services.image_analysis import analyze_image
+    response.headers['Cache-Control'] = 'no-store'
+    return analyze_image(payload.image_base64)
 
 
 @router.get('/status')

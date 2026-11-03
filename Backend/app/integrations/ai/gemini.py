@@ -47,7 +47,7 @@ def _request(payload: dict) -> dict:
             return result
     except HTTPError as exc:
         if exc.code in (400, 401, 403):
-            message = 'Gemini refuse la requête : vérifier la clé, les droits, le modèle et le format vidéo côté serveur.'
+            message = 'Gemini refuse la requête : vérifier la clé, les droits, le modèle et le format du média côté serveur.'
         elif exc.code == 429:
             message = 'Quota Gemini atteint. Réessayez plus tard.'
         else:

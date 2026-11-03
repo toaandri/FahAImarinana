@@ -139,8 +139,8 @@ export function StoryCard({ title, source, status, image, analysis, label = 'Der
           <Text style={styles.credibilityCaption}>Fiabilité</Text>
           <Text style={styles.credibilityCaption}>Non calculée</Text>
           <Text style={styles.credibilityCaption}>Cohérence des sources</Text>
-          <Text style={styles.storyMetric}>{analysis?.state === 'loading' || !analysis ? '…' : analysis.coherence == null ? '—' : `${analysis.coherence} %`}</Text>
-          <Text style={styles.credibilityCaption}>{analysis?.state === 'loading' || !analysis ? 'Analyse IA…' : analysis.state === 'unavailable' ? 'Analyse indisponible' : analysis.coherence == null ? analysis.reason || 'Sources insuffisantes' : 'IA · à vérifier'}</Text>
+          <CredibilityRingCore value={analysis?.state === 'done' ? analysis.coherence : null} size={52} />
+          <Text style={styles.credibilityCaption}>{analysis?.state === 'loading' || !analysis ? 'Analyse IA…' : analysis.state === 'unavailable' ? analysis.reason?.includes('Reconnectez-vous') ? 'Reconnectez-vous' : 'Analyse indisponible' : analysis.coherence == null ? analysis.reason || 'Sources insuffisantes' : 'IA · à vérifier'}</Text>
           </View>
           <Text numberOfLines={2} style={styles.storySource}>{source}</Text>
         </View>
@@ -193,7 +193,6 @@ const styles = StyleSheet.create({
   storyDetails: { width: 78, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
   ringWrap: { alignItems: 'center' },
   credibilityCaption: { color: '#fff', fontSize: 9, marginTop: 4, textAlign: 'center', fontFamily: 'Montserrat_600SemiBold_Italic' },
-  storyMetric: { color: palette.mint, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   storyImageWrap: { flex: 1, width: '100%', maxWidth: 303, height: 189, alignSelf: 'flex-start', borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end' },
   storyImage: StyleSheet.absoluteFill,
   storyImagePlaceholder: { ...StyleSheet.absoluteFill, backgroundColor: '#31545A' },

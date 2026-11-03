@@ -22,6 +22,32 @@ class PrecomputeTests(unittest.TestCase):
         self.assertTrue(candidates[1]['duplicate'])
         self.assertTrue(all(item['assessment'] == 'inconclusive' for item in candidates))
 
+    def test_news_search_unwraps_links_to_distinct_publishers(self):
+        feed = {'articles': [
+            {'title': 'Cyclone menace Antananarivo', 'url': 'https://www.bing.com/news/apiclick.aspx?url=https%3A%2F%2Fjournal.example%2Farticle', 'excerpt': 'Un extrait provenant du moteur de recherche.', 'seen_at': None},
+            {'title': 'Autre', 'url': 'https://www.bing.com/news/apiclick.aspx?url=javascript%3Aalert%281%29', 'excerpt': '', 'seen_at': None},
+        ]}
+        with patch.object(precompute.gdelt, '_rss_fallback', return_value=feed) as search:
+            results = precompute._news_search_leads(ARTICLE['title'] + ' - Journal')
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['url'], 'https://journal.example/article')
+        self.assertEqual(results[0]['origin'], 'extrait_bing_actualites')
+        self.assertIn('bing.com/news/search?', search.call_args.args[0][0])
+
+    def test_relevant_independent_sources_produce_corroboration_percentage(self):
+        sources = [
+            {'url': 'https://one.example/article', 'title': ARTICLE['title'], 'excerpt': 'Cyclone menace Antananarivo demain. Les autorités préviennent les habitants.', 'origin': 'extrait_bing_actualites'},
+            {'url': 'https://two.example/article', 'title': ARTICLE['title'], 'excerpt': 'Cyclone menace Antananarivo demain, mais aucune alerte ne concerne la ville.', 'origin': 'extrait_bing_actualites'},
+        ]
+        def assess(_article, candidates, _language):
+            candidates[0]['assessment'] = 'supports'
+            candidates[1]['assessment'] = 'contradicts'
+            return 'Cyclone menace Antananarivo demain.'
+        with patch.object(precompute, '_public_candidates', return_value=(sources, [])), \
+             patch.object(precompute, '_ai_suggestions', side_effect=assess):
+            result = precompute._run(ARTICLE, [], 'fr')
+        self.assertEqual(result['calculation']['corroboration_percent'], 50.0)
+
     def test_missing_ai_never_produces_a_score(self):
         with patch.object(precompute, '_public_candidates', return_value=([], [])), patch.object(precompute, '_ai_suggestions', side_effect=precompute.IntegrationUnavailableError('offline')):
             result = precompute._run(ARTICLE, [], 'fr')

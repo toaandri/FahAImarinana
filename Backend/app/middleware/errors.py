@@ -16,7 +16,7 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):
         path = canonical_api_path(request.url.path)
-        if path == '/vision/video' or path == '/contributions/signals' or (
+        if path in ('/vision/video', '/vision/image', '/contributions/signals') or (
             path is not None and re.fullmatch(r'/contributions/[0-9]+/information', path)
         ):
             # Never echo large media request bodies in validation responses.

@@ -110,6 +110,29 @@ class AuthRBACTests(unittest.TestCase):
         })
         self.assertEqual(legacy.status_code,201,legacy.text)
 
+        mobile_image = b'\x89PNG\r\n\x1a\n' + b'image-data'
+        mobile=self.req('JOURNALISTE','POST','/contributions/signals',{
+            'content':'[Sport] Titre\n\nTexte du reportage',
+            'media_base64':base64.b64encode(mobile_image).decode('ascii'),
+        })
+        self.assertEqual(mobile.status_code,201,mobile.text)
+        media=self.req('JOURNALISTE','GET',f"/contributions/{mobile.json()['id']}/media")
+        self.assertEqual(media.status_code,200,media.text)
+        self.assertEqual(media.content,mobile_image)
+        self.assertEqual(media.headers['content-type'],'image/png')
+        self.assertEqual(media.headers['cache-control'],'private, no-store')
+        self.assertEqual(self.client.get(f"/api/contributions/{mobile.json()['id']}/media").status_code,401)
+
+        mobile_video = b'\x00\x00\x00\x18ftypqt  ' + b'video-data'
+        video=self.req('JOURNALISTE','POST','/contributions/signals',{
+            'content':'[Société] Vidéo\n\nReportage',
+            'media_base64':base64.b64encode(mobile_video).decode('ascii'),
+        })
+        self.assertEqual(video.status_code,201,video.text)
+        fetched=self.req('JOURNALISTE','GET',f"/contributions/{video.json()['id']}/media")
+        self.assertEqual(fetched.headers['content-type'],'video/quicktime')
+        self.assertEqual(fetched.content,mobile_video)
+
         with patch('app.core.media.MAX_MEDIA_BYTES',len(image)-1):
             oversized=self.req('JOURNALISTE','POST','/contributions/signals',{
                 'content':'Article avec vidéo',

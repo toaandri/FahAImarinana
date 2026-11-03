@@ -6,12 +6,13 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 function load(filename, modules, globals = {}) {
+  modules = { './media': {}, ...modules };
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText;
   const module = { exports: {} };
   vm.runInNewContext(code, {
-    module, exports: module.exports, Headers, Response,
+    module, exports: module.exports, Headers, Response, URL, __DEV__: false,
     require: (id) => { if (!(id in modules)) throw new Error('Unexpected dependency: ' + id); return modules[id]; },
     ...globals,
   }, { filename });

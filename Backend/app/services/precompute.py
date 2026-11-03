@@ -12,7 +12,7 @@ import unicodedata
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 from uuid import uuid4
 
 import httpx
@@ -107,9 +107,28 @@ def _factcheck_leads(title):
     return results[:10]
 
 
+def _news_search_leads(title):
+    # The fixed search endpoint returns short publisher snippets. Never fetch the
+    # publisher links; unwrap Bing's tracking URLs only to group actual domains.
+    query = title.rsplit(' - ', 1)[0][:180]
+    url = 'https://www.bing.com/news/search?' + urlencode({'q': query, 'format': 'rss', 'setlang': 'fr'})
+    feed = gdelt._rss_fallback((url,))
+    results = []
+    for item in feed['articles']:
+        link = item.get('url') or ''
+        parsed = urlsplit(link)
+        if parsed.hostname in ('www.bing.com', 'bing.com') and parsed.path == '/news/apiclick.aspx':
+            link = parse_qs(parsed.query).get('url', [''])[0]
+        link = gdelt._valid_url(link)
+        if link:
+            results.append({**item, 'url': link, 'date': item.get('seen_at'), 'origin': 'extrait_bing_actualites'})
+    return results
+
+
 def _public_candidates(article):
     results, errors = [], []
     providers = [('gdelt', lambda: _gdelt_leads(article['title'])),
+                 ('recherche_actualites', lambda: _news_search_leads(article['title'])),
                  ('factcheck', lambda: _factcheck_leads(article['title']))]
     providers.extend(('rss', lambda url=url: [
         {**item, 'origin': 'rss', 'date': item.get('seen_at')}
@@ -265,7 +284,8 @@ def _run(article, local, language):
     return {'article_url': article['url'], 'article_title': article['title'], 'claim': claim,
             'sources': candidates, 'calculation': result,
             'checked_at': datetime.now(timezone.utc).isoformat(), 'warnings': sorted(set(errors)),
-            'notice': ('Pré-calcul IA non validé : les sources proposées et leurs passages doivent être lus et corrigés '
+            'notice': ('Pré-calcul IA non validé : certains extraits proviennent de moteurs d’actualités et peuvent être incomplets. '
+                       'Les sources proposées et leurs passages doivent être lus et corrigés '
                        'par un journaliste. Les titres seuls ne suffisent pas ; les reprises et liens entre médias '
                        'ne peuvent pas toujours être détectés. Ce score ne mesure pas la probabilité de vérité.')}
 

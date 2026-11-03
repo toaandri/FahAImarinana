@@ -1,4 +1,6 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { setVideoReport } from './video-session';
 
 type TokenResponse = {
@@ -36,11 +38,14 @@ const TOKEN_STORAGE_KEY = 'fah-ai-marinana.auth-tokens';
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
+let storageWrites = Promise.resolve();
 
 export function setTokens(tokens: TokenResponse | null) {
   accessToken = tokens?.access_token ?? null;
   refreshToken = tokens?.refresh_token ?? null;
-  void persistTokens(tokens);
+  storageWrites = storageWrites.catch(() => {}).then(() => persistTokens(tokens));
+  void storageWrites.catch(() => {});
 }
 
 export function clearTokens() {
@@ -50,14 +55,20 @@ export function clearTokens() {
 
 async function persistTokens(tokens: TokenResponse | null) {
   const value = tokens ? JSON.stringify(tokens) : null;
-  if (typeof globalThis.localStorage === 'undefined') return;
-  if (value) globalThis.localStorage.setItem(TOKEN_STORAGE_KEY, value);
-  else globalThis.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  if (Platform.OS !== 'web') {
+    if (value) await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, value);
+    else await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
+  } else if (typeof globalThis.localStorage !== 'undefined') {
+    if (value) globalThis.localStorage.setItem(TOKEN_STORAGE_KEY, value);
+    else globalThis.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
 }
 
 export async function restoreTokens() {
   try {
-    const value = globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY);
+    await storageWrites;
+    const value = Platform.OS === 'web' ? globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY)
+      : await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
     if (!value) return;
     const tokens = JSON.parse(value) as Partial<TokenResponse>;
     if (typeof tokens.access_token === 'string' && typeof tokens.refresh_token === 'string') {
@@ -97,23 +108,36 @@ function errorMessage(payload: ApiError) {
 async function request<T>(path: string, init: RequestInit = {}, canRefresh = true): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
-  if (accessToken) headers.set('Authorization', 'Bearer ' + accessToken);
+  const sentToken = accessToken;
+  if (sentToken) headers.set('Authorization', 'Bearer ' + sentToken);
 
   const response = await boundedFetch(`${API_URL}${path}`, { ...init, headers });
   if (response.status === 401 && canRefresh && refreshToken) {
-    const refreshed = await boundedFetch(`${API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (refreshed.ok) {
-      setTokens((await refreshed.json()) as TokenResponse);
-      return request<T>(path, init, false);
+    if (sentToken !== accessToken && accessToken) return request<T>(path, init, false);
+    if (!refreshInFlight) {
+      const tokenToRefresh = refreshToken;
+      refreshInFlight = (async () => {
+        const refreshed = await boundedFetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: tokenToRefresh }),
+        });
+        if (refreshToken !== tokenToRefresh) return !!accessToken;
+        if (refreshed.ok) {
+          setTokens((await refreshed.json()) as TokenResponse);
+          return true;
+        }
+        clearTokens();
+        return false;
+      })().finally(() => { refreshInFlight = null; });
     }
-    clearTokens();
+    if (await refreshInFlight) return request<T>(path, init, false);
   }
 
   if (!response.ok) {
+    if (response.status === 401 && !['/auth/login', '/auth/register'].includes(path)) {
+      throw new Error('Session expirée ou absente. Reconnectez-vous pour lancer l’analyse.');
+    }
     let payload: ApiError = {};
     try {
       payload = (await response.json()) as ApiError;

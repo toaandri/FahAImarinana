@@ -76,13 +76,13 @@ export default function HomeScreen() {
         } else if (job.status === 'failed' || attempts >= 90) {
           update({ state: 'unavailable' });
         } else {
-          timer = setTimeout(() => void poll(jobId, attempts + 1), 2000);
+          timer = setTimeout(() => void poll(jobId, attempts + 1), 1000);
         }
-      } catch { update({ state: 'unavailable' }); }
+      } catch (error) { update({ state: 'unavailable', reason: error instanceof Error ? error.message : 'Analyse indisponible' }); }
     };
     update({ state: 'loading' });
     startPrecompute(articleUrl).then((job) => { if (active) void poll(job.job_id, 0); })
-      .catch(() => update({ state: 'unavailable' }));
+      .catch((error) => update({ state: 'unavailable', reason: error instanceof Error ? error.message : 'Analyse indisponible' }));
     return () => { active = false; if (timer) clearTimeout(timer); };
   }, [articleUrl]);
 
