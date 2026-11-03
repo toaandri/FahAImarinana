@@ -22,7 +22,9 @@ GOOGLE_NEWS_URLS = (
     'https://news.google.com/rss/search?q=Madagascar&hl=fr&gl=MG&ceid=MG:fr',
     'https://news.google.com/rss/search?q=Madagascar+sport&hl=fr&gl=MG&ceid=MG:fr',
     'https://news.google.com/rss/search?q=Madagascar+%C3%A9conomie&hl=fr&gl=MG&ceid=MG:fr',
+    'https://news.google.com/rss/search?q=Madagascar+finance&hl=fr&gl=MG&ceid=MG:fr',
     'https://news.google.com/rss/search?q=Madagascar+soci%C3%A9t%C3%A9&hl=fr&gl=MG&ceid=MG:fr',
+    'https://news.google.com/rss/search?q=Madagascar+social&hl=fr&gl=MG&ceid=MG:fr',
 )
 RSS_URLS = ('https://www.madagascar-tribune.com/spip.php?page=backend',
             'https://www.france24.com/fr/tag/madagascar/rss')
@@ -36,9 +38,9 @@ TOPIC_TERMS = {
               'athletisme', 'athlete', 'championnat', 'champion', 'olympique', 'match',
               'footballer', 'soccer', 'athletics', 'olympics', 'tournament', 'barea', 'kitra', 'volleyball', 'cyclisme', 'judo'),
     'Économie': ('economie', 'economique', 'entreprise', 'investissement', 'commerce', 'industrie',
-                 'finance', 'banque', 'inflation', 'emploi', 'budget', 'agriculture', 'tourisme',
+                 'finance', 'financier', 'financiere', 'banque', 'bancaire', 'inflation', 'emploi', 'budget', 'agriculture', 'tourisme',
                  'economy', 'business', 'investment', 'trade', 'tourism', 'toekarena', 'varotra', 'peche', 'paysans', 'agricole', 'exportation'),
-    'Société': ('societe', 'education', 'sante', 'ecole', 'hopital', 'population', 'justice',
+    'Société': ('societe', 'social', 'sociale', 'sociaux', 'education', 'sante', 'ecole', 'hopital', 'population', 'justice',
                 'environnement', 'climat', 'inondation', 'cyclone', 'police', 'culture',
                 'community', 'health', 'school', 'education', 'climate', 'fahasalamana', 'sekoly', 'universite', 'etudiants', 'maladie', 'medecin'),
 }

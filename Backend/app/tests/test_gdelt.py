@@ -17,6 +17,8 @@ class GdeltTests(unittest.TestCase):
         self.assertEqual(gdelt.classify_topics('Football : victoire des Barea'), ['Sport'])
         self.assertEqual(gdelt.classify_topics('Un cyclone frappe la côte'), ['Société'])
         self.assertEqual(gdelt.classify_topics('Investissement et économie'), ['Économie'])
+        self.assertEqual(gdelt.classify_topics('Les services financiers et bancaires'), ['Économie'])
+        self.assertEqual(gdelt.classify_topics('Protection sociale à Madagascar'), ['Société'])
         self.assertEqual(gdelt.classify_topics('Actualités diverses'), [])
         self.assertIn('Sport', gdelt.classify_topics('Résultat du jour', metadata=['SPORT']))
 
@@ -72,6 +74,11 @@ class GdeltTests(unittest.TestCase):
             result = gdelt.latest_news()
         self.assertEqual(result['provider'], 'google_news')
         self.assertEqual(result['articles'], [article])
+
+    def test_google_news_searches_finance_and_social(self):
+        terms = [httpx.URL(url).params['q'] for url in gdelt.GOOGLE_NEWS_URLS]
+        self.assertIn('Madagascar finance', terms)
+        self.assertIn('Madagascar social', terms)
 
     def test_invalid_provider_response_is_explicit(self):
         real_client = httpx.Client

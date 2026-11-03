@@ -90,6 +90,7 @@ export default function NewsScreen() {
           <View style={styles.storyText}>
             <Text style={styles.source}>{item.source}{item.seen_at ? ` · ${new Date(item.seen_at).toLocaleString(language === 'mg' ? 'mg-MG' : language === 'en' ? 'en-US' : 'fr-FR')}` : ''}</Text>
             <Text style={styles.title}>{item.title}</Text>
+            {item.excerpt ? <Text style={styles.excerpt}>{item.excerpt}</Text> : null}
             {item.categories?.length ? <Text style={styles.source}>{item.categories.join(' · ')}</Text> : null}
             <View style={styles.externalActions}>
               <InteractivePressable accessibilityRole="button" onPress={() => void Linking.openURL(item.url).catch(() => setExternalError('news.openFailed'))}><Text style={styles.externalLink}>{t('news.readSource')}</Text></InteractivePressable>
@@ -150,6 +151,11 @@ const styles = StyleSheet.create({
   storyText: { minWidth: 0 },
   source: { color: colors.background, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 8 },
   title: { color: colors.background, fontSize: 18, lineHeight: 26, fontWeight: '700' },
+<<<<<<< Updated upstream
   titleMobile: { fontSize: 18, lineHeight: 27 },
+=======
+  excerpt: { color: colors.background, fontSize: 15, lineHeight: 22, marginTop: 8 },
+  titleMobile: { fontSize: 16, lineHeight: 24 },
+>>>>>>> Stashed changes
   empty: { color: colors.muted, fontSize: 16, lineHeight: 24 },
 });
