@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Brand, Field, Icon, InteractivePressable, PrimaryButton } from '../components/ui';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Field, Icon, InteractivePressable } from '../components/ui';
 import { colors } from '../theme';
 import { register } from '../services/api';
 import { useI18n } from '../components/i18n';
@@ -16,8 +16,9 @@ type FormErrors = {
 export default function SignupScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const narrow = width < 360;
+  const wordSize = narrow ? 19 : width < 480 ? 26 : 34;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -57,21 +58,25 @@ export default function SignupScreen() {
   };
 
   return (
-    <ScrollView role="main" contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <ScrollView role="main" contentContainerStyle={[styles.page, { minHeight: height }, narrow && styles.pageNarrow]} keyboardShouldPersistTaps="handled">
       <View style={styles.formCard}>
-        <View style={styles.cardAccent} />
-        <View style={[styles.form, narrow && styles.formNarrow]}>
+        <View style={styles.form}>
           <Link href="/connexion" asChild>
             <InteractivePressable accessibilityRole="link" style={styles.brandLink}>
-              <Brand large />
+              <View style={styles.logo} accessible accessibilityLabel="FAH AI MARINANA">
+                <Text style={[styles.logoWord, { fontSize: wordSize }]}>FAH</Text>
+                <Text style={[styles.logoWord, styles.logoAccent, { fontSize: wordSize * 1.54 }]}>AI</Text>
+                <Text style={[styles.logoWord, { fontSize: wordSize }]}>MARINANA</Text>
+              </View>
             </InteractivePressable>
           </Link>
-          <Text style={[styles.heading, narrow && styles.headingNarrow]} accessibilityRole="header">
+          <Text style={styles.heading} accessibilityRole="header">
             {t('signup.heading')}
           </Text>
           <View style={styles.fields}>
             <Field
               label={t('login.email')}
+              underline leadingIcon="email-outline"
               value={email}
               onChangeText={(value) => updateField('email', () => setEmail(value))}
               placeholder={t('login.emailPlaceholder')}
@@ -82,6 +87,7 @@ export default function SignupScreen() {
             />
             <Field
               label={t('login.password')}
+              underline leadingIcon="lock-outline"
               value={password}
               onChangeText={(value) => updateField('password', () => setPassword(value))}
               placeholder={t('signup.passwordPlaceholder')}
@@ -97,12 +103,12 @@ export default function SignupScreen() {
                   style={styles.showPassword}
                 >
                   <Icon name={showPassword ? 'eye-off-outline' : 'eye-outline'} color={colors.muted} size={19} />
-                  <Text style={styles.showPasswordText}>{showPassword ? t('login.hidePassword') : t('login.showPassword')}</Text>
                 </InteractivePressable>
               }
             />
             <Field
               label={t('signup.confirmPassword')}
+              underline leadingIcon="lock-outline"
               value={passwordConfirmation}
               onChangeText={(value) => updateField('passwordConfirmation', () => setPasswordConfirmation(value))}
               placeholder={t('signup.confirmPlaceholder')}
@@ -111,18 +117,19 @@ export default function SignupScreen() {
               autoCapitalize="none"
               style={styles.field}
             />
-            <PrimaryButton
-              label={t('signup.submit')}
-              icon="arrow-right"
-              onPress={submit}
-              loading={submitting}
-            />
+            <InteractivePressable accessibilityRole="button" accessibilityState={{ disabled: submitting, busy: submitting }} disabled={submitting} onPress={submit} style={styles.primaryButton}>
+              {submitting ? <ActivityIndicator color={colors.deep} /> : null}
+              <Text style={styles.primaryButtonText}>{t('signup.submit')}</Text>
+            </InteractivePressable>
             {errors.status ? (
               <Text style={styles.status} accessibilityRole="alert" accessibilityLiveRegion="assertive">
                 {errors.status}
               </Text>
             ) : null}
           </View>
+
+        </View>
+      </View>
           <View style={styles.account}>
             <Text style={styles.accountText}>{t('signup.hasAccount')}</Text>
             <Link href="/connexion" asChild>
@@ -131,67 +138,28 @@ export default function SignupScreen() {
               </InteractivePressable>
             </Link>
           </View>
-        </View>
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flexGrow: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  formCard: {
-    width: '100%',
-    maxWidth: 480,
-    overflow: 'hidden',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  cardAccent: { height: 4, backgroundColor: colors.accent },
-  form: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  formNarrow: { paddingHorizontal: 16 },
-  brandLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
-  heading: {
-    color: colors.white,
-    fontSize: 26,
-    lineHeight: 34,
-    fontWeight: '700',
-    marginTop: 6,
-    marginBottom: 8,
-  },
-  headingNarrow: { fontSize: 24, lineHeight: 32, marginBottom: 8 },
-  fields: { gap: 12 },
-  field: { marginBottom: 4 },
-  showPassword: {
-    minHeight: 44,
-    minWidth: 80,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  showPasswordText: { color: colors.muted, fontSize: 13 },
-  status: {
-    color: '#FFD1D1',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#FF8B8B',
-    borderRadius: 10,
-    backgroundColor: colors.deep,
-  },
-  account: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
-  accountText: { color: colors.white, fontSize: 15, lineHeight: 22 },
-  textLinkHitbox: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  link: { color: colors.accent, fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  page: { flexGrow: 1, backgroundColor: colors.background, alignItems: 'center', paddingHorizontal: 32, paddingTop: 32, paddingBottom: 16 },
+  pageNarrow: { paddingHorizontal: 20, paddingTop: 16 },
+  formCard: { width: '100%', maxWidth: 520 },
+  form: { width: '100%' },
+  brandLink: { minHeight: 60, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  logo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  logoWord: { color: colors.white, fontWeight: '800', fontStyle: 'italic', letterSpacing: -1 },
+  logoAccent: { color: colors.accent },
+  heading: { color: colors.white, fontSize: 24, lineHeight: 32, fontWeight: '700', fontStyle: 'italic', marginBottom: 12 },
+  fields: { gap: 14 },
+  field: { marginBottom: 0 },
+  showPassword: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  primaryButton: { minHeight: 56, flexDirection: 'row', gap: 10, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, marginTop: 10, borderRadius: 16, backgroundColor: colors.accent },
+  primaryButtonText: { flexShrink: 1, color: colors.deep, fontSize: 17, lineHeight: 25, fontWeight: '800', fontStyle: 'italic', textAlign: 'center' },
+  status: { color: '#FFD1D1', fontSize: 14, lineHeight: 21, marginTop: 10, textAlign: 'center' },
+  account: { width: '100%', maxWidth: 520, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 4, marginTop: 'auto', paddingTop: 32 },
+  accountText: { color: colors.white, fontSize: 14, lineHeight: 22, fontWeight: '600', fontStyle: 'italic', textAlign: 'center' },
+  textLinkHitbox: { minHeight: 44, justifyContent: 'center' },
+  link: { color: colors.accent, fontSize: 14, lineHeight: 22, fontWeight: '800', fontStyle: 'italic', textAlign: 'center' },
 });

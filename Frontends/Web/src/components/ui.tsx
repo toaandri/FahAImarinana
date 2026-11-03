@@ -437,6 +437,8 @@ export function Field({
   keyboardType,
   autoCapitalize,
   right,
+  underline = false,
+  leadingIcon,
   style,
 }: {
   label: string;
@@ -450,14 +452,17 @@ export function Field({
   keyboardType?: 'default' | 'email-address';
   autoCapitalize?: 'none' | 'sentences';
   right?: ReactNode;
+  underline?: boolean;
+  leadingIcon?: IconName;
   style?: object;
 }) {
   const [focused, setFocused] = useState(false);
 
   return (
     <View style={[styles.fieldGroup, style]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.inputWrap, multiline && styles.textAreaWrap, error && styles.inputError, focused && styles.inputFocused]}>
+      {!underline ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <View style={[styles.inputWrap, multiline && styles.textAreaWrap, error && styles.inputError, focused && styles.inputFocused, underline && styles.underlineWrap]}>
+        {leadingIcon ? <Icon name={leadingIcon} color={colors.white} size={26} /> : null}
         <TextInput
           accessibilityLabel={label}
           accessibilityHint={error}
@@ -465,14 +470,14 @@ export function Field({
           onBlur={() => setFocused(false)}
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
+          placeholder={underline ? label : placeholder}
           placeholderTextColor={colors.muted}
           secureTextEntry={secureTextEntry}
           multiline={multiline}
           numberOfLines={numberOfLines}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
-          style={[styles.input, multiline && styles.textArea]}
+          style={[styles.input, multiline && styles.textArea, underline && styles.underlineInput]}
         />
         {right}
       </View>
@@ -677,6 +682,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
   },
+  underlineWrap: { minHeight: 68, borderWidth: 0, borderBottomWidth: 2, borderRadius: 0, backgroundColor: 'transparent', paddingHorizontal: 0, gap: 16 },
+  underlineInput: { minHeight: 66, fontSize: 20, lineHeight: 28, fontWeight: '700', fontStyle: 'italic' },
   inputError: { borderColor: '#FF8B8B' },
   inputFocused: { borderColor: colors.accent, borderWidth: 2 },
   input: { flex: 1, minHeight: 48, color: colors.white, fontSize: 16, lineHeight: 24, minWidth: 0, paddingVertical: 12 },
